@@ -1,5 +1,6 @@
 import Haste
 import Haste.Graphics.Canvas
+import Data.List (minimumBy)
 
 -- Color theme
 -- http://www.colourlovers.com/palette/15/tech_light
@@ -11,15 +12,16 @@ white = RGB 255 255 255
 spacing         = 60 :: Double
 markerWidth     = 20 :: Double
 ringInnerRadius = 22 :: Double
-ringWidth       =  6 :: Double
+ringWidth       = 6 :: Double
+start           = (-15, 140) :: (Double, Double)
 
 -- | Yinsh hex coordinates
 type YCoord = (Int, Int)
 
 -- | Translate hex coordinates to screen coordiates
 fromCoord :: YCoord -> Point
-fromCoord (ya, yb) = (0.5 * sqrt 3 * x',
-                      y' - 0.5 * x')
+fromCoord (ya, yb) = (0.5 * sqrt 3 * x' + fst start,
+                      y' - 0.5 * x' + snd start)
                 where x' = spacing * fromIntegral ya
                       y' = spacing * fromIntegral yb
 
@@ -37,7 +39,7 @@ coords = concat $ zipWith (\list ya -> map (\x -> (ya, x)) list) numPoints [1..]
 -- | Check if two points are connected by a line
 --
 -- Examples:
--- >>> reachable (3, 4) (8, 4)
+-- >>> connected (3, 4) (8, 4)
 -- True
 --
 connected :: YCoord -> YCoord -> Bool
@@ -90,7 +92,7 @@ dot = do
 board :: Picture ()
 board = do
     sequence_ $ mapM translate points (cross (0.5 * spacing))
-    sequence_ $ mapM (translate . fromCoord) (reachable (3, 6)) dot
+    -- sequence_ $ mapM (translate . fromCoord) (reachable (3, 6)) dot
     translateC (3, 4) $ ring blue
     translateC (4, 9) $ ring blue
     translateC (8, 7) $ ring green
@@ -101,11 +103,23 @@ board = do
     translateC (6, 7) $ marker green
     translateC (6, 6) $ marker blue
 
-drawBoard :: Canvas -> IO ()
-drawBoard can = render can $ translate (-15, 140) board
+getClosestCoord :: Point -> YCoord
+getClosestCoord (x, y) = coords !! snd lsort
+    where lind = zipWith (\p i -> (dist p, i)) points [0..]
+          lsort = minimumBy cmpFst lind
+          dist (x', y') = (x-x')^2 + (y-y')^2
+          cmpFst t1 t2 = compare (fst t1) (fst t2)
+
+showMoves :: Canvas -> (Int, Int) -> IO ()
+showMoves can (x, y) =
+    render can $ do
+        board
+        translateC (getClosestCoord (fromIntegral x, fromIntegral y)) dot
 
 main :: IO ()
 main = do
     Just can <- getCanvasById "canvas"
-    drawBoard can
-
+    render can board -- TODO: needed?
+    Just ce <- elemById "canvas"
+    ce `onEvent` OnMouseMove $ showMoves can
+    return ()
