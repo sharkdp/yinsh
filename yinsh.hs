@@ -2,6 +2,8 @@ import Haste
 import Haste.Graphics.Canvas
 import Data.List (minimumBy)
 
+-- >>> import Test.QuickCheck
+
 -- Color theme
 -- http://www.colourlovers.com/palette/15/tech_light
 green = RGB 209 231  81
@@ -13,15 +15,19 @@ spacing         = 60 :: Double
 markerWidth     = 20 :: Double
 ringInnerRadius = 22 :: Double
 ringWidth       = 6 :: Double
-start           = (-15, 140) :: (Double, Double)
+originX         = -15 :: Double
+originY         = 140 :: Double
 
 -- | Yinsh hex coordinates
 type YCoord = (Int, Int)
 
--- | Translate hex coordinates to screen coordiates
+-- | Player types: black & white or blue & green
+data Player = B | W
+
+-- | Translate hex coordinates to screen coordinates
 fromCoord :: YCoord -> Point
-fromCoord (ya, yb) = (0.5 * sqrt 3 * x' + fst start,
-                      y' - 0.5 * x' + snd start)
+fromCoord (ya, yb) = (0.5 * sqrt 3 * x' + originX,
+                      y' - 0.5 * x' + originY)
                 where x' = spacing * fromIntegral ya
                       y' = spacing * fromIntegral yb
 
@@ -33,14 +39,16 @@ numPoints = [[2..5], [1..7], [1..8], [1..9],
              [4..11], [5..11], [7..10]]
 
 -- | All points on the board
+-- >>> length coords
+-- 85
 coords :: [YCoord]
 coords = concat $ zipWith (\list ya -> map (\x -> (ya, x)) list) numPoints [1..]
 
 -- | Check if two points are connected by a line
---
--- Examples:
 -- >>> connected (3, 4) (8, 4)
 -- True
+--
+-- prop> ((\c1 c2 -> connected c1 c2 == connected c2 c1) :: YCoord -> YCoord -> Bool)
 --
 connected :: YCoord -> YCoord -> Bool
 connected (x, y) (a, b) =        x == a
@@ -51,6 +59,11 @@ connected (x, y) (a, b) =        x == a
 reachable :: YCoord -> [YCoord]
 reachable c = filter (connected c) coords
 
+data DisplayState = BoardOnly
+                  | ConnectedPoints
+                  | Marker Player
+
+-- | All grid points as screen coordinates
 points :: [Point]
 points = map fromCoord coords
 
@@ -58,9 +71,13 @@ points = map fromCoord coords
 translateC :: YCoord -> Picture () -> Picture ()
 translateC = translate . fromCoord
 
-ring :: Color -> Picture ()
-ring col = do
-    setFillColor col
+playerColor :: Player -> Color
+playerColor B = blue
+playerColor W = green
+
+ring :: Player -> Picture ()
+ring p = do
+    setFillColor $ playerColor p
     fill circL
     stroke circL
     setFillColor white
@@ -70,9 +87,9 @@ ring col = do
         where circL = circle (0, 0) (ringInnerRadius + ringWidth)
               circS = circle (0, 0) ringInnerRadius
 
-marker :: Color -> Picture ()
-marker col = do
-    setFillColor col
+marker :: Player -> Picture ()
+marker p = do
+    setFillColor $ playerColor p
     fill circ
     stroke circ
         where circ = circle (0, 0) markerWidth
@@ -93,15 +110,26 @@ board :: Picture ()
 board = do
     sequence_ $ mapM translate points (cross (0.5 * spacing))
     -- sequence_ $ mapM (translate . fromCoord) (reachable (3, 6)) dot
-    translateC (3, 4) $ ring blue
-    translateC (4, 9) $ ring blue
-    translateC (8, 7) $ ring green
-    translateC (6, 3) $ ring green
-    translateC (4, 8) $ ring blue
-    translateC (6, 4) $ marker green
-    translateC (6, 5) $ marker green
-    translateC (6, 7) $ marker green
-    translateC (6, 6) $ marker blue
+    translateC (3, 4) $ ring B
+    translateC (4, 9) $ ring B
+    translateC (8, 7) $ ring W
+    translateC (6, 3) $ ring W
+    translateC (4, 8) $ ring B
+    translateC (6, 4) $ marker W
+    translateC (6, 5) $ marker W
+    translateC (6, 7) $ marker W
+    translateC (6, 6) $ marker B
+
+-- | Render everything that is seen on the screen
+-- Second argument is the coordinate where the mouse is
+display :: DisplayState -> YCoord -> Picture ()
+display BoardOnly _       = board
+display ConnectedPoints c = do
+    board
+    sequence_ $ mapM (translate . fromCoord) (reachable c) dot
+display (Marker p) c      = do
+    board
+    translateC c $ marker p
 
 getClosestCoord :: Point -> YCoord
 getClosestCoord (x, y) = coords !! snd lsort
@@ -113,8 +141,9 @@ getClosestCoord (x, y) = coords !! snd lsort
 showMoves :: Canvas -> (Int, Int) -> IO ()
 showMoves can (x, y) =
     render can $ do
-        board
-        translateC (getClosestCoord (fromIntegral x, fromIntegral y)) dot
+        -- display BoardOnly
+        -- display ConnectedPoints (getClosestCoord (fromIntegral x, fromIntegral y))
+        display (Marker B) (getClosestCoord (fromIntegral x, fromIntegral y))
 
 main :: IO ()
 main = do
