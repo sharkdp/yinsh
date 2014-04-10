@@ -1,6 +1,7 @@
 import Haste
 import Haste.Graphics.Canvas
 import Data.List (minimumBy)
+import Data.IORef
 
 -- >>> import Test.QuickCheck
 
@@ -23,6 +24,10 @@ type YCoord = (Int, Int)
 
 -- | Player types: black & white or blue & green
 data Player = B | W
+
+instance Enum Player where
+    succ B = W
+    succ W = B
 
 -- | Translate hex coordinates to screen coordinates
 fromCoord :: YCoord -> Point
@@ -59,21 +64,23 @@ connected (x, y) (a, b) =        x == a
 reachable :: YCoord -> [YCoord]
 reachable c = filter (connected c) coords
 
-data DisplayState = BoardOnly
-                  | WaitTurn TurnMode
+data DisplayState = BoardOnly GameState
+                  | WaitTurn GameState
 
 data Element = Ring Player YCoord
              | Marker Player YCoord
 
-data TurnMode = AddRing Player
-              | AddMarker Player
-              | MoveRing Player YCoord
-              | RemoveRing Player
+data TurnMode = AddRing
+              | AddMarker
+              | MoveRing YCoord
+              | RemoveRing
+
+type Board = [Element]
 
 data GameState = GameState {
                              activePlayer :: Player,
                              turnMode :: TurnMode,
-                             board :: [Element]
+                             board :: Board
                            }
 
 -- | All grid points as screen coordinates
@@ -88,9 +95,12 @@ playerColor :: Player -> Color
 playerColor B = blue
 playerColor W = green
 
+setPlayerColor :: Player -> Picture ()
+setPlayerColor = setFillColor . playerColor
+
 pRing :: Player -> Picture ()
 pRing p = do
-    setFillColor $ playerColor p
+    setPlayerColor p
     fill circL
     stroke circL
     setFillColor white
@@ -102,10 +112,14 @@ pRing p = do
 
 pMarker :: Player -> Picture ()
 pMarker p = do
-    setFillColor $ playerColor p
+    setPlayerColor p
     fill circ
     stroke circ
         where circ = circle (0, 0) markerWidth
+
+pElement :: Element -> Picture ()
+pElement (Ring p c)   = translateC c $ pRing p
+pElement (Marker p c) = translateC c $ pMarker p
 
 pCross :: Double -> Picture ()
 pCross len = do
@@ -119,29 +133,25 @@ pDot = do
     setFillColor $ RGB 0 0 0
     fill $ circle (0, 0) 5
 
-pBoard :: Picture ()
-pBoard = do
+pBoard :: Board -> Picture ()
+pBoard board = do
     sequence_ $ mapM translate points (pCross (0.5 * spacing))
     -- sequence_ $ mapM (translate . fromCoord) (reachable (3, 6)) pDot
-    translateC (3, 4) $ pRing B
-    translateC (4, 9) $ pRing B
-    translateC (8, 7) $ pRing W
-    translateC (6, 3) $ pRing W
-    translateC (4, 8) $ pRing B
-    translateC (6, 4) $ pMarker W
-    translateC (6, 5) $ pMarker W
-    translateC (6, 7) $ pMarker W
-    translateC (6, 6) $ pMarker B
+    mapM_ pElement board
+
+pAction :: TurnMode -> YCoord -> Player -> Picture ()
+pAction AddMarker mc p = pElement (Marker p mc)
+pAction AddRing mc p = pElement (Ring p mc)
 
 -- | Render everything that is seen on the screen
--- Second argument is the coordinate where the mouse is
-pDisplay :: DisplayState -> YCoord -> Picture ()
-pDisplay BoardOnly _ = pBoard
+pDisplay :: DisplayState
+         -> YCoord         -- ^ Coordinate close to mouse cursor
+         -> Picture ()
+pDisplay (BoardOnly gs) _ = pBoard (board gs)
+pDisplay (WaitTurn gs) mc = pBoard (board gs) >> pAction (turnMode gs) mc (activePlayer gs)
 -- pDisplay ConnectedPoints c = do
 --     pBoard
 --     sequence_ $ mapM (translate . fromCoord) (reachable c) pDot
-pDisplay (WaitTurn (AddMarker p)) c = pBoard >> translateC c (pMarker p)
-pDisplay (WaitTurn (AddRing p)) c = pBoard >> translateC c (pRing p)
 
 getClosestCoord :: Point -> YCoord
 getClosestCoord (x, y) = coords !! snd lsort
@@ -150,17 +160,53 @@ getClosestCoord (x, y) = coords !! snd lsort
           dist (x', y') = (x-x')^2 + (y-y')^2
           cmpFst t1 t2 = compare (fst t1) (fst t2)
 
-showMoves :: Canvas -> (Int, Int) -> IO ()
-showMoves can (x, y) =
-    render can $ do
-        -- pDisplay BoardOnly
-        -- pDisplay ConnectedPoints (getClosestCoord (fromIntegral x, fromIntegral y))
-        pDisplay (WaitTurn $ AddRing B) (getClosestCoord (fromIntegral x, fromIntegral y))
+testBoard :: Board
+testBoard = [
+    Ring B (3, 4),
+    Ring B (4, 9),
+    Ring W (8, 7),
+    Ring W (6, 3),
+    Ring W (4, 8),
+    Marker W (6, 4),
+    Marker W (6, 5),
+    Marker W (6, 7),
+    Marker B (6, 6)]
+
+testGameState = GameState {
+    activePlayer = B,
+    turnMode = AddMarker,
+    board = testBoard
+}
+
+testDisplayState = WaitTurn testGameState
+
+showMoves :: Canvas -> DisplayState -> (Int, Int) -> IO ()
+showMoves can ds point = render can
+                          $ pDisplay ds (coordFromXY point)
+
+coordFromXY :: (Int, Int) -> YCoord
+coordFromXY (x, y) = getClosestCoord (fromIntegral x, fromIntegral y)
 
 main :: IO ()
 main = do
     Just can <- getCanvasById "canvas"
-    render can pBoard -- TODO: needed?
     Just ce <- elemById "canvas"
-    ce `onEvent` OnMouseMove $ showMoves can
+
+    ioDS <- newIORef testDisplayState
+
+    -- draw initial board
+    render can (pBoard testBoard)
+
+    ce `onEvent` OnMouseMove $ \point -> do
+        ds <- readIORef ioDS
+        showMoves can ds point
+
+    ce `onEvent` OnClick $ \button point -> do
+        modifyIORef' ioDS $ \(WaitTurn gs) ->
+            WaitTurn (
+                gs {
+                    board = Marker (activePlayer gs) (coordFromXY point) : board gs,
+                    activePlayer = succ (activePlayer gs)
+                })
+        return ()
     return ()
