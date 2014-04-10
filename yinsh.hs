@@ -1,3 +1,5 @@
+module Yinsh where
+
 import Haste
 import Haste.Graphics.Canvas
 import Data.List (minimumBy)
@@ -25,9 +27,10 @@ type YCoord = (Int, Int)
 -- | Player types: black & white or blue & green
 data Player = B | W
 
-instance Enum Player where
-    succ B = W
-    succ W = B
+-- | Next player
+switch :: Player -> Player
+switch B = W
+switch W = B
 
 -- | Translate hex coordinates to screen coordinates
 fromCoord :: YCoord -> Point
@@ -206,7 +209,7 @@ main = do
             WaitTurn (
                 gs {
                     board = Marker (activePlayer gs) (coordFromXY point) : board gs,
-                    activePlayer = succ (activePlayer gs)
+                    activePlayer = switch (activePlayer gs)
                 })
         return ()
     return ()
