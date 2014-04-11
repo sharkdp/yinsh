@@ -5,7 +5,8 @@ import Haste.Graphics.Canvas
 import Data.List (minimumBy)
 import Data.IORef
 
--- >>> import Test.QuickCheck
+-- $setup
+-- >>> import Data.List (sort, nub)
 
 -- Color theme
 -- http://www.colourlovers.com/palette/15/tech_light
@@ -33,8 +34,8 @@ switch B = W
 switch W = B
 
 -- | Translate hex coordinates to screen coordinates
-fromCoord :: YCoord -> Point
-fromCoord (ya, yb) = (0.5 * sqrt 3 * x' + originX,
+screenPoint :: YCoord -> Point
+screenPoint (ya, yb) = (0.5 * sqrt 3 * x' + originX,
                       y' - 0.5 * x' + originY)
                 where x' = spacing * fromIntegral ya
                       y' = spacing * fromIntegral yb
@@ -56,7 +57,7 @@ coords = concat $ zipWith (\list ya -> map (\x -> (ya, x)) list) numPoints [1..]
 -- >>> connected (3, 4) (8, 4)
 -- True
 --
--- prop> ((\c1 c2 -> connected c1 c2 == connected c2 c1) :: YCoord -> YCoord -> Bool)
+-- prop> connected c1 c2 == connected c2 c1
 --
 connected :: YCoord -> YCoord -> Bool
 connected (x, y) (a, b) =        x == a
@@ -64,6 +65,10 @@ connected (x, y) (a, b) =        x == a
                           || x - y == a - b
 
 -- | List of points reachable from a certain point
+--
+-- Every point should be reachable within two moves
+-- >>> sort coords == sort (nub (return (5, 3) >>= reachable >>= reachable))
+-- True
 reachable :: YCoord -> [YCoord]
 reachable c = filter (connected c) coords
 
@@ -88,11 +93,11 @@ data GameState = GameState {
 
 -- | All grid points as screen coordinates
 points :: [Point]
-points = map fromCoord coords
+points = map screenPoint coords
 
 -- | Translate by hex coordinate
 translateC :: YCoord -> Picture () -> Picture ()
-translateC = translate . fromCoord
+translateC = translate . screenPoint
 
 playerColor :: Player -> Color
 playerColor B = blue
@@ -139,7 +144,7 @@ pDot = do
 pBoard :: Board -> Picture ()
 pBoard board = do
     sequence_ $ mapM translate points (pCross (0.5 * spacing))
-    -- sequence_ $ mapM (translate . fromCoord) (reachable (3, 6)) pDot
+    -- sequence_ $ mapM (translate . screenPoint) (reachable (3, 6)) pDot
     mapM_ pElement board
 
 pAction :: TurnMode -> YCoord -> Player -> Picture ()
@@ -154,10 +159,14 @@ pDisplay (BoardOnly gs) _ = pBoard (board gs)
 pDisplay (WaitTurn gs) mc = pBoard (board gs) >> pAction (turnMode gs) mc (activePlayer gs)
 -- pDisplay ConnectedPoints c = do
 --     pBoard
---     sequence_ $ mapM (translate . fromCoord) (reachable c) pDot
+--     sequence_ $ mapM (translate . screenPoint) (reachable c) pDot
 
-getClosestCoord :: Point -> YCoord
-getClosestCoord (x, y) = coords !! snd lsort
+-- | Get the board coordinate which is closest to the given screen
+-- | coordinate point
+--
+-- prop> closestCoord p == (closestCoord . screenPoint . closestCoord) p
+closestCoord :: Point -> YCoord
+closestCoord (x, y) = coords !! snd lsort
     where lind = zipWith (\p i -> (dist p, i)) points [0..]
           lsort = minimumBy cmpFst lind
           dist (x', y') = (x-x')^2 + (y-y')^2
@@ -188,7 +197,7 @@ showMoves can ds point = render can
                           $ pDisplay ds (coordFromXY point)
 
 coordFromXY :: (Int, Int) -> YCoord
-coordFromXY (x, y) = getClosestCoord (fromIntegral x, fromIntegral y)
+coordFromXY (x, y) = closestCoord (fromIntegral x, fromIntegral y)
 
 main :: IO ()
 main = do
