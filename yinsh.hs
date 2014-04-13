@@ -342,6 +342,14 @@ testGameState = GameState {
 
 testDisplayState = WaitTurn testGameState
 
+initialGameState = GameState {
+    activePlayer = B,
+    turnMode = AddRing,
+    board = []
+}
+
+initialDisplayState = WaitTurn initialGameState
+
 showMoves :: Canvas -> DisplayState -> (Int, Int) -> IO ()
 showMoves can ds point = render can $ pDisplay ds (coordFromXY point)
 
@@ -375,27 +383,36 @@ newDisplayState :: DisplayState  -- ^ old state
                 -> DisplayState  -- ^ new state
 newDisplayState (WaitTurn gs) cc =
     case turnMode gs of
-        AddRing -> WaitTurn (
-                       gs { activePlayer = nextPlayer
-                          , turnMode = if numRings < 9 then AddRing else AddMarker
-                          , board = Ring (activePlayer gs) cc : board gs
-                       })
-            where numRings = length [ 0 | Ring _ _ <- board gs ]
-        AddMarker -> WaitTurn (
-                       gs { turnMode = MoveRing cc
-                          , board = Marker (activePlayer gs) cc : removeRing (board gs)
-                       })
-        (MoveRing st) -> WaitTurn (
-                       gs { activePlayer = nextPlayer
-                          , turnMode = AddMarker
-                          , board = Ring (activePlayer gs) cc : flippedMarkers (board gs) st cc
-                       })
-        RemoveRing -> WaitTurn (
-                       gs { turnMode = AddMarker
-                          , board = removeRing (board gs)
-                       })
+        AddRing ->
+            if freeCoord board' cc
+            then WaitTurn ( gs { activePlayer = nextPlayer
+                               , turnMode = if numRings < 9 then AddRing else AddMarker
+                               , board = Ring (activePlayer gs) cc : board'
+                            })
+            else WaitTurn gs
+                where numRings = length [ 0 | Ring _ _ <- board' ]
+        AddMarker ->
+            if cc `elem` (ringCoords board' (activePlayer gs))
+            then WaitTurn ( gs { turnMode = MoveRing cc
+                               , board = Marker (activePlayer gs) cc : removeRing board'
+                               })
+            else WaitTurn gs
+        (MoveRing st) ->
+            if cc `elem` validRingMoves board' st
+            then WaitTurn ( gs { activePlayer = nextPlayer
+                               , turnMode = AddMarker
+                               , board = Ring (activePlayer gs) cc : flippedMarkers board' st cc
+                            })
+            else WaitTurn gs
+        RemoveRing ->
+            if cc `elem` (ringCoords board' (activePlayer gs))
+            then WaitTurn ( gs { turnMode = AddMarker
+                               , board = removeRing board'
+                               })
+            else WaitTurn gs
     where nextPlayer = switch (activePlayer gs)
           removeRing = filter ((/=) $ Ring (activePlayer gs) cc)
+          board'     = board gs
 newDisplayState (BoardOnly gs) _ = BoardOnly gs
 
 main :: IO ()
@@ -403,10 +420,10 @@ main = do
     Just can <- getCanvasById "canvas"
     Just ce  <- elemById "canvas"
 
-    ioDS <- newIORef testDisplayState
+    ioDS <- newIORef initialDisplayState
 
     -- draw initial board
-    render can (pBoard testBoard)
+    render can (pBoard [])
 
     ce `onEvent` OnMouseMove $ \point -> do
         ds <- readIORef ioDS
