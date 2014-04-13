@@ -5,6 +5,9 @@ doc: yinsh.hs
 	rm -rf doc
 	haddock -o doc -h yinsh.hs
 
+opt: yinsh.hs
+	hastec --opt-all yinsh.hs
+
 clean:
 	rm -f yinsh.js yinsh.hi yinsh.o
 	rm -rf main doc
