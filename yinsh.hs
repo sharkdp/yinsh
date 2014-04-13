@@ -64,12 +64,15 @@ numPoints = [[2..5], [1..7], [1..8], [1..9],
              [4..11], [5..11], [7..10]]
 
 -- | All points on the board
+--
 -- >>> length coords
 -- 85
+--
 coords :: [YCoord]
 coords = concat $ zipWith (\list ya -> map (\x -> (ya, x)) list) numPoints [1..]
 
 -- | Check if two points are connected by a line
+--
 -- >>> connected (3, 4) (8, 4)
 -- True
 --
@@ -84,6 +87,7 @@ connected (x, y) (a, b) =        x == a
 --
 -- Every point should be reachable within two moves
 -- prop> forAll boardCoords (\c -> sort coords == sort (nub (reachable c >>= reachable)))
+--
 reachable :: YCoord -> [YCoord]
 reachable c = filter (connected c) coords
 
@@ -94,11 +98,13 @@ addC (x1, y1) (x2, y2) = (x1 + x2, y1 + y2)
 -- | Get all nearest neighbors
 --
 -- Every point has neighbors
+--
 -- >>> sort coords == sort (nub (coords >>= neighbors))
 -- True
 --
 -- Every point is a neighbor of its neighbor
 -- prop> forAll boardCoords (\c -> c `elem` (neighbors c >>= neighbors))
+--
 neighbors :: YCoord -> [YCoord]
 neighbors c = filter (`elem` coords) adjacent
     where adjacent = mapM (addC . vector) directions c
@@ -108,7 +114,7 @@ markerCoords :: Board -> Player -> [YCoord]
 markerCoords board p = [ c | Marker p' c <- board, p == p' ]
 
 -- | Get all coordinates which are part of a combination of five
--- | connected markers
+-- connected markers
 combinationCoords :: [YCoord] -> [YCoord]
 combinationCoords b = []
 
@@ -217,7 +223,7 @@ pDisplay (WaitTurn gs) mc = pBoard (board gs) >> pAction (turnMode gs) mc (activ
 --     sequence_ $ mapM (translate . screenPoint) (reachable c) pDot
 
 -- | Get the board coordinate which is closest to the given screen
--- | coordinate point
+-- coordinate point
 --
 -- prop> closestCoord p == (closestCoord . screenPoint . closestCoord) p
 closestCoord :: Point -> YCoord
