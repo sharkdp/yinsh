@@ -9,7 +9,7 @@ import Control.Monad (when)
 
 -- $setup
 -- >>> import Data.List (sort, nub)
--- >>> import Test.QuickCheck
+-- >>> import Test.QuickCheck hiding (vector)
 -- >>> let boardCoords = elements coords
 -- >>> instance Arbitrary Direction where arbitrary = elements directions
 
@@ -107,13 +107,30 @@ connected (x, y) (a, b) =        x == a
 reachable :: YCoord -> [YCoord]
 reachable c = filter (connected c) coords
 
+-- | Vectorially add two coords
+add :: YCoord -> YCoord -> YCoord
+add (x1, y1) (x2, y2) = (x1 + x2, y1 + y2)
+
+-- | Vectorially subtract two coords
+sub :: YCoord -> YCoord -> YCoord
+sub (x1, y1) (x2, y2) = (x1 - x2, y1 - y2)
+
+-- | Scalar product
+prod :: YCoord -> YCoord -> Int
+prod (x1, y1) (x2, y2) = x1 * x2 + y1 * y2
+
+-- | Square norm
+norm2 :: YCoord -> Int
+norm2 (x, y) = x * x + y * y
+
+-- | Get all valid ring moves starting from a given point
 validRingMoves :: Board -> YCoord -> [YCoord]
 validRingMoves b start = filter (freeCoord b) $ concatMap (validInDir False start) directions
     where markerPos = [ c | Marker _ c <- b ]
           ringPos   = [ c | Ring _ c <- b ]
           validInDir :: Bool -> YCoord -> Direction -> [YCoord]
           validInDir jumped c d = c : rest
-              where nextPoint = c `addC` vector d
+              where nextPoint = c `add` vector d
                     rest = if nextPoint `elem` coords && nextPoint `notElem` ringPos
                            then if nextPoint `elem` markerPos
                                 then validInDir True nextPoint d
@@ -121,11 +138,6 @@ validRingMoves b start = filter (freeCoord b) $ concatMap (validInDir False star
                                      then [nextPoint]
                                      else validInDir False nextPoint d
                            else []
-                    hasJumped = hasJumped || c `elem` markerPos
-
--- | Vectorially add two coords
-addC :: YCoord -> YCoord -> YCoord
-addC (x1, y1) (x2, y2) = (x1 + x2, y1 + y2)
 
 -- | Get all nearest neighbors
 --
@@ -139,7 +151,7 @@ addC (x1, y1) (x2, y2) = (x1 + x2, y1 + y2)
 --
 neighbors :: YCoord -> [YCoord]
 neighbors c = filter (`elem` coords) adjacent
-    where adjacent = mapM (addC . vector) directions c
+    where adjacent = mapM (add . vector) directions c
 
 -- | Get the coordinates of a players markers
 markerCoords :: Board -> Player -> [YCoord]
@@ -152,7 +164,7 @@ ringCoords b p = [ c | Ring p' c <- b, p == p' ]
 -- | Check if a certain point on the board is free
 freeCoord :: Board -> YCoord -> Bool
 freeCoord b c = c `notElem` occupied
-    where occupied = [ c | Ring _ c <- b ] ++ [ c | Marker _ c <- b ]
+    where occupied = [ o | Ring _ o <- b ] ++ [ o | Marker _ o <- b ]
 
 -- | Check if a coordinate is part of a combination of five in a row
 --
@@ -164,11 +176,11 @@ partOfCombinationD :: [YCoord] -> YCoord -> Direction -> Bool
 partOfCombinationD markers start dir = length right + length left >= 2 + 4  -- the start point is counted twice
     where right = takeAvailable dir
           left  = takeAvailable (opposite dir)
-          takeAvailable d = takeWhile (`elem` markers) $ iterate (`addC` vector d) start
+          takeAvailable d = takeWhile (`elem` markers) $ iterate (`add` vector d) start
 
 -- | Get the five adjacent (including start) coordinates in a given direction
 fiveAdjacent :: YCoord -> Direction -> [YCoord]
-fiveAdjacent start dir = take 5 $ iterate (`addC` vector dir) start
+fiveAdjacent start dir = take 5 $ iterate (`add` vector dir) start
 
 -- -- | Test if A is subset of B
 -- --
@@ -282,7 +294,7 @@ pAction b (MoveRing start) mc p = do
     let allowed = validRingMoves b start
     mapM_ (`translateC` pDot) allowed
     when (mc `elem` allowed) $ pElement (Ring p mc)
-pAction b RemoveRing mc p       = return ()
+pAction _ RemoveRing _ _        = return ()
 
 -- | Render everything that is seen on the screen
 pDisplay :: DisplayState
@@ -336,6 +348,28 @@ showMoves can ds point = render can $ pDisplay ds (coordFromXY point)
 coordFromXY :: (Int, Int) -> YCoord
 coordFromXY (x, y) = closestCoord (fromIntegral x, fromIntegral y)
 
+-- | Check if third point is on a line between the first two
+--
+-- prop> let shift = add (vector d) in between c (shift (shift c)) (shift c)
+-- prop> let shift = add (vector d) in not $ between c (shift c) (shift (shift c))
+between :: YCoord -> YCoord -> YCoord -> Bool
+between a b c = n2x * n2y == (x `prod` y)^2 && n2y < n2x && n2z < n2x
+    where x = b `sub` a
+          y = c `sub` a
+          z = c `sub` b
+          n2x = norm2 x
+          n2y = norm2 y
+          n2z = norm2 z
+
+-- | Flip all markers between two given coordinates
+flippedMarkers :: Board -> YCoord -> YCoord -> Board
+flippedMarkers b s e = map flipE b
+    where flipE (Marker p c) = Marker (newCol p c) c
+          flipE el           = el
+          newCol p c = if between s e c
+                       then switch p
+                       else p
+
 newDisplayState :: DisplayState  -- ^ old state
                 -> YCoord        -- ^ clicked coordinate
                 -> DisplayState  -- ^ new state
@@ -351,13 +385,18 @@ newDisplayState (WaitTurn gs) cc =
                        gs { turnMode = MoveRing cc
                           , board = Marker (activePlayer gs) cc : removeRing (board gs)
                        })
-            where removeRing = filter ((/=) $ Ring (activePlayer gs) cc)
-        (MoveRing _) -> WaitTurn (
+        (MoveRing st) -> WaitTurn (
                        gs { activePlayer = nextPlayer
                           , turnMode = AddMarker
-                          , board = Ring (activePlayer gs) cc : board gs
+                          , board = Ring (activePlayer gs) cc : flippedMarkers (board gs) st cc
+                       })
+        RemoveRing -> WaitTurn (
+                       gs { turnMode = AddMarker
+                          , board = removeRing (board gs)
                        })
     where nextPlayer = switch (activePlayer gs)
+          removeRing = filter ((/=) $ Ring (activePlayer gs) cc)
+newDisplayState (BoardOnly gs) _ = BoardOnly gs
 
 main :: IO ()
 main = do
@@ -373,7 +412,10 @@ main = do
         ds <- readIORef ioDS
         showMoves can ds point
 
-    ce `onEvent` OnClick $ \_ point ->
-        modifyIORef' ioDS $ \old -> newDisplayState old (coordFromXY point)
+    ce `onEvent` OnClick $ \_ point -> do
+        old <- readIORef ioDS
+        let newDS = newDisplayState old (coordFromXY point)
+        writeIORef ioDS newDS
+        showMoves can newDS point
 
     return ()

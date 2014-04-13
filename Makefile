@@ -1,5 +1,5 @@
 yinsh.js: yinsh.hs
-	hastec -Wall -fno-warn-unused-do-bind -fno-warn-missing-signatures yinsh.hs
+	hastec -Wall -fno-warn-unused-do-bind -fno-warn-missing-signatures -fno-warn-type-defaults yinsh.hs
 
 doc: yinsh.hs
 	rm -rf doc
