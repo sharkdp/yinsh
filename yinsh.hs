@@ -1,20 +1,22 @@
-module Yinsh where
+module Main where
 
 import Haste
 import Haste.Graphics.Canvas
 import Data.List (minimumBy)
+import Data.Ord (comparing)
 import Data.IORef
 
 -- $setup
 -- >>> import Data.List (sort, nub)
 -- >>> import Test.QuickCheck
 -- >>> let boardCoords = elements coords
+-- >>> instance Arbitrary Direction where arbitrary = elements directions
 
 -- Color theme
 -- http://www.colourlovers.com/palette/15/tech_light
-green = RGB 209 231  81
-blue  = RGB  38 173 228
-white = RGB 255 255 255
+green  = RGB  209 231  81
+blue   = RGB   38 173 228
+white  = RGB  255 255 255
 
 -- Dimensions
 spacing         = 60 :: Double
@@ -22,28 +24,41 @@ markerWidth     = 20 :: Double
 ringInnerRadius = 22 :: Double
 ringWidth       = 6 :: Double
 originX         = -15 :: Double
-originY         = 140 :: Double
+originY         = 495 :: Double
 
 -- | Yinsh hex coordinates
 type YCoord = (Int, Int)
 
-data Direction = N | NE | SE | S | SW | NW deriving (Enum, Bounded)
+data Direction = N | NE | SE | S | SW | NW
+                 deriving (Eq, Enum, Bounded, Show)
 
 -- | All directions
 directions :: [Direction]
 directions = [minBound .. maxBound]
+
+-- | Rotate direction by 60° (positive, ccw)
+rotate60 :: Direction -> Direction
+rotate60 NW = N
+rotate60 d  = succ d
+
+-- | Opposite direction
+--
+-- prop> (opposite . opposite) d == d
+opposite :: Direction -> Direction
+opposite = rotate60 . rotate60 . rotate60
 
 -- | Vector to the next point on the board in a given direction
 vector :: Direction -> YCoord
 vector N  = ( 0,  1)
 vector NE = ( 1,  1)
 vector SE = ( 1,  0)
-vector S  = (-1,  0)
+vector S  = ( 0, -1)
 vector SW = (-1, -1)
 vector NW = (-1,  0)
 
 -- | Player types: black & white or blue & green
-data Player = B | W deriving Eq
+data Player = B | W
+              deriving Eq
 
 -- | Next player
 switch :: Player -> Player
@@ -52,7 +67,7 @@ switch W = B
 
 -- | Translate hex coordinates to screen coordinates
 screenPoint :: YCoord -> Point
-screenPoint (ya, yb) = (0.5 * sqrt 3 * x' + originX, y' - 0.5 * x' + originY)
+screenPoint (ya, yb) = (0.5 * sqrt 3 * x' + originX, - y' + 0.5 * x' + originY)
     where x' = spacing * fromIntegral ya
           y' = spacing * fromIntegral yb
 
@@ -111,27 +126,34 @@ neighbors c = filter (`elem` coords) adjacent
 
 -- | Get the coordinates of a players markers
 markerCoords :: Board -> Player -> [YCoord]
-markerCoords board p = [ c | Marker p' c <- board, p == p' ]
+markerCoords b p = [ c | Marker p' c <- b, p == p' ]
 
--- | Get all coordinates which are part of a combination of five
--- connected markers
-combinationCoords :: [YCoord] -> [YCoord]
-combinationCoords b = []
+-- | Check if a coordinate is part of a combination of five in a row
+--
+-- prop> partOfCombination (fiveAdjacent c d) c == True
+partOfCombination :: [YCoord] -> YCoord -> Bool
+partOfCombination markers start = any (partOfCombinationD markers start) [NW, N, NE]
+
+partOfCombinationD :: [YCoord] -> YCoord -> Direction -> Bool
+partOfCombinationD markers start dir = length right + length left >= 2 + 4  -- the start point is counted twice
+    where right = takeAvailable dir
+          left  = takeAvailable (opposite dir)
+          takeAvailable d = takeWhile (`elem` markers) $ iterate (`addC` vector d) start
 
 -- | Get the five adjacent (including start) coordinates in a given direction
 fiveAdjacent :: YCoord -> Direction -> [YCoord]
 fiveAdjacent start dir = take 5 $ iterate (`addC` vector dir) start
 
--- | Test if A is subset of B
---
--- prop> x `subset` x     == True
--- prop> x `subset` (y:x) == True
-subset :: Eq a => [a] -> [a] -> Bool
-subset a b = all (`elem` b) a
+-- -- | Test if A is subset of B
+-- --
+-- -- prop> x `subset` x     == True
+-- -- prop> x `subset` (y:x) == True
+-- subset :: Eq a => [a] -> [a] -> Bool
+-- subset a b = all (`elem` b) a
 
--- | Get five adjacent marker coordinates, if the markers are on the board
-maybeFiveAdjacent :: [YCoord] -> YCoord -> Direction -> Maybe [YCoord]
-maybeFiveAdjacent list start dir = Just []
+-- -- | Get five adjacent marker coordinates, if the markers are on the board
+-- maybeFiveAdjacent :: [YCoord] -> YCoord -> Direction -> Maybe [YCoord]
+-- maybeFiveAdjacent list start dir = Just []
 
 data DisplayState = BoardOnly GameState
                   | WaitTurn GameState
@@ -197,20 +219,34 @@ pCross len = do
     rotate (4 * pi / 3) l
         where l = stroke $ line (0, -len) (0, len)
 
+pHighlight :: Picture ()
+pHighlight = fill $ circle (0, 0) (markerWidth + 4)
+
 pDot :: Picture ()
 pDot = do
     setFillColor $ RGB 0 0 0
     fill $ circle (0, 0) 5
 
 pBoard :: Board -> Picture ()
-pBoard board = do
+pBoard b = do
+    -- Draw grid
     sequence_ $ mapM translate points (pCross (0.5 * spacing))
+
+    -- Draw thick borders for markers which are part of five in a row
+    let mc  = markerCoords b W
+    let mcH = filter (partOfCombination mc) mc
+    mapM_ (`translateC` pHighlight) mcH
+
+    -- Draw markers
+    mapM_ pElement b
+
     -- sequence_ $ mapM (translate . screenPoint) (reachable (3, 6)) pDot
-    mapM_ pElement board
+    -- Testing
+    -- mapM_ (`translateC` pDot) $ fiveAdjacent (6, 6) NW
 
 pAction :: TurnMode -> YCoord -> Player -> Picture ()
 pAction AddMarker mc p = pElement (Marker p mc)
-pAction AddRing mc p = pElement (Ring p mc)
+pAction AddRing mc p   = pElement (Ring p mc)
 
 -- | Render everything that is seen on the screen
 pDisplay :: DisplayState
@@ -229,21 +265,23 @@ pDisplay (WaitTurn gs) mc = pBoard (board gs) >> pAction (turnMode gs) mc (activ
 closestCoord :: Point -> YCoord
 closestCoord (x, y) = coords !! snd lsort
     where lind = zipWith (\p i -> (dist p, i)) points [0..]
-          lsort = minimumBy cmpFst lind
-          dist (x', y') = (x-x')^2 + (y-y')^2
-          cmpFst t1 t2 = compare (fst t1) (fst t2)
+          lsort = minimumBy (comparing fst) lind
+          dist (x', y') = (x - x')^2 + (y - y')^2
 
 testBoard :: Board
-testBoard = [
-    Ring B (3, 4),
-    Ring B (4, 9),
-    Ring W (8, 7),
-    Ring W (6, 3),
-    Ring W (4, 8),
-    Marker W (6, 4),
-    Marker W (6, 5),
-    Marker W (6, 7),
-    Marker B (6, 6)]
+testBoard = [ Ring B (3, 4)
+            , Ring B (4, 9)
+            , Ring W (8, 7)
+            , Ring W (6, 3)
+            , Ring W (4, 8)
+            , Marker W (6, 4)
+            , Marker W (6, 5)
+            , Marker W (6, 7)
+            , Marker W (5, 5)
+            , Marker W (4, 5)
+            , Marker W (3, 5)
+            , Marker W (2, 5)
+            , Marker B (6, 6)]
 
 testGameState = GameState {
     activePlayer = B,
@@ -254,8 +292,7 @@ testGameState = GameState {
 testDisplayState = WaitTurn testGameState
 
 showMoves :: Canvas -> DisplayState -> (Int, Int) -> IO ()
-showMoves can ds point = render can
-                          $ pDisplay ds (coordFromXY point)
+showMoves can ds point = render can $ pDisplay ds (coordFromXY point)
 
 coordFromXY :: (Int, Int) -> YCoord
 coordFromXY (x, y) = closestCoord (fromIntegral x, fromIntegral y)
@@ -263,7 +300,7 @@ coordFromXY (x, y) = closestCoord (fromIntegral x, fromIntegral y)
 main :: IO ()
 main = do
     Just can <- getCanvasById "canvas"
-    Just ce <- elemById "canvas"
+    Just ce  <- elemById "canvas"
 
     ioDS <- newIORef testDisplayState
 
@@ -274,12 +311,12 @@ main = do
         ds <- readIORef ioDS
         showMoves can ds point
 
-    ce `onEvent` OnClick $ \button point -> do
+    ce `onEvent` OnClick $ \_ point ->
         modifyIORef' ioDS $ \(WaitTurn gs) ->
             WaitTurn (
                 gs {
                     board = Marker (activePlayer gs) (coordFromXY point) : board gs,
                     activePlayer = switch (activePlayer gs)
                 })
-        return ()
+
     return ()
