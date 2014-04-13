@@ -1,4 +1,5 @@
 yinsh.js: yinsh.hs
+	rm -f yinsh.js
 	hastec -Wall -fno-warn-unused-do-bind -fno-warn-missing-signatures -fno-warn-type-defaults yinsh.hs
 
 doc: yinsh.hs
@@ -6,6 +7,7 @@ doc: yinsh.hs
 	haddock -o doc -h yinsh.hs
 
 opt: yinsh.hs
+	rm yinsh.js
 	hastec --opt-all yinsh.hs
 
 clean:

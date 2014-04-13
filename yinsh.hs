@@ -18,6 +18,7 @@ import Control.Monad (when)
 green  = RGB  209 231  81
 blue   = RGB   38 173 228
 white  = RGB  255 255 255
+hl     = RGBA 255   0   0 0.5
 
 -- Dimensions
 spacing         = 60 :: Double
@@ -166,21 +167,44 @@ freeCoord :: Board -> YCoord -> Bool
 freeCoord b c = c `notElem` occupied
     where occupied = [ o | Ring _ o <- b ] ++ [ o | Marker _ o <- b ]
 
--- | Check if a coordinate is part of a combination of five in a row
+-- | Check if a coordinate is one of five in a row
 --
--- prop> partOfCombination (fiveAdjacent c d) c == True
-partOfCombination :: [YCoord] -> YCoord -> Bool
-partOfCombination markers start = any (partOfCombinationD markers start) [NW, N, NE]
+-- prop> partOfRun (take 5 $ adjacent c d) c == True
+partOfRun :: [YCoord] -> YCoord -> Bool
+partOfRun markers start = any (partOfRunD markers start) [NW, N, NE]
 
-partOfCombinationD :: [YCoord] -> YCoord -> Direction -> Bool
-partOfCombinationD markers start dir = length right + length left >= 2 + 4  -- the start point is counted twice
+partOfRunD :: [YCoord] -> YCoord -> Direction -> Bool
+partOfRunD markers start dir = length (runCoordsD markers start dir) == 5
+
+-- | Return the coordinates of the markers making up a run
+runCoords :: [YCoord] -> YCoord -> [YCoord]
+runCoords markers start = if null cs then [] else head cs
+    where cs = filter ((== 5) . length) $ map (runCoordsD markers start) [NW, N, NE]
+
+-- | Combine two lists by taking elements alternatingly. If one list is longer,
+-- append the rest.
+--
+-- prop> zipAlternate [] l == l
+-- prop> zipAlternate l [] == l
+-- prop> zipAlternate l l  == (l >>= (\x -> [x, x]))
+zipAlternate :: [a] -> [a] -> [a]
+zipAlternate []     ys = ys
+zipAlternate (x:xs) ys = x : zipAlternate ys xs
+
+-- | Get adjacent coordinates in a given direction which could belong to a run.
+--
+-- prop> runCoordsD (take 7 $ adjacent c d) c d == (take 5 $ adjacent c d)
+runCoordsD :: [YCoord] -> YCoord -> Direction -> [YCoord]
+runCoordsD markers start dir = if start `elem` markers
+                               then take 5 $ zipAlternate right left
+                               else []
     where right = takeAvailable dir
-          left  = takeAvailable (opposite dir)
-          takeAvailable d = takeWhile (`elem` markers) $ iterate (`add` vector d) start
+          left  = tail $ takeAvailable (opposite dir)  -- use tail to avoid taking the start twice
+          takeAvailable d = takeWhile (`elem` markers) $ adjacent start d
 
--- | Get the five adjacent (including start) coordinates in a given direction
-fiveAdjacent :: YCoord -> Direction -> [YCoord]
-fiveAdjacent start dir = take 5 $ iterate (`add` vector dir) start
+-- | Get the adjacent (including start) coordinates in a given direction
+adjacent :: YCoord -> Direction -> [YCoord]
+adjacent start dir = iterate (`add` vector dir) start
 
 -- -- | Test if A is subset of B
 -- --
@@ -193,7 +217,7 @@ fiveAdjacent start dir = take 5 $ iterate (`add` vector dir) start
 -- maybeFiveAdjacent :: [YCoord] -> YCoord -> Direction -> Maybe [YCoord]
 -- maybeFiveAdjacent list start dir = Just []
 
-data DisplayState = BoardOnly GameState
+data DisplayState = BoardOnly GameState -- TODO: do we need this state?
                   | WaitTurn GameState
 
 data Element = Ring Player YCoord
@@ -203,6 +227,7 @@ data Element = Ring Player YCoord
 data TurnMode = AddRing
               | AddMarker
               | MoveRing YCoord
+              | RemoveRun
               | RemoveRing
 
 type Board = [Element]
@@ -259,12 +284,12 @@ pCross len = do
         where l = stroke $ line (0, -len) (0, len)
 
 pHighlightRing :: Picture ()
-pHighlightRing = fill $ circle (0, 0) (markerWidth + 4)
+pHighlightRing = fill $ circle (0, 0) (markerWidth + 2)
 
 pHighlight :: Board -> Player -> Picture ()
 pHighlight b p = do
     let mc  = markerCoords b p
-    let mcH = filter (partOfCombination mc) mc
+    let mcH = filter (partOfRun mc) mc
     mapM_ (`translateC` pHighlightRing) mcH
 
 pDot :: Picture ()
@@ -277,7 +302,7 @@ pBoard b = do
     -- Draw grid
     sequence_ $ mapM translate points (pCross (0.5 * spacing))
 
-    -- Draw thick borders for markers which are part of five in a row
+    -- Draw thick borders for markers which are part of a run
     mapM_ (pHighlight b) [B, W]
 
     -- Draw markers
@@ -294,6 +319,10 @@ pAction b (MoveRing start) mc p = do
     let allowed = validRingMoves b start
     mapM_ (`translateC` pDot) allowed
     when (mc `elem` allowed) $ pElement (Ring p mc)
+pAction b RemoveRun mc p        = do
+    let runC = runCoords (markerCoords b p) mc
+    setFillColor hl
+    mapM_ (`translateC` pHighlightRing) runC
 pAction _ RemoveRing _ _        = return ()
 
 -- | Render everything that is seen on the screen
@@ -304,10 +333,6 @@ pDisplay (BoardOnly gs) _ = pBoard (board gs)
 pDisplay (WaitTurn gs) mc = do
     pBoard (board gs)
     pAction (board gs) (turnMode gs) mc (activePlayer gs)
-
--- pDisplay ConnectedPoints c = do
---     pBoard
---     sequence_ $ mapM (translate . screenPoint) (reachable c) pDot
 
 -- | Get the board coordinate which is closest to the given screen
 -- coordinate point
@@ -323,9 +348,13 @@ testBoard :: Board
 testBoard = [ Ring B (3, 4)
             , Ring B (4, 9)
             , Ring B (7, 9)
+            , Ring B (8, 9)
+            , Ring B (7, 10)
             , Ring W (8, 7)
             , Ring W (6, 3)
             , Ring W (4, 8)
+            , Ring W (4, 2)
+            , Ring W (2, 5)
             , Marker W (6, 4)
             , Marker W (6, 5)
             , Marker W (6, 7)
@@ -335,8 +364,8 @@ testBoard = [ Ring B (3, 4)
             , Marker B (6, 6)]
 
 testGameState = GameState {
-    activePlayer = B,
-    turnMode = AddRing,
+    activePlayer = W,
+    turnMode = AddMarker,
     board = testBoard
 }
 
@@ -350,8 +379,8 @@ initialGameState = GameState {
 
 initialDisplayState = WaitTurn initialGameState
 
-showMoves :: Canvas -> DisplayState -> (Int, Int) -> IO ()
-showMoves can ds point = render can $ pDisplay ds (coordFromXY point)
+renderCanvas :: Canvas -> DisplayState -> (Int, Int) -> IO ()
+renderCanvas can ds point = render can $ pDisplay ds (coordFromXY point)
 
 coordFromXY :: (Int, Int) -> YCoord
 coordFromXY (x, y) = closestCoord (fromIntegral x, fromIntegral y)
@@ -387,32 +416,47 @@ newDisplayState (WaitTurn gs) cc =
             if freeCoord board' cc
             then WaitTurn ( gs { activePlayer = nextPlayer
                                , turnMode = if numRings < 9 then AddRing else AddMarker
-                               , board = Ring (activePlayer gs) cc : board'
+                               , board = Ring activePlayer' cc : board'
                             })
             else WaitTurn gs
                 where numRings = length [ 0 | Ring _ _ <- board' ]
         AddMarker ->
-            if cc `elem` (ringCoords board' (activePlayer gs))
+            if cc `elem` ringCoords board' activePlayer'
             then WaitTurn ( gs { turnMode = MoveRing cc
-                               , board = Marker (activePlayer gs) cc : removeRing board'
+                               , board = Marker activePlayer' cc : removeRing board'
                                })
             else WaitTurn gs
         (MoveRing st) ->
             if cc `elem` validRingMoves board' st
-            then WaitTurn ( gs { activePlayer = nextPlayer
-                               , turnMode = AddMarker
-                               , board = Ring (activePlayer gs) cc : flippedMarkers board' st cc
+            then WaitTurn ( gs { activePlayer = nextPlayer'
+                               , turnMode = nextTurnMode
+                               , board = Ring activePlayer' cc : flippedBoard
                             })
             else WaitTurn gs
+                where hasRun = any (partOfRun playerMarkers') playerMarkers'
+                      nextTurnMode = if hasRun then RemoveRun else AddMarker -- TODO: other player could have 5
+                      nextPlayer' =  if hasRun then activePlayer' else nextPlayer
+                      flippedBoard = flippedMarkers board' st cc
+                      playerMarkers' = markerCoords flippedBoard activePlayer'
+        RemoveRun ->
+            if partOfRun playerMarkers cc
+            then WaitTurn ( gs { turnMode = RemoveRing
+                               , board = removeRun board'
+                               })
+            else WaitTurn gs
         RemoveRing ->
-            if cc `elem` (ringCoords board' (activePlayer gs))
-            then WaitTurn ( gs { turnMode = AddMarker
+            if cc `elem` ringCoords board' activePlayer'
+            then WaitTurn ( gs { activePlayer = nextPlayer
+                               , turnMode = AddMarker -- TODO: other player could also have 5
                                , board = removeRing board'
                                })
             else WaitTurn gs
-    where nextPlayer = switch (activePlayer gs)
-          removeRing = filter ((/=) $ Ring (activePlayer gs) cc)
-          board'     = board gs
+    where activePlayer' = activePlayer gs
+          nextPlayer    = switch activePlayer'
+          removeRing    = filter (/= Ring activePlayer' cc)
+          removeRun     = filter (`notElem` map (Marker activePlayer') (runCoords playerMarkers cc))
+          board'        = board gs
+          playerMarkers = markerCoords board' activePlayer'
 newDisplayState (BoardOnly gs) _ = BoardOnly gs
 
 main :: IO ()
@@ -420,19 +464,20 @@ main = do
     Just can <- getCanvasById "canvas"
     Just ce  <- elemById "canvas"
 
-    ioDS <- newIORef initialDisplayState
+    -- ioDS <- newIORef initialDisplayState
+    ioDS <- newIORef testDisplayState
 
     -- draw initial board
     render can (pBoard [])
 
     ce `onEvent` OnMouseMove $ \point -> do
         ds <- readIORef ioDS
-        showMoves can ds point
+        renderCanvas can ds point
 
     ce `onEvent` OnClick $ \_ point -> do
         old <- readIORef ioDS
         let newDS = newDisplayState old (coordFromXY point)
         writeIORef ioDS newDS
-        showMoves can newDS point
+        renderCanvas can newDS point
 
     return ()
