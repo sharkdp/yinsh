@@ -5,6 +5,7 @@ import Haste.Graphics.Canvas
 import Data.List (minimumBy)
 import Data.Ord (comparing)
 import Data.IORef
+import Control.Monad (when)
 
 -- $setup
 -- >>> import Data.List (sort, nub)
@@ -106,6 +107,22 @@ connected (x, y) (a, b) =        x == a
 reachable :: YCoord -> [YCoord]
 reachable c = filter (connected c) coords
 
+validRingMoves :: Board -> YCoord -> [YCoord]
+validRingMoves b start = filter (freeCoord b) $ concatMap (validInDir False start) directions
+    where markerPos = [ c | Marker _ c <- b ]
+          ringPos   = [ c | Ring _ c <- b ]
+          validInDir :: Bool -> YCoord -> Direction -> [YCoord]
+          validInDir jumped c d = c : rest
+              where nextPoint = c `addC` vector d
+                    rest = if nextPoint `elem` coords && nextPoint `notElem` ringPos
+                           then if nextPoint `elem` markerPos
+                                then validInDir True nextPoint d
+                                else if jumped
+                                     then [nextPoint]
+                                     else validInDir False nextPoint d
+                           else []
+                    hasJumped = hasJumped || c `elem` markerPos
+
 -- | Vectorially add two coords
 addC :: YCoord -> YCoord -> YCoord
 addC (x1, y1) (x2, y2) = (x1 + x2, y1 + y2)
@@ -127,6 +144,15 @@ neighbors c = filter (`elem` coords) adjacent
 -- | Get the coordinates of a players markers
 markerCoords :: Board -> Player -> [YCoord]
 markerCoords b p = [ c | Marker p' c <- b, p == p' ]
+
+-- | Get the coordinates of a players rings
+ringCoords :: Board -> Player -> [YCoord]
+ringCoords b p = [ c | Ring p' c <- b, p == p' ]
+
+-- | Check if a certain point on the board is free
+freeCoord :: Board -> YCoord -> Bool
+freeCoord b c = c `notElem` occupied
+    where occupied = [ c | Ring _ c <- b ] ++ [ c | Marker _ c <- b ]
 
 -- | Check if a coordinate is part of a combination of five in a row
 --
@@ -160,6 +186,7 @@ data DisplayState = BoardOnly GameState
 
 data Element = Ring Player YCoord
              | Marker Player YCoord
+             deriving Eq
 
 data TurnMode = AddRing
               | AddMarker
@@ -219,8 +246,14 @@ pCross len = do
     rotate (4 * pi / 3) l
         where l = stroke $ line (0, -len) (0, len)
 
-pHighlight :: Picture ()
-pHighlight = fill $ circle (0, 0) (markerWidth + 4)
+pHighlightRing :: Picture ()
+pHighlightRing = fill $ circle (0, 0) (markerWidth + 4)
+
+pHighlight :: Board -> Player -> Picture ()
+pHighlight b p = do
+    let mc  = markerCoords b p
+    let mcH = filter (partOfCombination mc) mc
+    mapM_ (`translateC` pHighlightRing) mcH
 
 pDot :: Picture ()
 pDot = do
@@ -233,9 +266,7 @@ pBoard b = do
     sequence_ $ mapM translate points (pCross (0.5 * spacing))
 
     -- Draw thick borders for markers which are part of five in a row
-    let mc  = markerCoords b W
-    let mcH = filter (partOfCombination mc) mc
-    mapM_ (`translateC` pHighlight) mcH
+    mapM_ (pHighlight b) [B, W]
 
     -- Draw markers
     mapM_ pElement b
@@ -244,16 +275,24 @@ pBoard b = do
     -- Testing
     -- mapM_ (`translateC` pDot) $ fiveAdjacent (6, 6) NW
 
-pAction :: TurnMode -> YCoord -> Player -> Picture ()
-pAction AddMarker mc p = pElement (Marker p mc)
-pAction AddRing mc p   = pElement (Ring p mc)
+pAction :: Board -> TurnMode -> YCoord -> Player -> Picture ()
+pAction b AddMarker mc p        = when (mc `elem` ringCoords b p) $ pElement (Marker p mc)
+pAction b AddRing mc p          = when (freeCoord b mc) $ pElement (Ring p mc)
+pAction b (MoveRing start) mc p = do
+    let allowed = validRingMoves b start
+    mapM_ (`translateC` pDot) allowed
+    when (mc `elem` allowed) $ pElement (Ring p mc)
+pAction b RemoveRing mc p       = return ()
 
 -- | Render everything that is seen on the screen
 pDisplay :: DisplayState
          -> YCoord         -- ^ Coordinate close to mouse cursor
          -> Picture ()
 pDisplay (BoardOnly gs) _ = pBoard (board gs)
-pDisplay (WaitTurn gs) mc = pBoard (board gs) >> pAction (turnMode gs) mc (activePlayer gs)
+pDisplay (WaitTurn gs) mc = do
+    pBoard (board gs)
+    pAction (board gs) (turnMode gs) mc (activePlayer gs)
+
 -- pDisplay ConnectedPoints c = do
 --     pBoard
 --     sequence_ $ mapM (translate . screenPoint) (reachable c) pDot
@@ -271,6 +310,7 @@ closestCoord (x, y) = coords !! snd lsort
 testBoard :: Board
 testBoard = [ Ring B (3, 4)
             , Ring B (4, 9)
+            , Ring B (7, 9)
             , Ring W (8, 7)
             , Ring W (6, 3)
             , Ring W (4, 8)
@@ -280,12 +320,11 @@ testBoard = [ Ring B (3, 4)
             , Marker W (5, 5)
             , Marker W (4, 5)
             , Marker W (3, 5)
-            , Marker W (2, 5)
             , Marker B (6, 6)]
 
 testGameState = GameState {
     activePlayer = B,
-    turnMode = AddMarker,
+    turnMode = AddRing,
     board = testBoard
 }
 
@@ -296,6 +335,29 @@ showMoves can ds point = render can $ pDisplay ds (coordFromXY point)
 
 coordFromXY :: (Int, Int) -> YCoord
 coordFromXY (x, y) = closestCoord (fromIntegral x, fromIntegral y)
+
+newDisplayState :: DisplayState  -- ^ old state
+                -> YCoord        -- ^ clicked coordinate
+                -> DisplayState  -- ^ new state
+newDisplayState (WaitTurn gs) cc =
+    case turnMode gs of
+        AddRing -> WaitTurn (
+                       gs { activePlayer = nextPlayer
+                          , turnMode = if numRings < 9 then AddRing else AddMarker
+                          , board = Ring (activePlayer gs) cc : board gs
+                       })
+            where numRings = length [ 0 | Ring _ _ <- board gs ]
+        AddMarker -> WaitTurn (
+                       gs { turnMode = MoveRing cc
+                          , board = Marker (activePlayer gs) cc : removeRing (board gs)
+                       })
+            where removeRing = filter ((/=) $ Ring (activePlayer gs) cc)
+        (MoveRing _) -> WaitTurn (
+                       gs { activePlayer = nextPlayer
+                          , turnMode = AddMarker
+                          , board = Ring (activePlayer gs) cc : board gs
+                       })
+    where nextPlayer = switch (activePlayer gs)
 
 main :: IO ()
 main = do
@@ -312,11 +374,6 @@ main = do
         showMoves can ds point
 
     ce `onEvent` OnClick $ \_ point ->
-        modifyIORef' ioDS $ \(WaitTurn gs) ->
-            WaitTurn (
-                gs {
-                    board = Marker (activePlayer gs) (coordFromXY point) : board gs,
-                    activePlayer = switch (activePlayer gs)
-                })
+        modifyIORef' ioDS $ \old -> newDisplayState old (coordFromXY point)
 
     return ()
