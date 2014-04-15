@@ -1,6 +1,6 @@
 module Main where
 
-import Haste
+import Haste hiding (next)
 import Haste.Graphics.Canvas
 import Data.List (minimumBy)
 import Data.Ord (comparing)
@@ -12,6 +12,12 @@ import Control.Monad (when)
 -- >>> import Test.QuickCheck hiding (vector)
 -- >>> let boardCoords = elements coords
 -- >>> instance Arbitrary Direction where arbitrary = elements directions
+
+-- | Similar to Enum's succ, but for cyclic data structures.
+-- Wraps around to the beginning when it reaches the 'last' element.
+next :: (Eq a, Enum a, Bounded a) => a -> a
+next x | x == maxBound = minBound
+       | otherwise     = succ x
 
 -- Color theme
 -- http://www.colourlovers.com/palette/15/tech_light
@@ -38,16 +44,11 @@ data Direction = N | NE | SE | S | SW | NW
 directions :: [Direction]
 directions = [minBound .. maxBound]
 
--- | Rotate direction by 60° (positive, ccw)
-rotate60 :: Direction -> Direction
-rotate60 NW = N
-rotate60 d  = succ d
-
 -- | Opposite direction
 --
 -- prop> (opposite . opposite) d == d
 opposite :: Direction -> Direction
-opposite = rotate60 . rotate60 . rotate60
+opposite = next . next . next
 
 -- | Vector to the next point on the board in a given direction
 vector :: Direction -> YCoord
@@ -60,12 +61,7 @@ vector NW = (-1,  0)
 
 -- | Player types: black & white or blue & green
 data Player = B | W
-              deriving Eq
-
--- | Next player
-switch :: Player -> Player
-switch B = W
-switch W = B
+              deriving (Eq, Enum, Bounded, Show)
 
 -- | Translate hex coordinates to screen coordinates
 screenPoint :: YCoord -> Point
@@ -404,7 +400,7 @@ flippedMarkers b s e = map flipE b
     where flipE (Marker p c) = Marker (newCol p c) c
           flipE el           = el
           newCol p c = if between s e c
-                       then switch p
+                       then next p
                        else p
 
 newDisplayState :: DisplayState  -- ^ old state
@@ -452,7 +448,7 @@ newDisplayState (WaitTurn gs) cc =
                                })
             else WaitTurn gs
     where activePlayer' = activePlayer gs
-          nextPlayer    = switch activePlayer'
+          nextPlayer    = next activePlayer'
           removeRing    = filter (/= Ring activePlayer' cc)
           removeRun     = filter (`notElem` map (Marker activePlayer') (runCoords playerMarkers cc))
           board'        = board gs
