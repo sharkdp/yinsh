@@ -6,7 +6,7 @@ import Data.List (minimumBy)
 import Data.Ord (comparing)
 import Data.IORef
 import Control.Monad (when, guard)
-import Data.Maybe (fromJust)
+import Data.Maybe (fromJust, fromMaybe)
 
 import qualified Data.Tree.Game_tree.Game_tree as GT
 import qualified Data.Tree.Game_tree.Negascout as NS
@@ -39,7 +39,7 @@ originX         = -15 :: Double
 originY         = 495 :: Double
 
 -- Game behaviour
-ringsForWin = 1
+ringsForWin = 2
 
 -- | Yinsh hex coordinates
 type YCoord = (Int, Int)
@@ -212,12 +212,13 @@ adjacent start dir = iterate (`add` vector dir) start
 --- AI stuff ---
 
 -- | Possible new game states. The input and output game states are guaranteed
--- to be in turn mode AddRing, AddMarker or RemoveRun.
+-- to be in turn mode AddRing, AddMarker, RemoveRun or PseudoTurn.
 gamestates :: GameState -> [GameState]
 gamestates gs = case turnMode gs of
                     AddRing -> freeCoords >>= newGS gs
                     AddMarker -> ringCoords' >>= newGS gs
                     RemoveRun -> runCoords' >>= newGS gs
+                    PseudoTurn -> [fromJust (newGameState gs (0, 0))]
                     (MoveRing _) -> error "This is not supposed to happen"
                     RemoveRing -> error "This is not supposed to happen"
     where freeCoords = filter (freeCoord (board gs)) coords
@@ -227,6 +228,7 @@ gamestates gs = case turnMode gs of
                             AddRing -> [nextGS]
                             AddMarker -> [nextGS]
                             RemoveRun -> [nextGS]
+                            PseudoTurn -> [nextGS]
                             (MoveRing start) -> validRingMoves (board nextGS) start >>= newGS nextGS
                             RemoveRing -> ringCoords (board gs') (activePlayer nextGS) >>= newGS nextGS
                         where nextGS = fromJust $ newGameState gs' c
@@ -235,14 +237,19 @@ gamestates gs = case turnMode gs of
 -- from the perspective of the AI player (white). The 'sign' factor is used
 -- for the negamax algorithm (Yinsh is a zero sum game).
 heuristicValue :: GameState -> Int
-heuristicValue gs = sign * valueForWhite
+heuristicValue gs = sign * valueForWhite -- TODO: should we care which turn mode we are in?
     where sign | activePlayer gs == W = 1
                | otherwise            = -1
           valueForWhite =   valueRings W - valueRings B
                           + valueMarkers W - valueMarkers B
-          valueRings p = if rings p == ringsForWin then 10000 else 1
+          valueRings p = if rings p == ringsForWin
+                         then hugeNumber
+                         else 10000 * (rings p)
           rings p = if p == W then ringsW gs else ringsB gs
-          valueMarkers _ = 1
+          valueMarkers _ = 0
+
+hugeNumber :: Int
+hugeNumber = maxBound - 10 -- cannot use maxBound due to internals of the negamax implementation
 
 terminalState :: GameState -> Bool
 terminalState gs = ringsB gs == ringsForWin || ringsW gs == ringsForWin
@@ -252,20 +259,31 @@ instance GT.Game_tree GameState where
     node_value = heuristicValue
     children = gamestates
 
+aiTurn :: GameState -> GameState
+aiTurn gs = case turnMode gs of
+                PseudoTurn -> fromJust $ newGameState gs (0, 0)
+                _ -> pv !! 1
+            where pv = fst $ NS.alpha_beta_search gs plies
+                  plies = 4
+
 --- I/O stuff ---
+
+-- TODO: move the data definitions to the top
 
 data DisplayState = BoardOnly GameState -- TODO: do we need this state?
                   | WaitTurn GameState
 
 data Element = Ring Player YCoord
              | Marker Player YCoord
-             deriving Eq
+             deriving (Show, Eq)
 
 data TurnMode = AddRing
               | AddMarker
               | MoveRing YCoord
               | RemoveRun
               | RemoveRing
+              | PseudoTurn
+              deriving (Eq, Show)
 
 type Board = [Element]
 
@@ -275,7 +293,7 @@ data GameState = GameState
     , board :: Board
     , ringsB :: Int
     , ringsW :: Int
-    }
+    } deriving Show
 
 -- | All grid points as screen coordinates
 points :: [Point]
@@ -292,15 +310,15 @@ playerColor W = green
 setPlayerColor :: Player -> Picture ()
 setPlayerColor = setFillColor . playerColor
 
-pRing :: Player -> Picture ()
-pRing p = do
+pRing :: Player -> Bool -> Picture ()
+pRing p drawCross = do
     setPlayerColor p
     fill circL
     stroke circL
     setFillColor white
     fill circS
     stroke circS
-    pCross ringInnerRadius
+    when drawCross $ pCross ringInnerRadius
         where circL = circle (0, 0) (ringInnerRadius + ringWidth)
               circS = circle (0, 0) ringInnerRadius
 
@@ -312,7 +330,7 @@ pMarker p = do
         where circ = circle (0, 0) markerWidth
 
 pElement :: Element -> Picture ()
-pElement (Ring p c)   = translateC c $ pRing p
+pElement (Ring p c)   = translateC c $ pRing p True
 pElement (Marker p c) = translateC c $ pMarker p
 
 pCross :: Double -> Picture ()
@@ -363,6 +381,18 @@ pAction b RemoveRun mc p        = do
     setFillColor hl
     mapM_ (`translateC` pHighlightRing) runC
 pAction _ RemoveRing _ _        = return ()
+pAction _ PseudoTurn _ _        = return ()
+
+pRings :: Player -> Int -> Picture ()
+pRings p rw =
+    mapM_ ringAt cs
+    where cs = take rw $ iterate (diff p) (initial p)
+          initial B = screenPoint (11, 4)
+          initial W = screenPoint (1, 8)
+          diff B (x, y) = (x - 20, y)
+          diff W (x, y) = (x + 20, y)
+          ringAt point = translate point $ pRing p False
+
 
 -- | Render everything that is seen on the screen
 pDisplay :: DisplayState
@@ -371,7 +401,13 @@ pDisplay :: DisplayState
 pDisplay (BoardOnly gs) _ = pBoard (board gs)
 pDisplay (WaitTurn gs) mc = do
     pBoard (board gs)
+
+    pRings B (ringsB gs)
+    pRings W (ringsW gs)
+
     pAction (board gs) (turnMode gs) mc (activePlayer gs)
+
+    -- when (turnMode gs == RemoveRun) $ do
 
 -- | Get the board coordinate which is closest to the given screen
 -- coordinate point
@@ -409,6 +445,13 @@ testGameState = GameState { activePlayer = B
                           , ringsB = 0
                           }
 
+testGameStateW = GameState { activePlayer = W
+                          , turnMode = AddMarker
+                          , board = testBoard
+                          , ringsW = 0
+                          , ringsB = 0
+                          }
+
 testDisplayState = WaitTurn testGameState
 
 initialGameState = GameState { activePlayer = B
@@ -426,7 +469,7 @@ renderCanvas can ds point = render can $ pDisplay ds (coordFromXY point)
 coordFromXY :: (Int, Int) -> YCoord
 coordFromXY (x, y) = closestCoord (fromIntegral x, fromIntegral y)
 
--- | Check if third point is on a line between the first two
+-- | Check if point three is on a line between the first two
 --
 -- prop> let shift = add (vector d) in between c (shift (shift c)) (shift c)
 -- prop> let shift = add (vector d) in not $ between c (shift c) (shift (shift c))
@@ -450,7 +493,7 @@ flippedMarkers b s e = map flipE b
 
 -- | Get new game state after 'interacting' at a certain coordinate.
 newGameState :: GameState -> YCoord -> Maybe GameState
-newGameState gs cc =
+newGameState gs cc = -- TODO: the guards should be (?) unnecessary when calling this function from 'gamestates'
     case turnMode gs of
         AddRing -> do
             guard (freeCoord board' cc)
@@ -466,13 +509,14 @@ newGameState gs cc =
                     }
         (MoveRing start) -> do
             guard (cc `elem` validRingMoves board' start)
-            Just gs { activePlayer = nextPlayer'
+            Just gs { activePlayer = nextPlayer
                     , turnMode = nextTurnMode
                     , board = Ring activePlayer' cc : flippedBoard
                     }
             where hasRun = any (partOfRun playerMarkers') playerMarkers'
-                  nextTurnMode = if hasRun then RemoveRun else AddMarker -- TODO: other player could have 5
-                  nextPlayer' =  if hasRun then activePlayer' else nextPlayer
+                  nextTurnMode = if hasRun
+                                 then PseudoTurn
+                                 else AddMarker -- TODO: other player could have a run
                   flippedBoard = flippedMarkers board' start cc
                   playerMarkers' = markerCoords flippedBoard activePlayer'
         RemoveRun -> do
@@ -483,10 +527,14 @@ newGameState gs cc =
         RemoveRing -> do
             guard (cc `elem` ringCoords board' activePlayer')
             Just gs { activePlayer = nextPlayer
-                    , turnMode = AddMarker -- TODO: other player could also have 5
+                    , turnMode = AddMarker -- TODO: other player could have a run
                     , board = removeRing board'
-                    , ringsB = if activePlayer' == B then (ringsB gs) + 1 else (ringsB gs)
-                    , ringsW = if activePlayer' == W then (ringsW gs) + 1 else (ringsW gs)
+                    , ringsB = if activePlayer' == B then ringsB gs + 1 else ringsB gs
+                    , ringsW = if activePlayer' == W then ringsW gs + 1 else ringsW gs
+                    }
+        PseudoTurn ->
+            Just gs { activePlayer = nextPlayer
+                    , turnMode = RemoveRun
                     }
     where activePlayer' = activePlayer gs
           nextPlayer    = next activePlayer'
@@ -498,10 +546,7 @@ newGameState gs cc =
 newDisplayState :: DisplayState  -- ^ old state
                 -> YCoord        -- ^ clicked coordinate
                 -> DisplayState  -- ^ new state
-newDisplayState (WaitTurn gs) cc = WaitTurn $ case mgs of
-                                       Just gs' -> gs'
-                                       Nothing -> gs
-    where mgs = (newGameState gs cc)
+newDisplayState (WaitTurn gs) cc = WaitTurn $ fromMaybe gs (newGameState gs cc)
 newDisplayState (BoardOnly gs) _ = BoardOnly gs
 
 main :: IO ()
@@ -516,6 +561,7 @@ main = do
     render can (pBoard [])
 
     ce `onEvent` OnMouseMove $ \point -> do
+        -- putStrLn $ "Coord: " ++ show (coordFromXY point)
         ds <- readIORef ioDS
         renderCanvas can ds point
 
@@ -528,12 +574,14 @@ main = do
         if activePlayer gs == W
         then do
             -- AI move
-            putStrLn "AI move"
-            let plies = 3
-            let pv = fst $ NS.alpha_beta_search gs plies
-            putStrLn $ "Length of pv: " ++ show (length pv)
-            let gs' = pv !! 1
-            let newDS' = WaitTurn gs'
+            -- putStrLn "AI move"
+            let gs' = aiTurn gs
+
+            let gs'' = if turnMode gs' == PseudoTurn
+                       then aiTurn (fromJust $ newGameState gs' (0, 0))
+                       else gs'
+
+            let newDS' = WaitTurn gs''
             renderCanvas can newDS' point
             writeIORef ioDS newDS'
         else

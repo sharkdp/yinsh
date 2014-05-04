@@ -1,0 +1,380 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="210mm"
+   height="297mm"
+   id="svg2"
+   version="1.1"
+   inkscape:version="0.48.4 r9939"
+   sodipodi:docname="turn structure.svg">
+  <defs
+     id="defs4" />
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="0.7"
+     inkscape:cx="-78.120358"
+     inkscape:cy="416.19909"
+     inkscape:document-units="px"
+     inkscape:current-layer="layer1"
+     showgrid="false"
+     inkscape:connector-spacing="3"
+     showborder="false"
+     inkscape:window-width="1920"
+     inkscape:window-height="1056"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="0" />
+  <metadata
+     id="metadata7">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Ebene 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <g
+       id="g3797"
+       transform="matrix(0.71542257,0,0,0.71542257,-622.76522,185.97461)">
+      <rect
+         y="259.50504"
+         x="-530"
+         height="72.85714"
+         width="488.57141"
+         id="rect2993"
+         style="fill:#aaccff;fill-opacity:1;stroke:none" />
+      <text
+         sodipodi:linespacing="125%"
+         id="text2985"
+         y="306.32425"
+         x="-504.35687"
+         style="font-size:40px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
+         xml:space="preserve"><tspan
+           id="tspan3771"
+           y="306.32425"
+           x="-504.35687"
+           sodipodi:role="line">AddMarker + MoveRing</tspan></text>
+    </g>
+    <g
+       id="g3816"
+       transform="matrix(0.71542257,0,0,0.71542257,-157.49224,207.99896)">
+      <rect
+         style="fill:#aaccff;fill-opacity:1;stroke:none"
+         id="rect3775"
+         width="528.57141"
+         height="72.85714"
+         x="55.714291"
+         y="533.79077" />
+      <text
+         sodipodi:linespacing="125%"
+         id="text3777"
+         y="580.151"
+         x="67.187492"
+         style="font-size:40px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
+         xml:space="preserve"><tspan
+           y="580.151"
+           x="67.187492"
+           id="tspan3779"
+           sodipodi:role="line">RemoveRun + RemoveRing</tspan></text>
+    </g>
+    <g
+       id="g3802"
+       transform="matrix(0.71542257,0,0,0.71542257,-522.3025,108.63014)">
+      <rect
+         style="fill:#55ff99;fill-opacity:1;stroke:none"
+         id="rect3781"
+         width="488.57141"
+         height="72.85714"
+         x="-1.4285711"
+         y="159.50504" />
+      <text
+         xml:space="preserve"
+         style="font-size:40px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
+         x="24.214556"
+         y="206.32423"
+         id="text3783"
+         sodipodi:linespacing="125%"><tspan
+           sodipodi:role="line"
+           x="24.214556"
+           y="206.32423"
+           id="tspan3785">AddMarker + MoveRing</tspan></text>
+    </g>
+    <g
+       id="g3811"
+       transform="matrix(0.71542257,0,0,0.71542257,-443.60602,369.10056)">
+      <rect
+         y="356.64789"
+         x="-5.7142854"
+         height="72.85714"
+         width="277.14285"
+         id="rect3791"
+         style="fill:#55ff99;fill-opacity:1;stroke:none" />
+      <text
+         sodipodi:linespacing="125%"
+         id="text3793"
+         y="408.07645"
+         x="19.077845"
+         style="font-size:40px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
+         xml:space="preserve"><tspan
+           y="408.07645"
+           x="19.077845"
+           sodipodi:role="line"
+           id="tspan3035">PseudoTurn</tspan></text>
+    </g>
+    <path
+       style="fill:none;stroke:#000000;stroke-width:0.71542257px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m -743.39275,371.63037 311.05681,-96.76309"
+       id="path3807"
+       inkscape:connector-type="polyline"
+       inkscape:connector-curvature="0"
+       inkscape:connection-start="#g3797"
+       inkscape:connection-start-point="d4"
+       inkscape:connection-end="#g3802"
+       inkscape:connection-end-point="d4" />
+    <path
+       style="fill:none;stroke:#000000;stroke-width:0.71542257px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m -777.79568,423.75401 379.86266,200.5005"
+       id="path3821"
+       inkscape:connector-type="polyline"
+       inkscape:connector-curvature="0"
+       inkscape:connection-start="#g3797"
+       inkscape:connection-start-point="d4"
+       inkscape:connection-end="#g3811"
+       inkscape:connection-end-point="d4" />
+    <g
+       transform="matrix(0.71542257,0,0,0.71542257,323.94952,325.17666)"
+       id="g3823">
+      <rect
+         y="533.79077"
+         x="55.714291"
+         height="72.85714"
+         width="528.57141"
+         id="rect3825"
+         style="fill:#55ff99;fill-opacity:1;stroke:none" />
+      <text
+         xml:space="preserve"
+         style="font-size:40px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
+         x="67.1875"
+         y="580.151"
+         id="text3827"
+         sodipodi:linespacing="125%"><tspan
+           sodipodi:role="line"
+           id="tspan3829"
+           x="67.1875"
+           y="580.151">RemoveRun + RemoveRing</tspan></text>
+    </g>
+    <g
+       transform="matrix(0.71542257,0,0,0.71542257,379.13926,369.84844)"
+       id="g3831">
+      <rect
+         y="159.50504"
+         x="-1.4285711"
+         height="72.85714"
+         width="488.57141"
+         id="rect3833"
+         style="fill:#55ff99;fill-opacity:1;stroke:none" />
+      <text
+         sodipodi:linespacing="125%"
+         id="text3835"
+         y="206.32423"
+         x="24.214556"
+         style="font-size:40px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
+         xml:space="preserve"><tspan
+           id="tspan3837"
+           y="206.32423"
+           x="24.214556"
+           sodipodi:role="line">AddMarker + MoveRing</tspan></text>
+    </g>
+    <path
+       style="fill:none;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m -249.4199,642.20371 131.78692,-10.78444"
+       id="path3839"
+       inkscape:connector-type="polyline"
+       inkscape:connector-curvature="0"
+       inkscape:connection-start="#g3811"
+       inkscape:connection-start-point="d4"
+       inkscape:connection-end="#g3816"
+       inkscape:connection-end-point="d4" />
+    <path
+       style="fill:none;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 178.52179,642.00857 267.28414,65.05406"
+       id="path3841"
+       inkscape:connector-type="polyline"
+       inkscape:connector-curvature="0"
+       inkscape:connection-end-point="d4"
+       inkscape:connection-end="#g3823"
+       inkscape:connection-start-point="d4"
+       inkscape:connection-start="#g3816" />
+    <path
+       style="fill:none;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="M 189.89932,589.88493 434.4284,536.08558"
+       id="path3843"
+       inkscape:connector-type="polyline"
+       inkscape:connector-curvature="0"
+       inkscape:connection-start="#g3816"
+       inkscape:connection-start-point="d4"
+       inkscape:connection-end="#g3831"
+       inkscape:connection-end-point="d4" />
+    <g
+       id="g3851"
+       transform="translate(-31.091373,94.548237)">
+      <rect
+         y="458.39249"
+         x="-672.7616"
+         height="66.670067"
+         width="113.13708"
+         id="rect3845"
+         style="fill:#aaccff;fill-opacity:1;stroke:none" />
+      <text
+         sodipodi:linespacing="125%"
+         id="text3847"
+         y="505.72165"
+         x="-660.76337"
+         style="font-size:40px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
+         xml:space="preserve"><tspan
+           y="505.72165"
+           x="-660.76337"
+           id="tspan3849"
+           sodipodi:role="line">Run!</tspan></text>
+    </g>
+    <g
+       id="g3856"
+       transform="translate(849.26045,235.5635)">
+      <rect
+         style="fill:#55ff99;fill-opacity:1;stroke:none"
+         id="rect3858"
+         width="113.13708"
+         height="66.670067"
+         x="-672.7616"
+         y="458.39249" />
+      <text
+         xml:space="preserve"
+         style="font-size:40px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
+         x="-660.76337"
+         y="505.72165"
+         id="text3860"
+         sodipodi:linespacing="125%"><tspan
+           sodipodi:role="line"
+           id="tspan3862"
+           x="-660.76337"
+           y="505.72165">Run!</tspan></text>
+    </g>
+    <text
+       xml:space="preserve"
+       style="font-size:40px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
+       x="-395.76404"
+       y="151.30612"
+       id="text3864"
+       sodipodi:linespacing="125%"><tspan
+         sodipodi:role="line"
+         id="tspan3866"
+         x="-395.76404"
+         y="151.30612">1-ply</tspan></text>
+    <text
+       sodipodi:linespacing="125%"
+       id="text3872"
+       y="151.30612"
+       x="25.03673"
+       style="font-size:40px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
+       xml:space="preserve"><tspan
+         y="151.30612"
+         x="25.03673"
+         id="tspan3874"
+         sodipodi:role="line">2-ply</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:40px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
+       x="506.6152"
+       y="151.30612"
+       id="text3876"
+       sodipodi:linespacing="125%"><tspan
+         sodipodi:role="line"
+         id="tspan3878"
+         x="506.6152"
+         y="151.30612">3-ply</tspan></text>
+    <text
+       sodipodi:linespacing="125%"
+       id="text3880"
+       y="151.30612"
+       x="-873.59747"
+       style="font-size:40px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
+       xml:space="preserve"><tspan
+         y="151.30612"
+         x="-873.59747"
+         id="tspan3882"
+         sodipodi:role="line">0-ply</tspan></text>
+    <g
+       transform="translate(98.831157,-80.570647)"
+       id="g3035">
+      <rect
+         y="458.39249"
+         x="-672.7616"
+         height="66.670067"
+         width="113.13708"
+         id="rect3037"
+         style="fill:#55ff99;fill-opacity:1;stroke:none" />
+      <text
+         sodipodi:linespacing="125%"
+         id="text3039"
+         y="505.72165"
+         x="-660.76337"
+         style="font-size:40px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
+         xml:space="preserve"><tspan
+           y="505.72165"
+           x="-660.76337"
+           id="tspan3041"
+           sodipodi:role="line">Run!</tspan></text>
+    </g>
+    <g
+       transform="matrix(0.71542257,0,0,0.71542257,-577.49224,89.99896)"
+       id="g3043">
+      <rect
+         y="533.79077"
+         x="55.714291"
+         height="72.85714"
+         width="528.57141"
+         id="rect3045"
+         style="fill:#55ff99;fill-opacity:1;stroke:none" />
+      <text
+         xml:space="preserve"
+         style="font-size:40px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
+         x="67.187492"
+         y="580.151"
+         id="text3047"
+         sodipodi:linespacing="125%"><tspan
+           sodipodi:role="line"
+           id="tspan3049"
+           x="67.187492"
+           y="580.151">RemoveRun + RemoveRing</tspan></text>
+    </g>
+    <path
+       style="fill:none;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m -702.7527,423.75401 229.7767,48.13092"
+       id="path3053"
+       inkscape:connector-type="polyline"
+       inkscape:connector-curvature="0"
+       inkscape:connection-start="#g3797"
+       inkscape:connection-start-point="d4"
+       inkscape:connection-end="#g3043"
+       inkscape:connection-end-point="d4" />
+  </g>
+</svg>
