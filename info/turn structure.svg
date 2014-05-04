@@ -25,7 +25,7 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="0.7"
-     inkscape:cx="-78.120358"
+     inkscape:cx="-259.54893"
      inkscape:cy="416.19909"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
@@ -76,7 +76,7 @@
     </g>
     <g
        id="g3816"
-       transform="matrix(0.71542257,0,0,0.71542257,-157.49224,207.99896)">
+       transform="matrix(0.71542257,0,0,0.71542257,-157.49224,161.99896)">
       <rect
          style="fill:#aaccff;fill-opacity:1;stroke:none"
          id="rect3775"
@@ -142,7 +142,7 @@
     </g>
     <path
        style="fill:none;stroke:#000000;stroke-width:0.71542257px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       d="m -743.39275,371.63037 311.05681,-96.76309"
+       d="m -743.39275,371.63037 311.0568,-96.76309"
        id="path3807"
        inkscape:connector-type="polyline"
        inkscape:connector-curvature="0"
@@ -161,7 +161,7 @@
        inkscape:connection-end="#g3811"
        inkscape:connection-end-point="d4" />
     <g
-       transform="matrix(0.71542257,0,0,0.71542257,323.94952,325.17666)"
+       transform="matrix(0.71542257,0,0,0.71542257,323.94952,385.17666)"
        id="g3823">
       <rect
          y="533.79077"
@@ -183,7 +183,7 @@
            y="580.151">RemoveRun + RemoveRing</tspan></text>
     </g>
     <g
-       transform="matrix(0.71542257,0,0,0.71542257,379.13926,369.84844)"
+       transform="matrix(0.71542257,0,0,0.71542257,379.13926,209.84844)"
        id="g3831">
       <rect
          y="159.50504"
@@ -206,7 +206,7 @@
     </g>
     <path
        style="fill:none;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       d="m -249.4199,642.20371 131.78692,-10.78444"
+       d="M -249.4199,631.34583 -64.752388,596.00857"
        id="path3839"
        inkscape:connector-type="polyline"
        inkscape:connector-curvature="0"
@@ -216,7 +216,7 @@
        inkscape:connection-end-point="d4" />
     <path
        style="fill:none;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       d="m 178.52179,642.00857 267.28414,65.05406"
+       d="M 127.66387,596.00857 496.66385,767.06263"
        id="path3841"
        inkscape:connector-type="polyline"
        inkscape:connector-curvature="0"
@@ -226,7 +226,7 @@
        inkscape:connection-start="#g3816" />
     <path
        style="fill:none;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       d="M 189.89932,589.88493 434.4284,536.08558"
+       d="M 128.4959,543.88493 495.83182,376.08558"
        id="path3843"
        inkscape:connector-type="polyline"
        inkscape:connector-curvature="0"
@@ -376,5 +376,59 @@
        inkscape:connection-start-point="d4"
        inkscape:connection-end="#g3043"
        inkscape:connection-end-point="d4" />
+    <g
+       transform="matrix(0.71542257,0,0,0.71542257,457.83574,329.10056)"
+       id="g3141">
+      <rect
+         style="fill:#55ff99;fill-opacity:1;stroke:none"
+         id="rect3143"
+         width="277.14285"
+         height="72.85714"
+         x="-5.7142854"
+         y="356.64789" />
+      <text
+         xml:space="preserve"
+         style="font-size:40px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
+         x="19.077845"
+         y="408.07645"
+         id="text3145"
+         sodipodi:linespacing="125%"><tspan
+           id="tspan3147"
+           sodipodi:role="line"
+           x="19.077845"
+           y="408.07645">PseudoTurn</tspan></text>
+    </g>
+    <path
+       style="fill:none;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 260.51894,585.80104 193.22867,16.2025"
+       id="path3149"
+       inkscape:connector-type="polyline"
+       inkscape:connector-curvature="0"
+       inkscape:connection-start="#g3816"
+       inkscape:connection-start-point="d4"
+       inkscape:connection-end="#g3141"
+       inkscape:connection-end-point="d4" />
+    <g
+       transform="translate(977.48006,41.691094)"
+       id="g3151">
+      <rect
+         style="fill:#aaccff;fill-opacity:1;stroke:none"
+         id="rect3153"
+         width="113.13708"
+         height="66.670067"
+         x="-672.7616"
+         y="458.39249" />
+      <text
+         xml:space="preserve"
+         style="font-size:40px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
+         x="-660.76337"
+         y="505.72165"
+         id="text3155"
+         sodipodi:linespacing="125%"><tspan
+           sodipodi:role="line"
+           id="tspan3157"
+           x="-660.76337"
+           y="505.72165">Run!</tspan></text>
+    </g>
   </g>
 </svg>
