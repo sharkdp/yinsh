@@ -85,7 +85,7 @@ pHighlightRing = fill $ circle (0, 0) (markerWidth + 2)
 
 pHighlight :: Board -> Player -> Picture ()
 pHighlight b p = do
-    let mc  = markerCoords b p
+    let mc  = markers p b
     let mcH = filter (partOfRun mc) mc
     mapM_ (`translateC` pHighlightRing) mcH
 
@@ -107,14 +107,14 @@ pBoard b = do
     -- mapM_ (`translateC` pDot) $ fiveAdjacent (6, 6) NW
 
 pAction :: Board -> TurnMode -> YCoord -> Player -> Picture ()
-pAction b AddMarker mc p        = when (mc `elem` ringCoords b p) $ pElement (Marker p mc)
+pAction b AddMarker mc p        = when (mc `elem` rings p b) $ pElement (Marker p mc)
 pAction b AddRing mc p          = when (freeCoord b mc) $ pElement (Ring p mc)
 pAction b (MoveRing start) mc p = do
     let allowed = validRingMoves b start
     mapM_ (`translateC` pDot) allowed
     when (mc `elem` allowed) $ pElement (Ring p mc)
 pAction b RemoveRun mc p        = do
-    let runC = runCoords (markerCoords b p) mc
+    let runC = runCoords (markers p b) mc
     setFillColor hl
     mapM_ (`translateC` pHighlightRing) runC
 pAction _ RemoveRing _ _        = return ()
@@ -176,7 +176,7 @@ newDisplayState (BoardOnly gs) _ = BoardOnly gs
 initialDisplayState = WaitTurn initialGameState
 testDisplayState = WaitTurn testGameState -- TODO: just for testing
 
--- Resolve pseudo turns automatically
+-- Resolve pseudo turns for the human player automatically
 aiTurn' :: GameState -> GameState
 aiTurn' gs = let gs' = aiTurn gs in
                  if turnMode gs' == PseudoTurn

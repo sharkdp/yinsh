@@ -11,21 +11,21 @@ import Yinsh
 gamestates :: GameState -> [GameState]
 gamestates gs = case turnMode gs of
                     AddRing -> freeCoords >>= newGS gs
-                    AddMarker -> ringCoords' >>= newGS gs
+                    AddMarker -> rings' >>= newGS gs
                     RemoveRun -> runCoords' >>= newGS gs
                     PseudoTurn -> [fromJust (newGameState gs (0, 0))]
                     (MoveRing _) -> error "This is not supposed to happen"
                     RemoveRing -> error "This is not supposed to happen"
     where freeCoords = filter (freeCoord (board gs)) coords
-          ringCoords' = ringCoords (board gs) (activePlayer gs)
-          runCoords' = filter (partOfRun (markerCoords (board gs) (activePlayer gs))) coords -- TODO: we introduce an artificial branching here since we are generating too many moves (5 for a single run)
+          rings' = rings (activePlayer gs) (board gs)
+          runCoords' = filter (partOfRun (markers (activePlayer gs) (board gs))) coords -- TODO: we introduce an artificial branching here since we are generating too many moves (5 for a single run)
           newGS gs' c = case turnMode nextGS of
                             AddRing -> [nextGS]
                             AddMarker -> [nextGS]
                             RemoveRun -> [nextGS]
                             PseudoTurn -> [nextGS]
                             (MoveRing start) -> validRingMoves (board nextGS) start >>= newGS nextGS
-                            RemoveRing -> ringCoords (board gs') (activePlayer nextGS) >>= newGS nextGS
+                            RemoveRing -> rings (activePlayer nextGS) (board gs') >>= newGS nextGS
                         where nextGS = fromJust $ newGameState gs' c
 
 -- | Heuristic evaluation function for a game state. Everything is calulated
@@ -37,26 +37,29 @@ heuristicValue gs = sign * valueForWhite -- TODO: should we care which turn mode
                | otherwise            = -1
           valueForWhite =   valueRings W - valueRings B
                           + valueMarkers W - valueMarkers B
-          valueRings p = if rings p == ringsForWin
+          valueRings p = if points p == pointsForWin
                          then hugeNumber
-                         else 10000 * (rings p)
-          rings p = if p == W then ringsW gs else ringsB gs
-          valueMarkers p = length $ markerCoords (board gs) p
+                         else 10000 * (points p)
+          points W = pointsW gs
+          points B = pointsB gs
+          valueMarkers p = length $ markers p (board gs)
 
 hugeNumber :: Int
 hugeNumber = maxBound - 10 -- cannot use maxBound due to internals of the negamax implementation
 
 terminalState :: GameState -> Bool
-terminalState gs = ringsB gs == ringsForWin || ringsW gs == ringsForWin
+terminalState gs = pointsB gs == pointsForWin || pointsW gs == pointsForWin
 
 instance GT.Game_tree GameState where
     is_terminal = terminalState
     node_value = heuristicValue
     children = gamestates
 
+plies :: Int
+plies = 5
+
 aiTurn :: GameState -> GameState
 aiTurn gs = case turnMode gs of
                 PseudoTurn -> fromJust $ newGameState gs (0, 0)
                 _ -> pv !! 1
             where pv = fst $ NS.alpha_beta_search gs plies
-                  plies = 3

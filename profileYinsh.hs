@@ -1,4 +1,6 @@
 import Yinsh
 import Floyd
 
-main = print $ aiTurn testGameStateW
+main = do
+    putStrLn $ "Running profile at " ++ show plies ++ "-ply"
+    print $ aiTurn testGameStateW

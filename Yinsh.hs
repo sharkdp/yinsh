@@ -1,6 +1,8 @@
 module Yinsh where
 
 import Control.Monad (guard)
+import qualified Data.Map as M
+import Data.List (delete, foldl')
 
 -- $setup
 -- >>> import Data.List (sort, nub)
@@ -15,8 +17,8 @@ type YCoord = (Int, Int)
 data Direction = N | NE | SE | S | SW | NW
                  deriving (Eq, Enum, Bounded, Show)
 
-data Element = Ring Player YCoord
-             | Marker Player YCoord
+data Element = Ring Player
+             | Marker Player
              deriving (Show, Eq)
 
 data TurnMode = AddRing
@@ -27,23 +29,90 @@ data TurnMode = AddRing
               | PseudoTurn
               deriving (Eq, Show)
 
-type Board = [Element]
+-- | Player types: black & white or blue & green
+data Player = B | W
+              deriving (Eq, Enum, Bounded, Show)
+
+-- | Efficient data structure for the board with two-way access.
+-- The Map is used to get log(n) access to the element at a certain
+-- coordinate while the lists are used to get direct access to the
+-- coordinates of the markers and rings (which would need a reverse
+-- lookup otherwise). This comes at the cost of complete redundancy.
+-- Either bmap or the other four fields would be enough to reconstruct
+-- the whole board.
+data Board = Board { bmap :: M.Map YCoord Element
+                   , ringsB :: [YCoord]
+                   , ringsW :: [YCoord]
+                   , markersB :: [YCoord]
+                   , markersW :: [YCoord]
+                   } deriving (Show)
 
 data GameState = GameState
     { activePlayer :: Player
     , turnMode :: TurnMode
     , board :: Board
-    , ringsB :: Int
-    , ringsW :: Int
+    , pointsB :: Int
+    , pointsW :: Int
     } deriving Show
 
--- | Player types: black & white or blue & green
-data Player = B | W
-              deriving (Eq, Enum, Bounded, Show)
+markers :: Player -> Board -> [YCoord]
+markers B = markersB
+markers W = markersW
+
+rings :: Player -> Board -> [YCoord]
+rings B = ringsB
+rings W = ringsW
+
+-- occupied :: Board -> [YCoord]
+-- occupied b = M.keys (bmap b)
+
+elementAt :: Board -> YCoord -> Maybe Element
+elementAt b c = M.lookup c (bmap b)
+
+-- | Check if a certain point on the board is free
+freeCoord :: Board -> YCoord -> Bool
+freeCoord b c = not $ M.member c (bmap b)
+
+addElement :: Board -> YCoord -> Element -> Board
+addElement b c e = case e of
+                       Ring B -> b { bmap = bmap'
+                                   , ringsB = c : ringsB b }
+                       Ring W -> b { bmap = bmap'
+                                   , ringsW = c : ringsW b }
+                       Marker B -> b { bmap = bmap'
+                                   , markersB = c : markersB b }
+                       Marker W -> b { bmap = bmap'
+                                   , markersW = c : markersW b }
+    where bmap' = M.insert c e (bmap b)
+
+removeElement :: Board -> YCoord -> Board
+removeElement b c = case e of
+                       Ring B -> b { bmap = bmap'
+                                   , ringsB = delete c (ringsB b) }
+                       Ring W -> b { bmap = bmap'
+                                   , ringsW = delete c (ringsW b) }
+                       Marker B -> b { bmap = bmap'
+                                   , markersB = delete c (markersB b) }
+                       Marker W -> b { bmap = bmap'
+                                   , markersW = delete c (markersW b) }
+    where bmap' = M.delete c (bmap b)
+          e = bmap b M.! c
+
+-- TODO: this can certainly be optimizied:
+modifyElement :: Board -> YCoord -> Element -> Board
+modifyElement b c = addElement (removeElement b c) c
+
+emptyBoard :: Board
+emptyBoard = Board { bmap = M.empty
+                   , ringsB = []
+                   , ringsW = []
+                   , markersB = []
+                   , markersW = []
+                   }
 
 -- Game behaviour
-ringsForWin :: Int
-ringsForWin = 2
+pointsForWin = 2
+pointsForWin :: Int
 
 -- | Similar to Enum's succ, but for cyclic data structures.
 -- Wraps around to the beginning when it reaches the 'last' element.
@@ -124,8 +193,8 @@ norm2 (x, y) = x * x + y * y
 -- | Get all valid ring moves starting from a given point
 validRingMoves :: Board -> YCoord -> [YCoord]
 validRingMoves b start = filter (freeCoord b) $ concatMap (validInDir False start) directions
-    where markerPos = [ c | Marker _ c <- b ]
-          ringPos   = [ c | Ring _ c <- b ]
+    where markerPos = markersB b ++ markersW b
+          ringPos   = ringsB b ++ ringsW b
           validInDir :: Bool -> YCoord -> Direction -> [YCoord]
           validInDir jumped c d = c : rest
               where nextPoint = c `add` vector d
@@ -151,32 +220,20 @@ neighbors :: YCoord -> [YCoord]
 neighbors c = filter (`elem` coords) adj
     where adj = mapM (add . vector) directions c
 
--- | Get the coordinates of a players markers
-markerCoords :: Board -> Player -> [YCoord]
-markerCoords b p = [ c | Marker p' c <- b, p == p' ]
-
--- | Get the coordinates of a players rings
-ringCoords :: Board -> Player -> [YCoord]
-ringCoords b p = [ c | Ring p' c <- b, p == p' ]
-
--- | Check if a certain point on the board is free
-freeCoord :: Board -> YCoord -> Bool
-freeCoord b c = c `notElem` occupied
-    where occupied = [ o | Ring _ o <- b ] ++ [ o | Marker _ o <- b ]
-
 -- | Check if a coordinate is one of five in a row
 --
 -- prop> partOfRun (take 5 $ adjacent c d) c == True
 partOfRun :: [YCoord] -> YCoord -> Bool
-partOfRun markers start = any (partOfRunD markers start) [NW, N, NE]
+partOfRun ms start = any (partOfRunD ms start) [NW, N, NE]
+-- TODO: is it useful to introduce sth like: (length ms >= 5) && ... ?
 
 partOfRunD :: [YCoord] -> YCoord -> Direction -> Bool
-partOfRunD markers start dir = length (runCoordsD markers start dir) == 5
+partOfRunD ms start dir = length (runCoordsD ms start dir) == 5
 
 -- | Return the coordinates of the markers making up a run
 runCoords :: [YCoord] -> YCoord -> [YCoord]
-runCoords markers start = if null cs then [] else head cs
-    where cs = filter ((== 5) . length) $ map (runCoordsD markers start) [NW, N, NE]
+runCoords ms start = if null cs then [] else head cs
+    where cs = filter ((== 5) . length) $ map (runCoordsD ms start) [NW, N, NE]
 
 -- | Combine two lists by taking elements alternatingly. If one list is longer,
 -- append the rest.
@@ -192,12 +249,12 @@ zipAlternate (x:xs) ys = x : zipAlternate ys xs
 --
 -- prop> runCoordsD (take 7 $ adjacent c d) c d == (take 5 $ adjacent c d)
 runCoordsD :: [YCoord] -> YCoord -> Direction -> [YCoord]
-runCoordsD markers start dir = if start `elem` markers
-                               then take 5 $ zipAlternate right left
-                               else []
+runCoordsD ms start dir = if start `elem` ms
+                          then take 5 $ zipAlternate right left
+                          else []
     where right = takeAvailable dir
           left  = tail $ takeAvailable (opposite dir)  -- use tail to avoid taking the start twice
-          takeAvailable d = takeWhile (`elem` markers) $ adjacent start d
+          takeAvailable d = takeWhile (`elem` ms) $ adjacent start d
 
 -- | Get the adjacent (including start) coordinates in a given direction
 adjacent :: YCoord -> Direction -> [YCoord]
@@ -216,14 +273,26 @@ between a b c = n2x * n2y == (x `prod` y)^2 && n2y < n2x && n2z < n2x
           n2y = norm2 y
           n2z = norm2 z
 
+-- | Get all coordinates connecting two points
+coordLine :: YCoord -> YCoord -> [YCoord]
+-- line x y = iterate addStep x
+--     where delta = x `subC` y
+--           ldelta =
+coordLine x y = filter (between x y) coords -- TODO: this could be *much* more efficient
+
 -- | Flip all markers between two given coordinates
 flippedMarkers :: Board -> YCoord -> YCoord -> Board
-flippedMarkers b s e = map flipE b
-    where flipE (Marker p c) = Marker (newCol p c) c
-          flipE el           = el
-          newCol p c = if between s e c
-                       then next p
-                       else p
+-- flippedMarkers b s e = map flipE b
+--     where flipE (Marker p c) = Marker (newCol p c) c
+--           flipE el           = el
+--           newCol p c = if between s e c
+--                        then next p
+--                        else p
+flippedMarkers b s e = foldl' flipMaybe b (coordLine s e)
+    where flipMaybe b c = case elementAt b c of
+                              Nothing -> b
+                              (Just (Marker B)) -> modifyElement b c (Marker W)
+                              (Just (Marker W)) -> modifyElement b c (Marker B)
 
 -- | Get new game state after 'interacting' at a certain coordinate.
 newGameState :: GameState -> YCoord -> Maybe GameState
@@ -233,38 +302,38 @@ newGameState gs cc = -- TODO: the guards should be (?) unnecessary when calling 
             guard (freeCoord board' cc)
             Just gs { activePlayer = nextPlayer
                     , turnMode = if numRings < 9 then AddRing else AddMarker
-                    , board = Ring activePlayer' cc : board'
+                    , board = addElement board' cc (Ring activePlayer')
                     }
-            where numRings = length [ 0 | Ring _ _ <- board' ]
+            where numRings = length (ringsB board') + length (ringsW board') -- TODO: length is O(n)... is this a problem? we could use maps/arrays
         AddMarker -> do
-            guard (cc `elem` ringCoords board' activePlayer')
+            guard (cc `elem` rings activePlayer' board')
             Just gs { turnMode = MoveRing cc
-                    , board = Marker activePlayer' cc : removeRing board'
+                    , board = addElement removedRing cc (Marker activePlayer')
                     }
         (MoveRing start) -> do
             guard (cc `elem` validRingMoves board' start)
             Just gs { activePlayer = nextPlayer
                     , turnMode = nextTurnMode
-                    , board = Ring activePlayer' cc : flippedBoard
+                    , board = addElement flippedBoard cc (Ring activePlayer')
                     }
             where hasRun = any (partOfRun playerMarkers') playerMarkers'
                   nextTurnMode = if hasRun
                                  then PseudoTurn
                                  else AddMarker -- TODO: other player could have a run
                   flippedBoard = flippedMarkers board' start cc
-                  playerMarkers' = markerCoords flippedBoard activePlayer'
+                  playerMarkers' = markers activePlayer' flippedBoard
         RemoveRun -> do
             guard (partOfRun playerMarkers cc)
             Just gs { turnMode = RemoveRing
-                    , board = removeRun board'
+                    , board = removedRun
                     }
         RemoveRing -> do
-            guard (cc `elem` ringCoords board' activePlayer')
+            guard (cc `elem` rings activePlayer' board')
             Just gs { activePlayer = nextPlayer
                     , turnMode = AddMarker -- TODO: other player could have a run
-                    , board = removeRing board'
-                    , ringsB = if activePlayer' == B then ringsB gs + 1 else ringsB gs
-                    , ringsW = if activePlayer' == W then ringsW gs + 1 else ringsW gs
+                    , board = removedRing
+                    , pointsB = if activePlayer' == B then pointsB gs + 1 else pointsB gs
+                    , pointsW = if activePlayer' == W then pointsW gs + 1 else pointsW gs
                     }
         PseudoTurn ->
             Just gs { activePlayer = nextPlayer
@@ -272,52 +341,54 @@ newGameState gs cc = -- TODO: the guards should be (?) unnecessary when calling 
                     }
     where activePlayer' = activePlayer gs
           nextPlayer    = next activePlayer'
-          removeRing    = filter (/= Ring activePlayer' cc)
-          removeRun     = filter (`notElem` map (Marker activePlayer') (runCoords playerMarkers cc))
+          removedRing    = removeElement board' cc
+          -- removeRun     = filter (`notElem` map (Marker activePlayer') (runCoords playerMarkers cc))
+          removedRun     = foldl' removeElement board' (runCoords playerMarkers cc)
           board'        = board gs
-          playerMarkers = markerCoords board' activePlayer'
+          playerMarkers = markers activePlayer' board'
 
 initialGameState :: GameState
 initialGameState = GameState { activePlayer = B
                              , turnMode = AddRing
-                             , board = []
-                             , ringsW = 0
-                             , ringsB = 0
+                             , board = emptyBoard
+                             , pointsW = 0
+                             , pointsB = 0
                              }
 
 -- Testing stuff
 
 testBoard :: Board
-testBoard = [ Ring B (3, 4)
-            , Ring B (4, 9)
-            , Ring B (7, 9)
-            , Ring B (8, 9)
-            , Ring B (7, 10)
-            , Ring W (8, 7)
-            , Ring W (6, 3)
-            , Ring W (4, 8)
-            , Ring W (4, 2)
-            , Ring W (2, 5)
-            , Marker W (6, 4)
-            , Marker W (6, 5)
-            , Marker W (6, 7)
-            , Marker W (5, 5)
-            , Marker W (4, 5)
-            , Marker W (3, 5)
-            , Marker B (6, 6)]
+testBoard = foldl' (\b (c, e) -> addElement b c e) emptyBoard
+                [ ((3, 4), Ring B)
+                , ((4, 9), Ring B)
+                , ((7, 9), Ring B)
+                , ((8, 9), Ring B)
+                , ((7, 10), Ring B)
+                , ((8, 7), Ring W)
+                , ((6, 3), Ring W)
+                , ((4, 8), Ring W)
+                , ((4, 2), Ring W)
+                , ((2, 5), Ring W)
+                , ((6, 4), Marker W)
+                , ((6, 5), Marker W)
+                , ((6, 7), Marker W)
+                , ((5, 5), Marker W)
+                , ((4, 5), Marker W)
+                , ((3, 5), Marker W)
+                , ((6, 6), Marker B)]
 
 testGameState = GameState { activePlayer = B
                           , turnMode = AddMarker
                           , board = testBoard
-                          , ringsW = 0
-                          , ringsB = 0
+                          , pointsW = 0
+                          , pointsB = 0
                           }
 
 testGameStateW = GameState { activePlayer = W
                           , turnMode = AddMarker
                           , board = testBoard
-                          , ringsW = 0
-                          , ringsB = 0
+                          , pointsW = 0
+                          , pointsB = 0
                           }
 
 

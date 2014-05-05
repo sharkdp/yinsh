@@ -10,6 +10,12 @@ opt: Frontend.hs Yinsh.hs Floyd.hs
 	rm Frontend.js
 	hastec --opt-all Frontend.hs
 
+prof: Frontend.hs Yinsh.hs Floyd.hs
+	ghc -prof -auto-all -O2 profileYinsh.hs
+
+cli: Frontend.hs Yinsh.hs Floyd.hs
+	ghc -O2 profileYinsh.hs
+
 clean:
 	rm -f Frontend.js *.hi *.o
 	rm -rf main doc

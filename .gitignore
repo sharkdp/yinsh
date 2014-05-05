@@ -3,3 +3,5 @@
 *.hi
 main
 doc
+*.prof
+profileYinsh
