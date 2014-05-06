@@ -62,4 +62,7 @@ aiTurn :: GameState -> GameState
 aiTurn gs = case turnMode gs of
                 PseudoTurn -> fromJust $ newGameState gs (0, 0)
                 _ -> pv !! 1
-            where pv = fst $ NS.alpha_beta_search gs plies
+            -- where pv = fst $ NS.alpha_beta_search gs plies
+            -- where pv = fst $ NS.principal_variation_search gs plies
+            where pv = fst $ NS.negascout gs plies
+            -- TODO: negascout really seems to be the fastest. But test this for more game states

@@ -220,12 +220,18 @@ neighbors :: YCoord -> [YCoord]
 neighbors c = filter (`elem` coords) adj
     where adj = mapM (add . vector) directions c
 
+-- | Check if a player has a run of five in a row
+hasRun [] = False
+hasRun ms@(m:rest) = partOfRun (filter (connected m) ms) m || hasRun rest
+-- TODO: is this part          ^^^^^^^^^^^^^^^^^^^^^^^^^
+--       really increasing performance? (can be replace by 'ms')
+-- TODO: is it useful to introduce sth like: (length ms >= 5) && ... ?
+
 -- | Check if a coordinate is one of five in a row
 --
 -- prop> partOfRun (take 5 $ adjacent c d) c == True
 partOfRun :: [YCoord] -> YCoord -> Bool
 partOfRun ms start = any (partOfRunD ms start) [NW, N, NE]
--- TODO: is it useful to introduce sth like: (length ms >= 5) && ... ?
 
 partOfRunD :: [YCoord] -> YCoord -> Direction -> Bool
 partOfRunD ms start dir = length (runCoordsD ms start dir) == 5
@@ -275,19 +281,14 @@ between a b c = n2x * n2y == (x `prod` y)^2 && n2y < n2x && n2z < n2x
 
 -- | Get all coordinates connecting two points
 coordLine :: YCoord -> YCoord -> [YCoord]
--- line x y = iterate addStep x
---     where delta = x `subC` y
---           ldelta =
-coordLine x y = filter (between x y) coords -- TODO: this could be *much* more efficient
+coordLine x y = take (num - 1) $ tail $ iterate (`add` step) x
+    where delta = y `sub` x
+          step = (reduce (fst delta), reduce (snd delta))
+          reduce x = round $ fromIntegral x / fromIntegral num
+          num = max (abs (fst delta)) (abs (snd delta))
 
 -- | Flip all markers between two given coordinates
 flippedMarkers :: Board -> YCoord -> YCoord -> Board
--- flippedMarkers b s e = map flipE b
---     where flipE (Marker p c) = Marker (newCol p c) c
---           flipE el           = el
---           newCol p c = if between s e c
---                        then next p
---                        else p
 flippedMarkers b s e = foldl' flipMaybe b (coordLine s e)
     where flipMaybe b c = case elementAt b c of
                               Nothing -> b
@@ -316,8 +317,7 @@ newGameState gs cc = -- TODO: the guards should be (?) unnecessary when calling 
                     , turnMode = nextTurnMode
                     , board = addElement flippedBoard cc (Ring activePlayer')
                     }
-            where hasRun = any (partOfRun playerMarkers') playerMarkers'
-                  nextTurnMode = if hasRun
+            where nextTurnMode = if hasRun playerMarkers'
                                  then PseudoTurn
                                  else AddMarker -- TODO: other player could have a run
                   flippedBoard = flippedMarkers board' start cc
@@ -342,7 +342,6 @@ newGameState gs cc = -- TODO: the guards should be (?) unnecessary when calling 
     where activePlayer' = activePlayer gs
           nextPlayer    = next activePlayer'
           removedRing    = removeElement board' cc
-          -- removeRun     = filter (`notElem` map (Marker activePlayer') (runCoords playerMarkers cc))
           removedRun     = foldl' removeElement board' (runCoords playerMarkers cc)
           board'        = board gs
           playerMarkers = markers activePlayer' board'
