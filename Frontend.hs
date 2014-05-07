@@ -3,7 +3,7 @@ module Main where
 import Data.List (minimumBy)
 import Data.Ord (comparing)
 import Data.IORef
-import Control.Monad (when)
+import Control.Monad (when, forM_)
 import Data.Maybe (fromJust, fromMaybe)
 import Haste hiding (next)
 import Haste.Graphics.Canvas
@@ -69,9 +69,9 @@ pMarker p = do
     stroke circ
         where circ = circle (0, 0) markerWidth
 
-pElement :: Element -> Picture ()
-pElement (Ring p c)   = translateC c $ pRing p True
-pElement (Marker p c) = translateC c $ pMarker p
+pElement :: Element -> YCoord -> Picture ()
+pElement (Ring p)   c = translateC c $ pRing p True
+pElement (Marker p) c = translateC c $ pMarker p
 
 pCross :: Double -> Picture ()
 pCross len = do
@@ -99,20 +99,18 @@ pBoard b = do
     -- Draw grid
     sequence_ $ mapM translate points (pCross (0.5 * spacing))
 
-    -- Draw markers
-    mapM_ pElement b
-
-    -- sequence_ $ mapM (translate . screenPoint) (reachable (3, 6)) pDot
-    -- Testing
-    -- mapM_ (`translateC` pDot) $ fiveAdjacent (6, 6) NW
+    -- Draw board elements
+    forM_ [B, W] $ \p -> do
+        mapM_ (pElement (Marker p)) $ markers p b
+        mapM_ (pElement (Ring p)) $ rings p b
 
 pAction :: Board -> TurnMode -> YCoord -> Player -> Picture ()
-pAction b AddMarker mc p        = when (mc `elem` rings p b) $ pElement (Marker p mc)
-pAction b AddRing mc p          = when (freeCoord b mc) $ pElement (Ring p mc)
+pAction b AddMarker mc p        = when (mc `elem` rings p b) $ pElement (Marker p) mc
+pAction b AddRing mc p          = when (freeCoord b mc) $ pElement (Ring p) mc
 pAction b (MoveRing start) mc p = do
     let allowed = validRingMoves b start
     mapM_ (`translateC` pDot) allowed
-    when (mc `elem` allowed) $ pElement (Ring p mc)
+    when (mc `elem` allowed) $ pElement (Ring p) mc
 pAction b RemoveRun mc p        = do
     let runC = runCoords (markers p b) mc
     setFillColor hl
@@ -138,8 +136,8 @@ pDisplay (BoardOnly gs) _ = pBoard (board gs)
 pDisplay (WaitTurn gs) mc = do
     pBoard (board gs)
 
-    pRings B (ringsB gs)
-    pRings W (ringsW gs)
+    pRings B (pointsB gs)
+    pRings W (pointsW gs)
 
     pAction (board gs) (turnMode gs) mc (activePlayer gs)
 
@@ -192,11 +190,10 @@ main = do
     -- ioDS <- newIORef testDisplayState
 
     -- draw initial board
-    render can (pBoard []) -- TODO: use this line instead of next
+    render can (pBoard emptyBoard) -- TODO: use this line instead of next
     -- render can (pBoard testBoard)
 
     ce `onEvent` OnMouseMove $ \point -> do
-        -- putStrLn $ "Coord: " ++ show (coordFromXY point)
         ds <- readIORef ioDS
         renderCanvas can ds point
 
@@ -205,7 +202,9 @@ main = do
         let newDS = newDisplayState old (coordFromXY point)
         renderCanvas can newDS point
 
+
         let WaitTurn gs = newDS
+        putStrLn $ "DEBUG: gs = " ++ show gs
         if activePlayer gs == W
         then
             -- putStrLn "AI move"

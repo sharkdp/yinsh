@@ -56,7 +56,7 @@ instance GT.Game_tree GameState where
     children = gamestates
 
 plies :: Int
-plies = 5
+plies = 3
 
 aiTurn :: GameState -> GameState
 aiTurn gs = case turnMode gs of

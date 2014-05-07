@@ -284,16 +284,17 @@ coordLine :: YCoord -> YCoord -> [YCoord]
 coordLine x y = take (num - 1) $ tail $ iterate (`add` step) x
     where delta = y `sub` x
           step = (reduce (fst delta), reduce (snd delta))
-          reduce x = round $ fromIntegral x / fromIntegral num
+          reduce s = round $ fromIntegral s / fromIntegral num
           num = max (abs (fst delta)) (abs (snd delta))
 
 -- | Flip all markers between two given coordinates
 flippedMarkers :: Board -> YCoord -> YCoord -> Board
 flippedMarkers b s e = foldl' flipMaybe b (coordLine s e)
-    where flipMaybe b c = case elementAt b c of
-                              Nothing -> b
-                              (Just (Marker B)) -> modifyElement b c (Marker W)
-                              (Just (Marker W)) -> modifyElement b c (Marker B)
+    where flipMaybe b' c = case elementAt b' c of
+                               Nothing -> b'
+                               (Just (Marker B)) -> modifyElement b' c (Marker W)
+                               (Just (Marker W)) -> modifyElement b' c (Marker B)
+                               _ -> error "trying to flip something that is not a marker (invalid ring move?)"
 
 -- | Get new game state after 'interacting' at a certain coordinate.
 newGameState :: GameState -> YCoord -> Maybe GameState
@@ -389,5 +390,4 @@ testGameStateW = GameState { activePlayer = W
                           , pointsW = 0
                           , pointsB = 0
                           }
-
 
