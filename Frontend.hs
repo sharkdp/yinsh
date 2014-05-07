@@ -3,7 +3,7 @@ module Main where
 import Data.List (minimumBy)
 import Data.Ord (comparing)
 import Data.IORef
-import Control.Monad (when, forM_)
+import Control.Monad (when, forM_, unless)
 import Data.Maybe (fromJust, fromMaybe)
 import Haste hiding (next)
 import Haste.Graphics.Canvas
@@ -11,8 +11,10 @@ import Haste.Graphics.Canvas
 import Yinsh
 import Floyd
 
-data DisplayState = BoardOnly GameState -- TODO: do we need this state?
-                  | WaitTurn GameState
+-- | Current state of the user interface
+data DisplayState = WaitUser | WaitAI | ViewBoard
+                    deriving (Show, Eq)
+-- TODO: ViewBoard and WaitAI are somehow the same up to now?
 
 -- Color theme
 -- http://www.colourlovers.com/palette/15/tech_light
@@ -128,26 +130,36 @@ pRings p rw =
           diff W (x, y) = (x + 20, y)
           ringAt point = translate point $ pRing p False
 
--- | Render everything that is seen on the screen
-pDisplay :: DisplayState
-         -> YCoord         -- ^ Coordinate close to mouse cursor
+-- | Render everything static on the screen
+pDisplay :: GameState
          -> Picture ()
-pDisplay (BoardOnly gs) _ = pBoard (board gs)
-pDisplay (WaitTurn gs) mc = do
-    pBoard (board gs)
+pDisplay gs = do
+    if terminalState gs
+    then
+        font "25pt 'Lato', sans-serif" $
+            text (300, 200) "Game over"
+    else do
+        pBoard (board gs)
 
-    pRings B (pointsB gs)
-    pRings W (pointsW gs)
+        pRings B (pointsB gs)
+        pRings W (pointsW gs)
 
-    pAction (board gs) (turnMode gs) mc (activePlayer gs)
+        -- Draw thick borders for markers which are part of a run
+        when (turnMode gs == RemoveRun) $
+            mapM_ (pHighlight (board gs)) [B, W]
 
-    -- Draw thick borders for markers which are part of a run
-    when (turnMode gs == RemoveRun) $
-        mapM_ (pHighlight (board gs)) [B, W]
+pDisplayAction :: GameState
+               -> YCoord         -- ^ Coordinate close to mouse cursor
+               -> Picture ()
+pDisplayAction gs mc = do
+    pDisplay gs
+    -- TODO: remove this duplication:
+    unless (terminalState gs) $ do
+        pAction (board gs) (turnMode gs) mc (activePlayer gs)
 
-    when (activePlayer gs == W) $
-        font "15pt 'Lato', sans-serif" $
-            text (420, 20) "Floyd is thinking ..."
+        when (activePlayer gs == W) $
+            font "15pt 'Lato', sans-serif" $
+                text (420, 20) "Floyd is thinking ..."
 
 -- | Get the board coordinate which is closest to the given screen
 -- coordinate point
@@ -159,20 +171,20 @@ closestCoord (x, y) = coords !! snd lsort
           lsort = minimumBy (comparing fst) lind
           dist (x', y') = (x - x')^2 + (y - y')^2
 
-renderCanvas :: Canvas -> DisplayState -> (Int, Int) -> IO ()
-renderCanvas can ds point = render can $ pDisplay ds (coordFromXY point)
+renderCanvas :: Canvas -> GameState -> IO ()
+renderCanvas can ds = render can $ pDisplay ds
+
+-- TODO: this structure is not really nice...
+renderCanvasAction :: Canvas -> GameState -> (Int, Int) -> IO ()
+renderCanvasAction can ds point = render can $ pDisplayAction ds (coordFromXY point)
 
 coordFromXY :: (Int, Int) -> YCoord
 coordFromXY (x, y) = closestCoord (fromIntegral x, fromIntegral y)
 
-newDisplayState :: DisplayState  -- ^ old state
-                -> YCoord        -- ^ clicked coordinate
-                -> DisplayState  -- ^ new state
-newDisplayState (WaitTurn gs) cc = WaitTurn $ fromMaybe gs (newGameState gs cc)
-newDisplayState (BoardOnly gs) _ = BoardOnly gs
-
-initialDisplayState = WaitTurn initialGameState
-testDisplayState = WaitTurn testGameState -- TODO: just for testing
+updateState :: GameState  -- ^ old state
+            -> YCoord     -- ^ clicked coordinate
+            -> GameState  -- ^ new state
+updateState gs cc = fromMaybe gs (newGameState gs cc)
 
 -- Resolve pseudo turns for the human player automatically
 aiTurn' :: GameState -> GameState
@@ -186,34 +198,53 @@ main = do
     Just can <- getCanvasById "canvas"
     Just ce  <- elemById "canvas"
 
-    ioDS <- newIORef initialDisplayState
-    -- ioDS <- newIORef testDisplayState
+    let initGS = initialGameState
+    -- let initGS = testGameState
+    let initBoard = board initGS
+
+    -- 'ioState' holds a chronological list of game states and the display
+    -- state.
+    ioState <- newIORef ([initGS], WaitUser)
 
     -- draw initial board
-    render can (pBoard emptyBoard) -- TODO: use this line instead of next
-    -- render can (pBoard testBoard)
+    render can (pBoard initBoard)
 
     ce `onEvent` OnMouseMove $ \point -> do
-        ds <- readIORef ioDS
-        renderCanvas can ds point
+        (gs:_, ds) <- readIORef ioState
+        when (ds == WaitUser) $
+            renderCanvasAction can gs point
+
+    ce `onEvent` OnKeyDown $ \key ->
+        when (key == 32) $ do -- Pressed 'space'
+            (gslist, ds) <- readIORef ioState
+            print ds
+            when (ds == WaitUser && length gslist > 1) $ do
+                writeIORef ioState (gslist, ViewBoard)
+                renderCanvas can (gslist !! 1)
+
+    ce `onEvent` OnKeyUp $ \key ->
+        when (key == 32) $ do -- Released 'space'
+            (gslist, ds) <- readIORef ioState
+            when (ds == ViewBoard) $ do
+                writeIORef ioState (gslist, WaitUser)
+                renderCanvas can (head gslist)
 
     ce `onEvent` OnClick $ \_ point -> do
-        old <- readIORef ioDS
-        let newDS = newDisplayState old (coordFromXY point)
-        renderCanvas can newDS point
+        (oldGS:gslist, ds) <- readIORef ioState
+        when (ds == WaitUser) $ do
+            let gs = updateState oldGS (coordFromXY point)
+            renderCanvasAction can gs point
 
+            putStrLn $ "DEBUG: gs = " ++ show gs
 
-        let WaitTurn gs = newDS
-        putStrLn $ "DEBUG: gs = " ++ show gs
-        if activePlayer gs == W
-        then
-            -- putStrLn "AI move"
-            setTimeout 0 $ do
-                let gs' = aiTurn' gs
-                let newDS' = WaitTurn gs'
-                renderCanvas can newDS' point
-                writeIORef ioDS newDS'
-        else
-            writeIORef ioDS newDS
+            if activePlayer gs == W
+            then do
+                writeIORef ioState (gs:oldGS:gslist, WaitAI)
+                setTimeout 0 $ do
+                    let gs' = aiTurn' gs
+                    renderCanvasAction can gs' point
+                    writeIORef ioState (gs':gs:oldGS:gslist, WaitUser)
+            else
+                writeIORef ioState (gs:oldGS:gslist, WaitUser)
 
     return ()

@@ -47,9 +47,6 @@ heuristicValue gs = sign * valueForWhite -- TODO: should we care which turn mode
 hugeNumber :: Int
 hugeNumber = maxBound - 10 -- cannot use maxBound due to internals of the negamax implementation
 
-terminalState :: GameState -> Bool
-terminalState gs = pointsB gs == pointsForWin || pointsW gs == pointsForWin
-
 instance GT.Game_tree GameState where
     is_terminal = terminalState
     node_value = heuristicValue

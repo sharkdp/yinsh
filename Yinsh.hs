@@ -111,7 +111,7 @@ emptyBoard = Board { bmap = M.empty
                    }
 
 -- Game behaviour
-pointsForWin = 2
+pointsForWin = 1
 pointsForWin :: Int
 
 -- | Similar to Enum's succ, but for cyclic data structures.
@@ -295,6 +295,10 @@ flippedMarkers b s e = foldl' flipMaybe b (coordLine s e)
                                (Just (Marker B)) -> modifyElement b' c (Marker W)
                                (Just (Marker W)) -> modifyElement b' c (Marker B)
                                _ -> error "trying to flip something that is not a marker (invalid ring move?)"
+
+-- | Check whether one player has won the game
+terminalState :: GameState -> Bool
+terminalState gs = pointsB gs == pointsForWin || pointsW gs == pointsForWin
 
 -- | Get new game state after 'interacting' at a certain coordinate.
 newGameState :: GameState -> YCoord -> Maybe GameState
