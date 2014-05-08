@@ -35,14 +35,18 @@ heuristicValue :: GameState -> Int
 heuristicValue gs = sign * valueForWhite -- TODO: should we care which turn mode we are in?
     where sign | activePlayer gs == W = 1
                | otherwise            = -1
-          valueForWhite =   valueRings W - valueRings B
+          valueForWhite =   valuePoints W - valuePoints B
                           + valueMarkers W - valueMarkers B
-          valueRings p = if points p == pointsForWin
-                         then hugeNumber
-                         else 10000 * (points p)
+                          -- + valueRings W - valueRings B
+          valuePoints p = if points p == pointsForWin
+                          then hugeNumber
+                          else 10000 * points p
+          valueRings p = (10 *) $ sum $ map (length . validRingMoves board') $ rings p board'
           points W = pointsW gs
           points B = pointsB gs
-          valueMarkers p = length $ markers p (board gs)
+          valueMarkers p = (5 *) $ length $ markers p board'
+          board' = board gs
+          -- TODO: adjust these numbers: 5, 10
 
 hugeNumber :: Int
 hugeNumber = maxBound - 10 -- cannot use maxBound due to internals of the negamax implementation

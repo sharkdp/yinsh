@@ -133,11 +133,11 @@ pRings p rw =
 -- | Render everything static on the screen
 pDisplay :: GameState
          -> Picture ()
-pDisplay gs = do
+pDisplay gs =
     if terminalState gs
     then
         font "25pt 'Lato', sans-serif" $
-            text (300, 200) "Game over"
+            text (220, 200) message -- TODO: center this properly
     else do
         pBoard (board gs)
 
@@ -147,13 +147,15 @@ pDisplay gs = do
         -- Draw thick borders for markers which are part of a run
         when (turnMode gs == RemoveRun) $
             mapM_ (pHighlight (board gs)) [B, W]
+    where message | pointsB gs == pointsForWin = "You win!"
+                  | otherwise                  = "Floyd wins!"
 
 pDisplayAction :: GameState
                -> YCoord         -- ^ Coordinate close to mouse cursor
                -> Picture ()
 pDisplayAction gs mc = do
     pDisplay gs
-    -- TODO: remove this duplication:
+    -- TODO: remove this duplication (same in pDisplay)
     unless (terminalState gs) $ do
         pAction (board gs) (turnMode gs) mc (activePlayer gs)
 
@@ -174,7 +176,8 @@ closestCoord (x, y) = coords !! snd lsort
 renderCanvas :: Canvas -> GameState -> IO ()
 renderCanvas can ds = render can $ pDisplay ds
 
--- TODO: this structure is not really nice...
+-- TODO: this structure (having renderCanvas and renderCanvasAction as well
+-- as pDisplay and pDisplayAction) is not really nice...
 renderCanvasAction :: Canvas -> GameState -> (Int, Int) -> IO ()
 renderCanvasAction can ds point = render can $ pDisplayAction ds (coordFromXY point)
 
@@ -217,7 +220,6 @@ main = do
     ce `onEvent` OnKeyDown $ \key ->
         when (key == 32) $ do -- Pressed 'space'
             (gslist, ds) <- readIORef ioState
-            print ds
             when (ds == WaitUser && length gslist > 1) $ do
                 writeIORef ioState (gslist, ViewBoard)
                 renderCanvas can (gslist !! 1)
@@ -233,18 +235,22 @@ main = do
         (oldGS:gslist, ds) <- readIORef ioState
         when (ds == WaitUser) $ do
             let gs = updateState oldGS (coordFromXY point)
-            renderCanvasAction can gs point
+            let gameover = terminalState gs
+            renderCanvas can gs
 
             putStrLn $ "DEBUG: gs = " ++ show gs
 
-            if activePlayer gs == W
+            if activePlayer gs == W && not gameover
             then do
                 writeIORef ioState (gs:oldGS:gslist, WaitAI)
                 setTimeout 0 $ do
                     let gs' = aiTurn' gs
+                    let gameover' = terminalState gs'
+                    let ds' = if gameover' then ViewBoard else WaitUser
                     renderCanvasAction can gs' point
-                    writeIORef ioState (gs':gs:oldGS:gslist, WaitUser)
-            else
-                writeIORef ioState (gs:oldGS:gslist, WaitUser)
+                    writeIORef ioState (gs':gs:oldGS:gslist, ds')
+            else do
+                let ds' = if gameover then ViewBoard else WaitUser
+                writeIORef ioState (gs:oldGS:gslist, ds')
 
     return ()
