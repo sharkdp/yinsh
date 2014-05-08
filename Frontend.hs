@@ -236,7 +236,7 @@ main = do
         when (ds == WaitUser) $ do
             let gs = updateState oldGS (coordFromXY point)
             let gameover = terminalState gs
-            renderCanvas can gs
+            renderCanvasAction can gs point
 
             putStrLn $ "DEBUG: gs = " ++ show gs
 
