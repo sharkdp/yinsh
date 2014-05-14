@@ -12,7 +12,7 @@ import Yinsh
 import Floyd
 
 -- | Current state of the user interface
-data DisplayState = WaitUser | WaitAI | ViewBoard
+data DisplayState = WaitUser | WaitAI | ViewBoard | ViewHistory Int
                     deriving (Show, Eq)
 -- TODO: ViewBoard and WaitAI are somehow the same up to now?
 
@@ -133,20 +133,19 @@ pRings p rw =
 -- | Render everything static on the screen
 pDisplay :: GameState
          -> Picture ()
-pDisplay gs =
-    if terminalState gs
-    then
-        font "25pt 'Lato', sans-serif" $
-            text (220, 200) message -- TODO: center this properly
-    else do
-        pBoard (board gs)
+pDisplay gs = do
+    when (terminalState gs) $
+        font "13pt 'Lato', sans-serif" $
+            text (420, 20) message
 
-        pRings B (pointsB gs)
-        pRings W (pointsW gs)
+    pBoard (board gs)
 
-        -- Draw thick borders for markers which are part of a run
-        when (turnMode gs == RemoveRun) $
-            mapM_ (pHighlight (board gs)) [B, W]
+    pRings B (pointsB gs)
+    pRings W (pointsW gs)
+
+    -- Draw thick borders for markers which are part of a run
+    when (turnMode gs == RemoveRun) $
+        mapM_ (pHighlight (board gs)) [B, W]
     where message | pointsB gs == pointsForWin = "You win!"
                   | otherwise                  = "Floyd wins!"
 
@@ -155,12 +154,16 @@ pDisplayAction :: GameState
                -> Picture ()
 pDisplayAction gs mc = do
     pDisplay gs
-    -- TODO: remove this duplication (same in pDisplay)
+
     unless (terminalState gs) $ do
+        -- TODO: just debugging:
+        font "13pt 'Lato', sans-serif" $
+            text (550, 620) $ show mc
+
         pAction (board gs) (turnMode gs) mc (activePlayer gs)
 
         when (activePlayer gs == W) $
-            font "15pt 'Lato', sans-serif" $
+            font "13pt 'Lato', sans-serif" $
                 text (420, 20) "Floyd is thinking ..."
 
 -- | Get the board coordinate which is closest to the given screen
@@ -196,13 +199,18 @@ aiTurn' gs = let gs' = aiTurn gs in
                  then aiTurn (fromJust $ newGameState gs' (0, 0))
                  else gs'
 
+debugpv = fst $ aiRes 3 debugW0
+
+keyLeft = 37
+keyRight = 39
+
 main :: IO ()
 main = do
     Just can <- getCanvasById "canvas"
     Just ce  <- elemById "canvas"
 
-    let initGS = initialGameState
-    -- let initGS = testGameState
+    -- let initGS = initialGameState
+    let initGS = testGameState
     let initBoard = board initGS
 
     -- 'ioState' holds a chronological list of game states and the display
@@ -217,19 +225,29 @@ main = do
         when (ds == WaitUser) $
             renderCanvasAction can gs point
 
-    ce `onEvent` OnKeyDown $ \key ->
-        when (key == 32) $ do -- Pressed 'space'
+    ce `onEvent` OnKeyDown $ \key -> do
+        when (key == keyLeft) $ do
             (gslist, ds) <- readIORef ioState
-            when (ds == WaitUser && length gslist > 1) $ do
-                writeIORef ioState (gslist, ViewBoard)
-                renderCanvas can (gslist !! 1)
-
-    ce `onEvent` OnKeyUp $ \key ->
-        when (key == 32) $ do -- Released 'space'
+            let numGS = length gslist
+            when (numGS > 1) $
+                if ds == WaitUser then do
+                    writeIORef ioState (gslist, ViewHistory 1)
+                    renderCanvas can (gslist !! 1)
+                else
+                    case ds of
+                        ViewHistory h ->
+                            when (h + 1 < numGS) $ do
+                                writeIORef ioState (gslist, ViewHistory (h + 1))
+                                renderCanvas can (gslist !! (h + 1))
+                        _ -> return ()
+        when (key == keyRight) $ do
             (gslist, ds) <- readIORef ioState
-            when (ds == ViewBoard) $ do
-                writeIORef ioState (gslist, WaitUser)
-                renderCanvas can (head gslist)
+            case ds of
+                ViewHistory h -> do
+                    let newDS = if h == 1 then WaitUser else ViewHistory (h - 1)
+                    writeIORef ioState (gslist, newDS)
+                    renderCanvas can (gslist !! (h - 1))
+                _ -> return ()
 
     ce `onEvent` OnClick $ \_ point -> do
         (oldGS:gslist, ds) <- readIORef ioState
