@@ -14,7 +14,7 @@ prof: Frontend.hs Yinsh.hs Floyd.hs
 	ghc -prof -auto-all -O2 profileYinsh.hs
 
 cli: Frontend.hs Yinsh.hs Floyd.hs
-	ghc -O2 profileYinsh.hs
+	ghc -O2 -Wall -fno-warn-unused-do-bind -fno-warn-missing-signatures -fno-warn-type-defaults profileYinsh.hs
 
 clean:
 	rm -f Frontend.js *.hi *.o

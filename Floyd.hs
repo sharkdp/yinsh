@@ -3,6 +3,7 @@ module Floyd where
 import Data.Maybe (fromJust)
 import qualified Data.Tree.Game_tree.Game_tree as GT
 import qualified Data.Tree.Game_tree.Negascout as NS
+import Data.List (nubBy, sort)
 
 import Yinsh
 
@@ -20,7 +21,9 @@ gamestates gs | terminalState gs = []
                         RemoveRing -> error "This is not supposed to happen"
     where freeCoords = filter (freeCoord (board gs)) coords -- TODO: factor out, optimize
           rings' = rings (activePlayer gs) (board gs)
-          runCoords' = filter (partOfRun (markers (activePlayer gs) (board gs))) coords -- TODO: we introduce an artificial branching here since we are generating too many moves (5 for a single run)
+          runCoords' = removeDups $ filter (partOfRun markers') coords
+          markers' = markers (activePlayer gs) (board gs)
+          removeDups = nubBy (\c1 c2 -> sort (runCoords markers' c1) == sort (runCoords markers' c2))
           newGS gs' c = case turnMode nextGS of
                             AddRing -> [nextGS]
                             AddMarker -> [nextGS]
@@ -34,15 +37,14 @@ gamestates gs | terminalState gs = []
 -- from the perspective of the AI player (white). The 'sign' factor is used
 -- for the negamax algorithm (Yinsh is a zero sum game).
 heuristicValue :: GameState -> Int
-heuristicValue gs = sign * valueForWhite -- TODO: should we care which turn mode we are in?
+heuristicValue gs = sign * valueForWhite -- TODO: should we care which turn mode we are in? -> Yes, PseudoTurn can be evaluated..
     where sign | activePlayer gs == W = 1
                | otherwise            = -1
-          valueForWhite =   valuePoints W - valuePoints B
-                          + valueMarkers W - valueMarkers B
-                          -- + valueRings W - valueRings B
-          valuePoints p = if points p == pointsForWin
-                          then hugeNumber
-                          else 10000 * points p
+          valueForWhite | points W == pointsForWin = hugeNumber
+                        | points B == pointsForWin = -hugeNumber
+                        | otherwise = value W - value B
+          value p = valuePoints p + valueMarkers p -- + valueRings p
+          valuePoints p = 10000 * points p
           valueRings p = (10 *) $ sum $ map (length . validRingMoves board') $ rings p board'
           points W = pointsW gs
           points B = pointsB gs
@@ -60,7 +62,7 @@ instance GT.Game_tree GameState where
     children = gamestates
 
 plies :: Int
-plies = 5
+plies = 3
 
 aiTurn :: GameState -> GameState
 aiTurn gs = case turnMode gs of
