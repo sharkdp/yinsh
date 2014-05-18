@@ -9,14 +9,16 @@ import Yinsh
 -- | Possible new game states. The input and output game states are guaranteed
 -- to be in turn mode AddRing, AddMarker, RemoveRun or PseudoTurn.
 gamestates :: GameState -> [GameState]
-gamestates gs = case turnMode gs of
-                    AddRing -> freeCoords >>= newGS gs
-                    AddMarker -> rings' >>= newGS gs
-                    RemoveRun -> runCoords' >>= newGS gs
-                    PseudoTurn -> [fromJust (newGameState gs (0, 0))]
-                    (MoveRing _) -> error "This is not supposed to happen"
-                    RemoveRing -> error "This is not supposed to happen"
-    where freeCoords = filter (freeCoord (board gs)) coords
+gamestates gs | terminalState gs = []
+              | otherwise =
+                    case turnMode gs of
+                        AddRing -> freeCoords >>= newGS gs
+                        AddMarker -> rings' >>= newGS gs
+                        RemoveRun -> runCoords' >>= newGS gs
+                        PseudoTurn -> [fromJust (newGameState gs (0, 0))]
+                        (MoveRing _) -> error "This is not supposed to happen"
+                        RemoveRing -> error "This is not supposed to happen"
+    where freeCoords = filter (freeCoord (board gs)) coords -- TODO: factor out, optimize
           rings' = rings (activePlayer gs) (board gs)
           runCoords' = filter (partOfRun (markers (activePlayer gs) (board gs))) coords -- TODO: we introduce an artificial branching here since we are generating too many moves (5 for a single run)
           newGS gs' c = case turnMode nextGS of
@@ -49,7 +51,8 @@ heuristicValue gs = sign * valueForWhite -- TODO: should we care which turn mode
           -- TODO: adjust these numbers: 5, 10
 
 hugeNumber :: Int
-hugeNumber = maxBound - 10 -- cannot use maxBound due to internals of the negamax implementation
+-- hugeNumber = maxBound - 25 -- TODO: WHY THE HELL DOES THIS WORK WITH - 25, but not with -24??
+hugeNumber = 10000000000000
 
 instance GT.Game_tree GameState where
     is_terminal = terminalState
@@ -57,7 +60,7 @@ instance GT.Game_tree GameState where
     children = gamestates
 
 plies :: Int
-plies = 3
+plies = 5
 
 aiTurn :: GameState -> GameState
 aiTurn gs = case turnMode gs of
@@ -67,3 +70,6 @@ aiTurn gs = case turnMode gs of
             -- where pv = fst $ NS.principal_variation_search gs plies
             where pv = fst $ NS.negascout gs plies
             -- TODO: negascout really seems to be the fastest. But test this for more game states
+
+aiRes :: Int -> GameState -> ([GameState], Int) -- TODO: debug only
+aiRes plies' gs = NS.negascout gs plies'

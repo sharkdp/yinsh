@@ -45,7 +45,7 @@ data Board = Board { bmap :: M.Map YCoord Element
                    , ringsW :: [YCoord]
                    , markersB :: [YCoord]
                    , markersW :: [YCoord]
-                   } deriving (Show)
+                   } deriving (Show, Eq)
 
 data GameState = GameState
     { activePlayer :: Player
@@ -53,7 +53,7 @@ data GameState = GameState
     , board :: Board
     , pointsB :: Int
     , pointsW :: Int
-    } deriving Show
+    } deriving (Eq, Show)
 
 markers :: Player -> Board -> [YCoord]
 markers B = markersB
@@ -192,7 +192,7 @@ norm2 (x, y) = x * x + y * y
 
 -- | Get all valid ring moves starting from a given point
 validRingMoves :: Board -> YCoord -> [YCoord]
-validRingMoves b start = filter (freeCoord b) $ concatMap (validInDir False start) directions
+validRingMoves b start = filter (freeCoord b) $ validInDir False start =<< directions
     where markerPos = markersB b ++ markersW b
           ringPos   = ringsB b ++ ringsW b
           validInDir :: Bool -> YCoord -> Direction -> [YCoord]
@@ -281,7 +281,7 @@ between a b c = n2x * n2y == (x `prod` y)^2 && n2y < n2x && n2z < n2x
 
 -- | Get all coordinates connecting two points
 coordLine :: YCoord -> YCoord -> [YCoord]
-coordLine x y = take (num - 1) $ tail $ iterate (`add` step) x
+coordLine x y = take (num - 1) . tail $ iterate (`add` step) x
     where delta = y `sub` x
           step = (reduce (fst delta), reduce (snd delta))
           reduce s = round $ fromIntegral s / fromIntegral num
