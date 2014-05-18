@@ -43,9 +43,12 @@ heuristicValue gs = sign * valueForWhite -- TODO: should we care which turn mode
           valueForWhite | points W == pointsForWin = hugeNumber
                         | points B == pointsForWin = -hugeNumber
                         | otherwise = value W - value B
-          value p = valuePoints p + valueMarkers p -- + valueRings p
+          value p = valuePoints p + valueMarkers p + valueRings p
           valuePoints p = 10000 * points p
-          valueRings p = (10 *) $ sum $ map (length . validRingMoves board') $ rings p board'
+          -- TODO: this ring-heuristic is too expensive:
+          -- valueRings p = (10 *) $ sum $ map (length . validRingMoves board') $ rings p board'
+          valueRings p = (1 *) $ length $ filter (connectedToRings p) coords
+          connectedToRings p c = any (c `connected`) (rings p board')
           points W = pointsW gs
           points B = pointsB gs
           valueMarkers p = (5 *) $ length $ markers p board'

@@ -199,8 +199,6 @@ aiTurn' gs = let gs' = aiTurn gs in
                  then aiTurn (fromJust $ newGameState gs' (0, 0))
                  else gs'
 
-debugpv = fst $ aiRes 3 debugW0
-
 keyLeft = 37
 keyRight = 39
 
@@ -209,8 +207,8 @@ main = do
     Just can <- getCanvasById "canvas"
     Just ce  <- elemById "canvas"
 
-    -- let initGS = initialGameState
-    let initGS = testGameState
+    let initGS = initialGameState
+    -- let initGS = testGameState
     let initBoard = board initGS
 
     -- 'ioState' holds a chronological list of game states and the display
@@ -230,7 +228,7 @@ main = do
             (gslist, ds) <- readIORef ioState
             let numGS = length gslist
             when (numGS > 1) $
-                if ds == WaitUser then do
+                if ds == WaitUser || ds == ViewBoard then do
                     writeIORef ioState (gslist, ViewHistory 1)
                     renderCanvas can (gslist !! 1)
                 else

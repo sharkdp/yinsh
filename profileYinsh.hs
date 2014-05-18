@@ -1,6 +1,8 @@
 import Yinsh
 import Floyd
 
+profPlies = 5
+
 main = do
-    putStrLn $ "Running profile at " ++ show plies ++ "-ply"
-    print $ aiRes 5 testGameStateW
+    putStrLn $ "Running profile at " ++ show profPlies ++ "-ply"
+    print $ aiRes profPlies testGameStateW
