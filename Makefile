@@ -7,7 +7,7 @@ doc: Frontend.hs Yinsh.hs Floyd.hs
 	haddock -o doc -h Yinsh.hs Floyd.hs Frontend.hs
 
 opt: Frontend.hs Yinsh.hs Floyd.hs
-	rm Frontend.js
+	rm -f Frontend.js
 	hastec --opt-all Frontend.hs
 
 prof: Frontend.hs Yinsh.hs Floyd.hs

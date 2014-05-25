@@ -2,7 +2,8 @@ module Yinsh where
 
 import Control.Monad (guard)
 import qualified Data.Map as M
-import Data.List (delete, foldl')
+import Data.List (delete, foldl', sortBy)
+import Data.Ord (comparing)
 
 -- $setup
 -- >>> import Data.List (sort, nub)
@@ -152,7 +153,14 @@ numPoints = [[2..5], [1..7], [1..8], [1..9],
 -- 85
 --
 coords :: [YCoord]
-coords = concat $ zipWith (\list ya -> map (\x -> (ya, x)) list) numPoints [1..]
+coords = sortCoords $ concat $ zipWith (\list ya -> map (\x -> (ya, x)) list) numPoints [1..]
+
+-- | Sort the coords once with respect to the distance from the center
+-- for better move ordering in the game tree.
+sortCoords :: [YCoord] -> [YCoord]
+sortCoords = sortBy (comparing distFromCenter)
+    where distFromCenter c = norm2 (c `sub` center)
+          center = (6, 6)
 
 -- | Check if two points are connected by a line
 --
