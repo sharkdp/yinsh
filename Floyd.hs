@@ -56,7 +56,6 @@ heuristicValue gs = sign * valueForWhite -- TODO: should we care which turn mode
           -- TODO: adjust these numbers: 5, 10
 
 hugeNumber :: Int
--- hugeNumber = maxBound - 25 -- TODO: WHY THE HELL DOES THIS WORK WITH - 25, but not with -24??
 hugeNumber = 10000000000000
 
 instance GT.Game_tree GameState where
@@ -67,14 +66,14 @@ instance GT.Game_tree GameState where
 plies :: Int
 plies = 3
 
-aiTurn :: GameState -> GameState
-aiTurn gs = case turnMode gs of
+aiTurn :: Int -> GameState -> GameState
+aiTurn plies' gs = case turnMode gs of
                 PseudoTurn -> fromJust $ newGameState gs (0, 0)
                 _ -> pv !! 1
-            -- where pv = fst $ NS.alpha_beta_search gs plies
-            -- where pv = fst $ NS.principal_variation_search gs plies
-            where pv = fst $ NS.negascout gs plies
-            -- TODO: negascout really seems to be the fastest. But test this for more game states
+            where pv = fst $ aiRes plies' gs
 
-aiRes :: Int -> GameState -> ([GameState], Int) -- TODO: debug only
+aiRes :: Int -> GameState -> ([GameState], Int)
 aiRes plies' gs = NS.negascout gs plies'
+-- TODO: negascout really seems to be the fastest. But test this for more game states
+-- NS.alpha_beta_search gs plies'
+-- NS.principal_variation_search gs plies'

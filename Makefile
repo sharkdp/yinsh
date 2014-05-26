@@ -1,6 +1,6 @@
 Frontend.js: Frontend.hs Yinsh.hs Floyd.hs
 	rm -f Frontend.js
-	hastec -Wall -fno-warn-unused-do-bind -fno-warn-missing-signatures -fno-warn-type-defaults Frontend.hs
+	hastec -O2 -Wall -fno-warn-unused-do-bind -fno-warn-missing-signatures -fno-warn-type-defaults Frontend.hs
 
 doc: Frontend.hs Yinsh.hs Floyd.hs
 	rm -rf doc
@@ -10,11 +10,14 @@ opt: Frontend.hs Yinsh.hs Floyd.hs
 	rm -f Frontend.js
 	hastec --opt-all Frontend.hs
 
-prof: Frontend.hs Yinsh.hs Floyd.hs
+prof: Yinsh.hs Floyd.hs profileYinsh.hs
 	ghc -prof -auto-all -O2 profileYinsh.hs
 
-cli: Frontend.hs Yinsh.hs Floyd.hs
+cli: Yinsh.hs Floyd.hs profileYinsh.hs
 	ghc -O2 -Wall -fno-warn-unused-do-bind -fno-warn-missing-signatures -fno-warn-type-defaults profileYinsh.hs
+
+matchAI: Yinsh.hs Floyd.hs matchAI.hs
+	ghc -O2 -Wall -fno-warn-unused-do-bind -fno-warn-missing-signatures -fno-warn-type-defaults matchAI.hs
 
 clean:
 	rm -f Frontend.js *.hi *.o

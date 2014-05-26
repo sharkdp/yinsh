@@ -192,12 +192,12 @@ updateState :: GameState  -- ^ old state
             -> GameState  -- ^ new state
 updateState gs cc = fromMaybe gs (newGameState gs cc)
 
--- Resolve pseudo turns for the human player automatically
-aiTurn' :: GameState -> GameState
-aiTurn' gs = let gs' = aiTurn gs in
-                 if turnMode gs' == PseudoTurn
-                 then aiTurn (fromJust $ newGameState gs' (0, 0))
-                 else gs'
+-- Resolve pseudo turns for the *human* player automatically
+aiTurn' :: Int -> GameState -> GameState
+aiTurn' plies' gs = let gs' = aiTurn plies' gs in
+                    if turnMode gs' == PseudoTurn
+                    then aiTurn plies' (fromJust $ newGameState gs' (0, 0))
+                    else gs'
 
 keyLeft = 37
 keyRight = 39
@@ -213,7 +213,8 @@ main = do
 
     -- 'ioState' holds a chronological list of game states and the display
     -- state.
-    ioState <- newIORef ([initGS], WaitUser)
+    let initHistory = [initGS]
+    ioState <- newIORef (initHistory, WaitUser)
 
     -- draw initial board
     render can (pBoard initBoard)
@@ -260,7 +261,7 @@ main = do
             then do
                 writeIORef ioState (gs:oldGS:gslist, WaitAI)
                 setTimeout 0 $ do
-                    let gs' = aiTurn' gs
+                    let gs' = aiTurn' plies gs
                     let gameover' = terminalState gs'
                     let ds' = if gameover' then ViewBoard else WaitUser
                     renderCanvasAction can gs' point
