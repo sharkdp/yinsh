@@ -53,5 +53,5 @@ main = do
         putStr "initHistory = ["
 
         handleTurn' 1 initGS
-    else do
+    else
         handleTurn 1 initGS

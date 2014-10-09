@@ -6,3 +6,6 @@ doc
 *.prof
 profileYinsh
 matchAI
+AIHistory.hs
+todo
+trigger.sh

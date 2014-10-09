@@ -46,12 +46,13 @@ heuristicValue gs = sign * valueForWhite -- TODO: should we care which turn mode
           value p = valuePoints p + valueMarkers p + valueRings p
           valuePoints p = 10000 * points p
           -- TODO: this ring-heuristic is too expensive:
-          -- valueRings p = (10 *) $ sum $ map (length . validRingMoves board') $ rings p board'
-          valueRings p = (1 *) $ length $ filter (connectedToRings p) coords
+          valueRings p = (1 *) $ sum $ map (length . validRingMoves board') $ rings p board'
+          -- valueRings p = (1 *) $ length $ filter (connectedToRings p) coords
+          -- valueRings p = sum $ map (rings p board')
           connectedToRings p c = any (c `connected`) (rings p board')
           points W = pointsW gs
           points B = pointsB gs
-          valueMarkers p = (5 *) $ length $ markers p board'
+          valueMarkers p = (10 *) $ length $ markers p board'
           board' = board gs
           -- TODO: adjust these numbers: 5, 10
 
@@ -64,7 +65,7 @@ instance GT.Game_tree GameState where
     children = gamestates
 
 plies :: Int
-plies = 3
+plies = 2
 
 aiTurn :: Int -> GameState -> GameState
 aiTurn plies' gs = case turnMode gs of

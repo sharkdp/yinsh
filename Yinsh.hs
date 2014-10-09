@@ -354,8 +354,8 @@ newGameState gs cc = -- TODO: the guards should be (?) unnecessary when calling 
                     }
     where activePlayer' = activePlayer gs
           nextPlayer    = next activePlayer'
-          removedRing    = removeElement board' cc
-          removedRun     = foldl' removeElement board' (runCoords playerMarkers cc)
+          removedRing   = removeElement board' cc
+          removedRun    = foldl' removeElement board' (runCoords playerMarkers cc)
           board'        = board gs
           playerMarkers = markers activePlayer' board'
 
