@@ -1,7 +1,7 @@
 import Yinsh
 import Floyd
 
-profPlies = 5
+profPlies = 4
 
 main = do
     putStrLn $ "Running profile at " ++ show profPlies ++ "-ply"

@@ -67,6 +67,8 @@ rings W = ringsW
 -- occupied :: Board -> [YCoord]
 -- occupied b = M.keys (bmap b)
 
+-- | Returns (Just) the element at a certain position or Nothing if the
+-- coordinate is free (or invalid).
 elementAt :: Board -> YCoord -> Maybe Element
 elementAt b c = M.lookup c (bmap b)
 
@@ -180,7 +182,7 @@ connected (x, y) (a, b) =        x == a
 -- prop> forAll boardCoords (\c -> sort coords == sort (nub (reachable c >>= reachable)))
 --
 reachable :: YCoord -> [YCoord]
-reachable c = filter (connected c) coords
+reachable c = filter (connected c) coords -- TODO can certainly be optimized
 
 -- | Vectorially add two coords
 add :: YCoord -> YCoord -> YCoord
@@ -198,6 +200,18 @@ prod (x1, y1) (x2, y2) = x1 * x2 + y1 * y2
 norm2 :: YCoord -> Int
 norm2 (x, y) = x * x + y * y
 
+-- | Check if the point is within the boundaries of the board.
+-- This is an optimized version (compared to c `elem` coords) using the fact
+-- that the all Yinsh coordinates lie within a circle of radius 4.7.
+--
+-- prop> validCoord c == (c `elem` coords)
+validCoord :: YCoord -> Bool
+validCoord (x', y') = (0.5 * sqrt 3 * x)**2 + (0.5 * x - y)**2 <= 4.7**2
+    where x = fromIntegral x' - 6
+          y = fromIntegral y' - 6
+-- TODO: it is probably faster to have a set of restrictions here corresponding
+--       to the six straight boundaries of the Yinsh board (and symmetry may be used)
+
 -- | Get all valid ring moves starting from a given point
 validRingMoves :: Board -> YCoord -> [YCoord]
 validRingMoves b start = filter (freeCoord b) $ validInDir False start =<< directions
@@ -206,7 +220,7 @@ validRingMoves b start = filter (freeCoord b) $ validInDir False start =<< direc
           validInDir :: Bool -> YCoord -> Direction -> [YCoord]
           validInDir jumped c d = c : rest
               where nextPoint = c `add` vector d
-                    rest = if nextPoint `elem` coords && nextPoint `notElem` ringPos
+                    rest = if validCoord nextPoint && nextPoint `notElem` ringPos
                            then if nextPoint `elem` markerPos
                                 then validInDir True nextPoint d
                                 else if jumped
@@ -225,7 +239,7 @@ validRingMoves b start = filter (freeCoord b) $ validInDir False start =<< direc
 -- prop> forAll boardCoords (\c -> c `elem` (neighbors c >>= neighbors))
 --
 neighbors :: YCoord -> [YCoord]
-neighbors c = filter (`elem` coords) adj
+neighbors c = filter validCoord adj
     where adj = mapM (add . vector) directions c
 
 -- | Check if a player has a run of five in a row
