@@ -29,7 +29,7 @@ gamestates gs | terminalState gs = []
                             AddMarker -> [nextGS]
                             RemoveRun -> [nextGS]
                             PseudoTurn -> [nextGS]
-                            (MoveRing start) -> validRingMoves (board nextGS) start >>= newGS nextGS
+                            (MoveRing start) -> ringMoves (board nextGS) start >>= newGS nextGS
                             RemoveRing -> rings (activePlayer nextGS) (board gs') >>= newGS nextGS
                         where nextGS = fromJust $ newGameState gs' c
 
@@ -45,17 +45,17 @@ heuristicValue gs = sign * valueForWhite -- TODO: should we care which turn mode
                         | otherwise = value W - value B
           value p = valuePoints p + valueMarkers p + valueRings p
           valuePoints p = 10000 * points p
-          -- TODO: this ring-heuristic is too expensive:
-          valueRings p = (1 *) $ sum $ map (length . validRingMoves board') $ rings p board'
+          valueRings p = (1 *) $ sum $ map (length . ringMoves board') $ rings p board'
           -- valueRings p = (1 *) $ length $ filter (connectedToRings p) coords
-          -- valueRings p = sum $ map (rings p board')
-          connectedToRings p c = any (c `connected`) (rings p board')
+          -- connectedToRings p c = any (c `connected`) (rings p board')
+          -- valueRings p = 0
           points W = pointsW gs
           points B = pointsB gs
           valueMarkers p = (10 *) $ length $ markers p board'
           board' = board gs
           -- TODO: adjust these numbers: 5, 10
 
+-- Note: maxBound does *not* work here!
 hugeNumber :: Int
 hugeNumber = 10000000000000
 
@@ -65,7 +65,7 @@ instance GT.Game_tree GameState where
     children = gamestates
 
 plies :: Int
-plies = 2
+plies = 3
 
 aiTurn :: Int -> GameState -> GameState
 aiTurn plies' gs = case turnMode gs of

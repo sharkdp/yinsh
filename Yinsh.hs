@@ -72,6 +72,16 @@ rings W = ringsW
 elementAt :: Board -> YCoord -> Maybe Element
 elementAt b c = M.lookup c (bmap b)
 
+isMarker :: Board -> YCoord -> Bool
+isMarker b c = case elementAt b c of
+                   (Just (Marker _)) -> True
+                   _ -> False
+
+isRing :: Board -> YCoord -> Bool
+isRing b c = case elementAt b c of
+                   (Just (Ring _)) -> True
+                   _ -> False
+
 -- | Check if a certain point on the board is free
 freeCoord :: Board -> YCoord -> Bool
 freeCoord b c = not $ M.member c (bmap b)
@@ -213,25 +223,22 @@ validCoord (x', y') = (0.5 * sqrt 3 * x)**2 + (0.5 * x - y)**2 <= 4.7**2
 --       to the six straight boundaries of the Yinsh board (and symmetry may be used)
 
 -- | Get all valid ring moves starting from a given point
-validRingMoves :: Board -> YCoord -> [YCoord]
-validRingMoves b start = filter (freeCoord b) $ validInDir False start =<< directions
-    where markerPos = markersB b ++ markersW b
-          ringPos   = ringsB b ++ ringsW b
-          validInDir :: Bool -> YCoord -> Direction -> [YCoord]
-          validInDir jumped c d = c : rest
-              where nextPoint = c `add` vector d
-                    rest = if validCoord nextPoint && nextPoint `notElem` ringPos
-                           then if nextPoint `elem` markerPos
-                                then validInDir True nextPoint d
+ringMoves :: Board -> YCoord -> [YCoord]
+ringMoves b start = filter (freeCoord b) $ inDir False start =<< directions
+    where inDir :: Bool -> YCoord -> Direction -> [YCoord]
+          inDir jumped c d = c : rest
+              where rest = if validCoord nextPoint && not (isRing b nextPoint)
+                           then if isMarker b nextPoint
+                                then inDir True nextPoint d
                                 else if jumped
                                      then [nextPoint]
-                                     else validInDir False nextPoint d
+                                     else inDir False nextPoint d
                            else []
+                    nextPoint = c `add` vector d
 
 -- | Get all nearest neighbors
 --
--- Every point has neighbors
---
+-- Every point has neighbors:
 -- >>> sort coords == sort (nub (coords >>= neighbors))
 -- True
 --
@@ -339,7 +346,7 @@ newGameState gs cc = -- TODO: the guards should be (?) unnecessary when calling 
                     , board = addElement removedRing cc (Marker activePlayer')
                     }
         (MoveRing start) -> do
-            guard (cc `elem` validRingMoves board' start)
+            guard (cc `elem` ringMoves board' start)
             Just gs { activePlayer = nextPlayer
                     , turnMode = nextTurnMode
                     , board = addElement flippedBoard cc (Ring activePlayer')

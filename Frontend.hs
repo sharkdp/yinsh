@@ -110,7 +110,7 @@ pAction :: Board -> TurnMode -> YCoord -> Player -> Picture ()
 pAction b AddMarker mc p        = when (mc `elem` rings p b) $ pElement (Marker p) mc
 pAction b AddRing mc p          = when (freeCoord b mc) $ pElement (Ring p) mc
 pAction b (MoveRing start) mc p = do
-    let allowed = validRingMoves b start
+    let allowed = ringMoves b start
     mapM_ (`translateC` pDot) allowed
     when (mc `elem` allowed) $ pElement (Ring p) mc
 pAction b RemoveRun mc p        = do
