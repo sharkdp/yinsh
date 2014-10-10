@@ -1,11 +1,9 @@
 *.o
 *.js
 *.hi
-main
-doc
 *.prof
-profileYinsh
-matchAI
-AIHistory.hs
+doc
+build
+match
 todo
 trigger.sh

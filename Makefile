@@ -1,24 +1,30 @@
-Frontend.js: Frontend.hs Yinsh.hs Floyd.hs
-	rm -f Frontend.js
-	hastec -O2 -Wall -fno-warn-unused-do-bind -fno-warn-missing-signatures -fno-warn-type-defaults Frontend.hs
+WARNFLAGS=-Wall -fno-warn-unused-do-bind -fno-warn-missing-signatures -fno-warn-type-defaults
+OUTFLAGS=-isrc -odir build -hidir build -outputdir build
+GHCFLAGS=$(WARNFLAGS) $(OUTFLAGS)
+SRC=src/Yinsh.hs src/Floyd.hs
+SRC_FRONTEND=$(SRC) src/Frontend.hs
+SRC_CLI=$(SRC) src/match.hs
 
-doc: Frontend.hs Yinsh.hs Floyd.hs
+Frontend.js: $(SRC_FRONTEND)
+	rm -f Frontend.js
+	hastec $(GHCFLAGS) -O2 src/Frontend.hs -o Frontend.js
+
+doc: $(SRC)
 	rm -rf doc
-	haddock -o doc -h Yinsh.hs Floyd.hs Frontend.hs
+	haddock -o doc -h $(SRC)
 
-opt: Frontend.hs Yinsh.hs Floyd.hs
+opt: $(SRC_FRONTEND)
 	rm -f Frontend.js
-	hastec --opt-all Frontend.hs
+	hastec $(OUTFLAGS) --opt-all src/Frontend.hs -o Frontend.js
 
-prof: Yinsh.hs Floyd.hs profileYinsh.hs
-	ghc -prof -auto-all -O2 profileYinsh.hs
+match: $(SRC_CLI)
+	ghc $(GHCFLAGS) -O2 src/match.hs -o match
 
-cli: Yinsh.hs Floyd.hs profileYinsh.hs
-	ghc -O2 -Wall -fno-warn-unused-do-bind -fno-warn-missing-signatures -fno-warn-type-defaults profileYinsh.hs
-
-matchAI: Yinsh.hs Floyd.hs matchAI.hs
-	ghc -O2 -Wall -fno-warn-unused-do-bind -fno-warn-missing-signatures -fno-warn-type-defaults matchAI.hs
+prof: $(SRC_CLI)
+	ghc $(OUTFLAGS) -prof -auto-all -O2 src/match.hs -o match
 
 clean:
-	rm -f Frontend.js *.hi *.o
+	rm -rf build
 	rm -rf main doc
+	rm -f Frontend.js
+	rm -f match
