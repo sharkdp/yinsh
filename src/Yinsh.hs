@@ -1,7 +1,7 @@
 module Yinsh where
 
 import Control.Monad (guard)
-import qualified Data.Map as M
+import qualified Data.Map.Lazy as M
 import Data.List (delete, foldl', sortBy)
 import Data.Ord (comparing)
 
@@ -22,6 +22,8 @@ data Element = Ring Player
              | Marker Player
              deriving (Show, Eq)
 
+-- | Status of the game (next required action).
+-- <<turn-structure.svg>>
 data TurnMode = AddRing
               | AddMarker
               | MoveRing YCoord
@@ -189,6 +191,7 @@ connected (x, y) (a, b) =        x == a
 -- | List of points reachable from a certain point
 --
 -- Every point should be reachable within two moves
+--
 -- prop> forAll boardCoords (\c -> sort coords == sort (nub (reachable c >>= reachable)))
 --
 reachable :: YCoord -> [YCoord]
@@ -239,10 +242,12 @@ ringMoves b start = filter (freeCoord b) $ inDir False start =<< directions
 -- | Get all nearest neighbors
 --
 -- Every point has neighbors:
+--
 -- >>> sort coords == sort (nub (coords >>= neighbors))
 -- True
 --
 -- Every point is a neighbor of its neighbor
+--
 -- prop> forAll boardCoords (\c -> c `elem` (neighbors c >>= neighbors))
 --
 neighbors :: YCoord -> [YCoord]
@@ -250,6 +255,7 @@ neighbors c = filter validCoord adj
     where adj = mapM (add . vector) directions c
 
 -- | Check if a player has a run of five in a row
+hasRun :: [YCoord] -> Bool
 hasRun [] = False
 hasRun ms@(m:rest) = partOfRun (filter (connected m) ms) m || hasRun rest
 -- TODO: is this part          ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -311,10 +317,10 @@ between a b c = n2x * n2y == (x `prod` y)^2 && n2y < n2x && n2z < n2x
 -- | Get all coordinates connecting two points
 coordLine :: YCoord -> YCoord -> [YCoord]
 coordLine x y = take (num - 1) . tail $ iterate (`add` step) x
-    where delta = y `sub` x
-          step = (reduce (fst delta), reduce (snd delta))
+    where (d1, d2) = y `sub` x
+          num = max (abs d1) (abs d2)
           reduce s = round $ fromIntegral s / fromIntegral num
-          num = max (abs (fst delta)) (abs (snd delta))
+          step = (reduce d1, reduce d2)
 
 -- | Flip all markers between two given coordinates
 flippedMarkers :: Board -> YCoord -> YCoord -> Board

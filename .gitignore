@@ -2,7 +2,7 @@
 *.js
 *.hi
 *.prof
-doc
+docs
 build
 match
 todo

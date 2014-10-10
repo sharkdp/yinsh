@@ -1,4 +1,4 @@
-WARNFLAGS=-Wall -fno-warn-unused-do-bind -fno-warn-missing-signatures -fno-warn-type-defaults
+WARNFLAGS=-Wall -fno-warn-unused-do-bind -fno-warn-missing-signatures -fno-warn-type-defaults -fno-warn-orphans
 OUTFLAGS=-isrc -odir build -hidir build -outputdir build
 GHCFLAGS=$(WARNFLAGS) $(OUTFLAGS)
 SRC=src/Yinsh.hs src/Floyd.hs
@@ -9,9 +9,14 @@ Frontend.js: $(SRC_FRONTEND)
 	rm -f Frontend.js
 	hastec $(GHCFLAGS) -O2 src/Frontend.hs -o Frontend.js
 
-doc: $(SRC)
-	rm -rf doc
-	haddock -o doc -h $(SRC)
+docs: $(SRC_FRONTEND) info/turn-structure.svg
+	rm -rf docs
+	mkdir docs
+	cp info/turn-structure.svg docs
+	haddock -o docs -h $(SRC_FRONTEND)
+
+tests: $(SRC_FRONTEND)
+	doctest $(SRC_FRONTEND)
 
 opt: $(SRC_FRONTEND)
 	rm -f Frontend.js
@@ -21,10 +26,11 @@ match: $(SRC_CLI)
 	ghc $(GHCFLAGS) -O2 src/match.hs -o match
 
 prof: $(SRC_CLI)
-	ghc $(OUTFLAGS) -prof -auto-all -O2 src/match.hs -o match
+	ghc $(GHCFLAGS) -prof -auto-all -O2 src/match.hs -o match
 
 clean:
 	rm -rf build
-	rm -rf main doc
+	rm -rf main
+	rm -rf docs
 	rm -f Frontend.js
-	rm -f match
+	rm -f match match.prof

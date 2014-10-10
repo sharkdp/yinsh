@@ -9,12 +9,12 @@
    xmlns="http://www.w3.org/2000/svg"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   width="1753.8999"
-   height="708.27075"
+   width="602.32599"
+   height="247.17183"
    id="svg2"
    version="1.1"
    inkscape:version="0.91pre2 r13569 custom"
-   sodipodi:docname="turn structure.svg">
+   sodipodi:docname="turn-structure.svg">
   <defs
      id="defs4" />
   <sodipodi:namedview
@@ -24,11 +24,11 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="0.49497475"
-     inkscape:cx="828.78765"
-     inkscape:cy="240.03106"
+     inkscape:zoom="1.979899"
+     inkscape:cx="282.40801"
+     inkscape:cy="144.91356"
      inkscape:document-units="px"
-     inkscape:current-layer="layer1"
+     inkscape:current-layer="g3151"
      showgrid="false"
      inkscape:connector-spacing="3"
      showborder="true"
@@ -61,31 +61,31 @@
      transform="translate(1006.9392,-115.9155)">
     <g
        id="g3797"
-       transform="matrix(0.71542257,0,0,0.71542257,-622.76522,185.97461)">
+       transform="matrix(0.24299754,0,0,0.24299754,-873.15049,143.01321)">
       <rect
          y="259.50504"
          x="-530"
          height="72.85714"
          width="488.57141"
          id="rect2993"
-         style="fill:#aaccff;fill-opacity:1;stroke:none" />
+         style="fill:#4dbce9;fill-opacity:1;stroke:none" />
       <text
          sodipodi:linespacing="125%"
          id="text2985"
          y="306.32425"
-         x="-504.35687"
-         style="font-style:normal;font-weight:normal;font-size:40px;line-height:125%;font-family:Sans;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
+         x="-489.01773"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:40px;line-height:125%;font-family:'CMU Bright';-inkscape-font-specification:'CMU Bright';letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
          xml:space="preserve"><tspan
            id="tspan3771"
            y="306.32425"
-           x="-504.35687"
+           x="-489.01773"
            sodipodi:role="line">AddMarker + MoveRing</tspan></text>
     </g>
     <g
        id="g3816"
-       transform="matrix(0.71542257,0,0,0.71542257,-157.49224,161.99896)">
+       transform="matrix(0.24299754,0,0,0.24299754,-715.11775,134.86974)">
       <rect
-         style="fill:#aaccff;fill-opacity:1;stroke:none"
+         style="fill:#4dbce9;fill-opacity:1;stroke:none"
          id="rect3775"
          width="528.57141"
          height="72.85714"
@@ -95,19 +95,19 @@
          sodipodi:linespacing="125%"
          id="text3777"
          y="580.151"
-         x="67.187492"
-         style="font-style:normal;font-weight:normal;font-size:40px;line-height:125%;font-family:Sans;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
+         x="84.769684"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:40px;line-height:125%;font-family:'CMU Bright';-inkscape-font-specification:'CMU Bright';letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
          xml:space="preserve"><tspan
            y="580.151"
-           x="67.187492"
+           x="84.769684"
            id="tspan3779"
            sodipodi:role="line">RemoveRun + RemoveRing</tspan></text>
     </g>
     <g
        id="g3802"
-       transform="matrix(0.71542257,0,0,0.71542257,-522.3025,108.63014)">
+       transform="matrix(0.24299754,0,0,0.24299754,-839.02772,116.7427)">
       <rect
-         style="fill:#55ff99;fill-opacity:1;stroke:none"
+         style="fill:#d1e751;fill-opacity:1;stroke:none"
          id="rect3781"
          width="488.57141"
          height="72.85714"
@@ -115,41 +115,41 @@
          y="159.50504" />
       <text
          xml:space="preserve"
-         style="font-style:normal;font-weight:normal;font-size:40px;line-height:125%;font-family:Sans;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
-         x="24.214556"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:40px;line-height:125%;font-family:'CMU Bright';-inkscape-font-specification:'CMU Bright';letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
+         x="39.553696"
          y="206.32423"
          id="text3783"
          sodipodi:linespacing="125%"><tspan
            sodipodi:role="line"
-           x="24.214556"
+           x="39.553696"
            y="206.32423"
            id="tspan3785">AddMarker + MoveRing</tspan></text>
     </g>
     <g
        id="g3811"
-       transform="matrix(0.71542257,0,0,0.71542257,-443.60602,369.10056)">
+       transform="matrix(0.24299754,0,0,0.24299754,-812.298,205.21303)">
       <rect
          y="356.64789"
          x="-5.7142854"
          height="72.85714"
          width="277.14285"
          id="rect3791"
-         style="fill:#55ff99;fill-opacity:1;stroke:none" />
+         style="fill:#d1e751;fill-opacity:1;stroke:none" />
       <text
          sodipodi:linespacing="125%"
          id="text3793"
          y="408.07645"
-         x="19.077845"
-         style="font-style:normal;font-weight:normal;font-size:40px;line-height:125%;font-family:Sans;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
+         x="30.439329"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:40px;line-height:125%;font-family:'CMU Bright';-inkscape-font-specification:'CMU Bright';letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
          xml:space="preserve"><tspan
            y="408.07645"
-           x="19.077845"
+           x="30.439329"
            sodipodi:role="line"
            id="tspan3035">PseudoTurn</tspan></text>
     </g>
     <path
-       style="fill:none;stroke:#000000;stroke-width:0.71542257px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       d="m -743.39275,371.63037 311.0568,-96.76309"
+       style="fill:none;stroke:#000000;stroke-width:0.24299754px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m -914.12234,206.0723 105.6523,-32.86616"
        id="path3807"
        inkscape:connector-type="polyline"
        inkscape:connector-curvature="0"
@@ -158,8 +158,8 @@
        inkscape:connection-end="#g3802"
        inkscape:connection-end-point="d4" />
     <path
-       style="fill:none;stroke:#000000;stroke-width:0.71542257px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       d="m -777.79568,423.75401 379.86266,200.5005"
+       style="fill:none;stroke:#000000;stroke-width:0.24299754px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m -925.80751,223.7764 129.02262,68.10119"
        id="path3821"
        inkscape:connector-type="polyline"
        inkscape:connector-curvature="0"
@@ -168,7 +168,7 @@
        inkscape:connection-end="#g3811"
        inkscape:connection-end-point="d4" />
     <g
-       transform="matrix(0.71542257,0,0,0.71542257,323.94952,385.17666)"
+       transform="matrix(0.24299754,0,0,0.24299754,-551.59318,210.67338)"
        id="g3823">
       <rect
          y="533.79077"
@@ -176,21 +176,21 @@
          height="72.85714"
          width="528.57141"
          id="rect3825"
-         style="fill:#55ff99;fill-opacity:1;stroke:none" />
+         style="fill:#d1e751;fill-opacity:1;stroke:none" />
       <text
          xml:space="preserve"
-         style="font-style:normal;font-weight:normal;font-size:40px;line-height:125%;font-family:Sans;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
-         x="67.1875"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:40px;line-height:125%;font-family:'CMU Bright';-inkscape-font-specification:'CMU Bright';letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
+         x="84.769684"
          y="580.151"
          id="text3827"
          sodipodi:linespacing="125%"><tspan
            sodipodi:role="line"
            id="tspan3829"
-           x="67.1875"
+           x="84.769684"
            y="580.151">RemoveRun + RemoveRing</tspan></text>
     </g>
     <g
-       transform="matrix(0.71542257,0,0,0.71542257,379.13926,209.84844)"
+       transform="matrix(0.24299754,0,0,0.24299754,-532.84766,151.1221)"
        id="g3831">
       <rect
          y="159.50504"
@@ -198,22 +198,22 @@
          height="72.85714"
          width="488.57141"
          id="rect3833"
-         style="fill:#55ff99;fill-opacity:1;stroke:none" />
+         style="fill:#d1e751;fill-opacity:1;stroke:none" />
       <text
          sodipodi:linespacing="125%"
          id="text3835"
          y="206.32423"
-         x="24.214556"
-         style="font-style:normal;font-weight:normal;font-size:40px;line-height:125%;font-family:Sans;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
+         x="39.553696"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:40px;line-height:125%;font-family:'CMU Bright';-inkscape-font-specification:'CMU Bright';letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
          xml:space="preserve"><tspan
            id="tspan3837"
            y="206.32423"
-           x="24.214556"
+           x="39.553696"
            sodipodi:role="line">AddMarker + MoveRing</tspan></text>
     </g>
     <path
-       style="fill:none;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       d="M -249.4199,631.34583 -64.752388,596.00857"
+       style="fill:none;stroke:#000000;stroke-width:0.33965597px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m -746.34153,294.2862 62.72343,-12.00251"
        id="path3839"
        inkscape:connector-type="polyline"
        inkscape:connector-curvature="0"
@@ -222,8 +222,8 @@
        inkscape:connection-end="#g3816"
        inkscape:connection-end-point="d4" />
     <path
-       style="fill:none;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       d="M 127.66387,596.00857 496.66385,767.06263"
+       style="fill:none;stroke:#000000;stroke-width:0.33965597px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m -618.26277,282.28369 125.33305,58.09953"
        id="path3841"
        inkscape:connector-type="polyline"
        inkscape:connector-curvature="0"
@@ -232,8 +232,8 @@
        inkscape:connection-start-point="d4"
        inkscape:connection-start="#g3816" />
     <path
-       style="fill:none;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       d="M 128.4959,543.88493 495.83181,376.08558"
+       style="fill:none;stroke:#000000;stroke-width:0.33965597px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m -617.98017,264.57958 124.76783,-56.99404"
        id="path3843"
        inkscape:connector-type="polyline"
        inkscape:connector-curvature="0"
@@ -243,31 +243,31 @@
        inkscape:connection-end-point="d4" />
     <g
        id="g3851"
-       transform="translate(-31.091373,94.548237)">
+       transform="matrix(0.33965596,0,0,0.33965596,-672.18494,111.9597)">
       <rect
          y="458.39249"
          x="-672.7616"
          height="66.670067"
          width="113.13708"
          id="rect3845"
-         style="fill:#aaccff;fill-opacity:1;stroke:none" />
+         style="fill:#4dbce9;fill-opacity:1;stroke:none" />
       <text
          sodipodi:linespacing="125%"
          id="text3847"
          y="505.72165"
-         x="-660.76337"
-         style="font-style:normal;font-weight:normal;font-size:40px;line-height:125%;font-family:Sans;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
+         x="-656.31366"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:40px;line-height:125%;font-family:'CMU Bright';-inkscape-font-specification:'CMU Bright';letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
          xml:space="preserve"><tspan
            y="505.72165"
-           x="-660.76337"
+           x="-656.31366"
            id="tspan3849"
            sodipodi:role="line">Run!</tspan></text>
     </g>
     <g
        id="g3856"
-       transform="translate(849.26045,235.5635)">
+       transform="matrix(0.33965596,0,0,0.33965596,-373.16819,159.85637)">
       <rect
-         style="fill:#55ff99;fill-opacity:1;stroke:none"
+         style="fill:#d1e751;fill-opacity:1;stroke:none"
          id="rect3858"
          width="113.13708"
          height="66.670067"
@@ -275,62 +275,62 @@
          y="458.39249" />
       <text
          xml:space="preserve"
-         style="font-style:normal;font-weight:normal;font-size:40px;line-height:125%;font-family:Sans;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
-         x="-660.76337"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:40px;line-height:125%;font-family:'CMU Bright';-inkscape-font-specification:'CMU Bright';letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
+         x="-656.31366"
          y="505.72165"
          id="text3860"
          sodipodi:linespacing="125%"><tspan
            sodipodi:role="line"
            id="tspan3862"
-           x="-660.76337"
+           x="-656.31366"
            y="505.72165">Run!</tspan></text>
     </g>
     <text
        xml:space="preserve"
-       style="font-style:normal;font-weight:normal;font-size:40px;line-height:125%;font-family:Sans;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
-       x="-395.76404"
-       y="151.30612"
+       style="font-style:normal;font-weight:normal;font-size:13.58623791px;line-height:125%;font-family:'CMU Bright';letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;-inkscape-font-specification:'CMU Bright';font-stretch:normal;font-variant:normal;"
+       x="-796.04816"
+       y="131.23785"
        id="text3864"
        sodipodi:linespacing="125%"><tspan
          sodipodi:role="line"
          id="tspan3866"
-         x="-395.76404"
-         y="151.30612">1-ply</tspan></text>
+         x="-796.04816"
+         y="131.23785">1-ply</tspan></text>
     <text
        sodipodi:linespacing="125%"
        id="text3872"
-       y="151.30612"
-       x="25.03673"
-       style="font-style:normal;font-weight:normal;font-size:40px;line-height:125%;font-family:Sans;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
+       y="131.23785"
+       x="-653.12067"
+       style="font-style:normal;font-weight:normal;font-size:13.58623791px;line-height:125%;font-family:'CMU Bright';letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;-inkscape-font-specification:'CMU Bright';font-stretch:normal;font-variant:normal;"
        xml:space="preserve"><tspan
-         y="151.30612"
-         x="25.03673"
+         y="131.23785"
+         x="-653.12067"
          id="tspan3874"
          sodipodi:role="line">2-ply</tspan></text>
     <text
        xml:space="preserve"
-       style="font-style:normal;font-weight:normal;font-size:40px;line-height:125%;font-family:Sans;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
-       x="506.6152"
-       y="151.30612"
+       style="font-style:normal;font-weight:normal;font-size:13.58623791px;line-height:125%;font-family:'CMU Bright';letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;-inkscape-font-specification:'CMU Bright';font-stretch:normal;font-variant:normal;"
+       x="-489.54968"
+       y="131.23785"
        id="text3876"
        sodipodi:linespacing="125%"><tspan
          sodipodi:role="line"
          id="tspan3878"
-         x="506.6152"
-         y="151.30612">3-ply</tspan></text>
+         x="-489.54968"
+         y="131.23785">3-ply</tspan></text>
     <text
        sodipodi:linespacing="125%"
        id="text3880"
-       y="151.30612"
-       x="-873.59747"
-       style="font-style:normal;font-weight:normal;font-size:40px;line-height:125%;font-family:Sans;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
+       y="131.23785"
+       x="-958.34717"
+       style="font-style:normal;font-weight:normal;font-size:13.58623791px;line-height:125%;font-family:'CMU Bright';letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;-inkscape-font-specification:'CMU Bright';font-stretch:normal;font-variant:normal;"
        xml:space="preserve"><tspan
-         y="151.30612"
-         x="-873.59747"
+         y="131.23785"
+         x="-958.34717"
          id="tspan3882"
          sodipodi:role="line">0-ply</tspan></text>
     <g
-       transform="translate(98.831157,-80.570647)"
+       transform="matrix(0.33965596,0,0,0.33965596,-628.05598,52.479527)"
        id="g3035">
       <rect
          y="458.39249"
@@ -338,21 +338,21 @@
          height="66.670067"
          width="113.13708"
          id="rect3037"
-         style="fill:#55ff99;fill-opacity:1;stroke:none" />
+         style="fill:#d1e751;fill-opacity:1;stroke:none" />
       <text
          sodipodi:linespacing="125%"
          id="text3039"
          y="505.72165"
-         x="-660.76337"
-         style="font-style:normal;font-weight:normal;font-size:40px;line-height:125%;font-family:Sans;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
+         x="-656.31366"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:40px;line-height:125%;font-family:'CMU Bright';-inkscape-font-specification:'CMU Bright';letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
          xml:space="preserve"><tspan
            y="505.72165"
-           x="-660.76337"
+           x="-656.31366"
            id="tspan3041"
            sodipodi:role="line">Run!</tspan></text>
     </g>
     <g
-       transform="matrix(0.71542257,0,0,0.71542257,-577.49224,89.99896)"
+       transform="matrix(0.24299754,0,0,0.24299754,-857.77325,110.41451)"
        id="g3043">
       <rect
          y="533.79077"
@@ -360,22 +360,22 @@
          height="72.85714"
          width="528.57141"
          id="rect3045"
-         style="fill:#55ff99;fill-opacity:1;stroke:none" />
+         style="fill:#d1e751;fill-opacity:1;stroke:none" />
       <text
          xml:space="preserve"
-         style="font-style:normal;font-weight:normal;font-size:40px;line-height:125%;font-family:Sans;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
-         x="67.187492"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:40px;line-height:125%;font-family:'CMU Bright';-inkscape-font-specification:'CMU Bright';letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
+         x="84.769684"
          y="580.151"
          id="text3047"
          sodipodi:linespacing="125%"><tspan
            sodipodi:role="line"
            id="tspan3049"
-           x="67.187492"
+           x="84.769684"
            y="580.151">RemoveRun + RemoveRing</tspan></text>
     </g>
     <path
-       style="fill:none;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       d="m -702.7527,423.75401 229.7767,48.13092"
+       style="fill:none;stroke:#000000;stroke-width:0.33965597px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m -900.31872,223.7764 78.04503,16.34795"
        id="path3053"
        inkscape:connector-type="polyline"
        inkscape:connector-curvature="0"
@@ -384,10 +384,10 @@
        inkscape:connection-end="#g3043"
        inkscape:connection-end-point="d4" />
     <g
-       transform="matrix(0.71542257,0,0,0.71542257,457.83574,329.10056)"
+       transform="matrix(0.24299754,0,0,0.24299754,-506.11793,191.62679)"
        id="g3141">
       <rect
-         style="fill:#55ff99;fill-opacity:1;stroke:none"
+         style="fill:#d1e751;fill-opacity:1;stroke:none"
          id="rect3143"
          width="277.14285"
          height="72.85714"
@@ -395,19 +395,19 @@
          y="356.64789" />
       <text
          xml:space="preserve"
-         style="font-style:normal;font-weight:normal;font-size:40px;line-height:125%;font-family:Sans;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
-         x="19.077845"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:40px;line-height:125%;font-family:'CMU Bright';-inkscape-font-specification:'CMU Bright';letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
+         x="30.439329"
          y="408.07645"
          id="text3145"
          sodipodi:linespacing="125%"><tspan
            id="tspan3147"
            sodipodi:role="line"
-           x="19.077845"
+           x="30.439329"
            y="408.07645">PseudoTurn</tspan></text>
     </g>
     <path
-       style="fill:none;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       d="m 260.51894,585.80104 193.22867,16.2025"
+       style="fill:none;stroke:#000000;stroke-width:0.33965597px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m -573.13776,278.81664 65.63127,5.50328"
        id="path3149"
        inkscape:connector-type="polyline"
        inkscape:connector-curvature="0"
@@ -416,10 +416,10 @@
        inkscape:connection-end="#g3141"
        inkscape:connection-end-point="d4" />
     <g
-       transform="translate(977.48006,41.691094)"
+       transform="matrix(0.33965596,0,0,0.33965596,-329.61764,94.006456)"
        id="g3151">
       <rect
-         style="fill:#aaccff;fill-opacity:1;stroke:none"
+         style="fill:#4dbce9;fill-opacity:1;stroke:none"
          id="rect3153"
          width="113.13708"
          height="66.670067"
@@ -427,14 +427,14 @@
          y="458.39249" />
       <text
          xml:space="preserve"
-         style="font-style:normal;font-weight:normal;font-size:40px;line-height:125%;font-family:Sans;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
-         x="-660.76337"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:40px;line-height:125%;font-family:'CMU Bright';-inkscape-font-specification:'CMU Bright';letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
+         x="-656.31366"
          y="505.72165"
          id="text3155"
          sodipodi:linespacing="125%"><tspan
            sodipodi:role="line"
            id="tspan3157"
-           x="-660.76337"
+           x="-656.31366"
            y="505.72165">Run!</tspan></text>
     </g>
   </g>
