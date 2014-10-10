@@ -1,7 +1,8 @@
 WARNFLAGS=-Wall -fno-warn-missing-signatures -fno-warn-type-defaults -fno-warn-orphans
 OUTFLAGS=-isrc -odir build -hidir build -outputdir build
-GHCFLAGS=$(WARNFLAGS) $(OUTFLAGS)
-SRC=src/Yinsh.hs src/Floyd.hs
+EXTFLAGS=-XFlexibleInstances -XUndecidableInstances
+GHCFLAGS=$(WARNFLAGS) $(OUTFLAGS) $(EXTFLAGS)
+SRC=src/Yinsh.hs src/Floyd.hs src/AI.hs src/RandomAI.hs
 SRC_FRONTEND=$(SRC) src/Frontend.hs
 SRC_CLI=$(SRC) src/match.hs
 

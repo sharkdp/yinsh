@@ -9,6 +9,7 @@ import Haste hiding (next)
 import Haste.Graphics.Canvas
 
 import Yinsh
+import AI
 import Floyd
 
 -- | Current state of the user interface
@@ -30,6 +31,9 @@ ringInnerRadius = 22 :: Double
 ringWidth       = 6 :: Double
 originX         = 600 / 2 :: Double -- Half the canvas size
 originY         = 630 / 2 :: Double
+
+-- AI options
+
 
 -- | Translate hex coordinates to screen coordinates
 screenPoint :: YCoord -> Point
@@ -192,12 +196,18 @@ updateState :: GameState  -- ^ old state
             -> GameState  -- ^ new state
 updateState gs cc = fromMaybe gs (newGameState gs cc)
 
--- Resolve pseudo turns for the *human* player automatically
-aiTurn' :: Int -> GameState -> GameState
-aiTurn' plies' gs = let gs' = aiTurn plies' gs in
-                    if turnMode gs' == PseudoTurn
-                    then aiTurn plies' (fromJust $ newGameState gs' (0, 0))
-                    else gs'
+-- | Specify the AI player for the frontend
+frontendAI :: GameState -> Floyd
+frontendAI gs = Floyd { floydGS = gs, floydPL = 2 }
+-- frontendAI :: GameState -> RandomAI
+-- frontendAI gs = RandomAI { raiGS = gs, raiPL = 2 }
+
+-- | Resolve pseudo turns for the *human* player automatically
+aiTurn' :: GameState -> GameState
+aiTurn' gs = let gs' = aiTurn (frontendAI gs) in
+                 if turnMode gs' == PseudoTurn
+                 then aiTurn (frontendAI $ fromJust $ newGameState gs' (0, 0))
+                 else gs'
 
 keyLeft = 37
 keyRight = 39
@@ -261,7 +271,7 @@ main = do
             then do
                 writeIORef ioState (gs:oldGS:gslist, WaitAI)
                 setTimeout 0 $ do
-                    let gs' = aiTurn' plies gs
+                    let gs' = aiTurn' gs
                     let gameover' = terminalState gs'
                     let ds' = if gameover' then ViewBoard else WaitUser
                     renderCanvasAction can gs' point

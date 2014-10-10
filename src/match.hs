@@ -1,16 +1,22 @@
-import Yinsh
-import Floyd
 import System.IO
 
-playW :: GameState -> GameState
-playW = aiTurn 3
+import Yinsh
+import AI
+import Floyd
+import RandomAI
 
-playB :: GameState -> GameState
-playB = aiTurn 3
+makeFloyd :: Int -> GameState -> Floyd
+makeFloyd pl gs = Floyd { floydGS = gs, floydPL = pl }
+
+makeRandomAI :: Int -> GameState -> RandomAI
+makeRandomAI pl gs = RandomAI { raiGS = gs, raiPL = pl }
+
+aiPlay :: Player -> GameState -> GameState
+aiPlay W = aiTurn . makeFloyd 4
+aiPlay B = aiTurn . makeFloyd 3
 
 handleTurn :: Int -> GameState -> IO ()
 handleTurn turn gs = do
-    let gs' = fn' gs
     putStrLn $ "Turn #" ++ show turn
     print gs'
     if terminalState gs'
@@ -20,11 +26,10 @@ handleTurn turn gs = do
     else
         handleTurn (turn + 1) gs'
     where player' = activePlayer gs
-          fn' = if player' == W then playW else playB
+          gs' = aiPlay player' gs
 
 handleTurn' :: Int -> GameState -> IO ()
-handleTurn' turn gs = do
-    let gs' = fn' gs
+handleTurn' turn gs =
     if terminalState gs'
     then do
         putStr $ show gs'
@@ -35,12 +40,12 @@ handleTurn' turn gs = do
         hFlush stdout
         handleTurn' (turn + 1) gs'
     where player' = activePlayer gs
-          fn' = if player' == W then playW else playB
+          gs' = aiPlay player' gs
 
 main :: IO ()
 main = do
     let initPlayer = W
-    let hsOutput = True
+    let hsOutput = False
     let initGS = initialGameState { activePlayer = initPlayer }
 
     if hsOutput

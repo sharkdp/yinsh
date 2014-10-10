@@ -27,6 +27,7 @@ data Element = Ring Player
              deriving (Show, Eq)
 
 -- | Status of the game (required action).
+--
 -- <<turn-structure.svg>>
 data TurnMode = AddRing
               | AddMarker
