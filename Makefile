@@ -1,4 +1,4 @@
-WARNFLAGS=-Wall -fno-warn-unused-do-bind -fno-warn-missing-signatures -fno-warn-type-defaults -fno-warn-orphans
+WARNFLAGS=-Wall -fno-warn-missing-signatures -fno-warn-type-defaults -fno-warn-orphans
 OUTFLAGS=-isrc -odir build -hidir build -outputdir build
 GHCFLAGS=$(WARNFLAGS) $(OUTFLAGS)
 SRC=src/Yinsh.hs src/Floyd.hs
@@ -27,6 +27,8 @@ match: $(SRC_CLI)
 
 prof: $(SRC_CLI)
 	ghc $(GHCFLAGS) -prof -auto-all -O2 src/match.hs -o match
+	./match +RTS -p
+	mv match.prof prof
 
 clean:
 	rm -rf build

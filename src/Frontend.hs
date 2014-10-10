@@ -28,8 +28,8 @@ spacing         = 60 :: Double
 markerWidth     = 20 :: Double
 ringInnerRadius = 22 :: Double
 ringWidth       = 6 :: Double
-originX         = -15 :: Double
-originY         = 495 :: Double
+originX         = 600 / 2 :: Double -- Half the canvas size
+originY         = 630 / 2 :: Double
 
 -- | Translate hex coordinates to screen coordinates
 screenPoint :: YCoord -> Point
@@ -219,12 +219,12 @@ main = do
     -- draw initial board
     render can (pBoard initBoard)
 
-    ce `onEvent` OnMouseMove $ \point -> do
+    _ <- ce `onEvent` OnMouseMove $ \point -> do
         (gs:_, ds) <- readIORef ioState
         when (ds == WaitUser) $
             renderCanvasAction can gs point
 
-    ce `onEvent` OnKeyDown $ \key -> do
+    _ <- ce `onEvent` OnKeyDown $ \key -> do
         when (key == keyLeft) $ do
             (gslist, ds) <- readIORef ioState
             let numGS = length gslist
@@ -248,7 +248,7 @@ main = do
                     renderCanvas can (gslist !! (h - 1))
                 _ -> return ()
 
-    ce `onEvent` OnClick $ \_ point -> do
+    _ <- ce `onEvent` OnClick $ \_ point -> do
         (oldGS:gslist, ds) <- readIORef ioState
         when (ds == WaitUser) $ do
             let gs = updateState oldGS (coordFromXY point)
