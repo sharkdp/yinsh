@@ -1,3 +1,5 @@
+-- | Artificial intelligence for the board game Yinsh.
+
 module Floyd where
 
 import Data.Maybe (fromJust)
@@ -55,24 +57,29 @@ heuristicValue gs = sign * valueForWhite -- TODO: should we care which turn mode
           board' = board gs
           -- TODO: adjust these numbers: 5, 10
 
--- Note: maxBound does *not* work here!
+-- | A large number for symbolizing a win (maxBound does *not* work here due
+-- to restrictions in the gametree module.)
 hugeNumber :: Int
 hugeNumber = 10000000000000
 
+-- | The Yinsh GameState is a node in the Game tree.
 instance GT.Game_tree GameState where
     is_terminal = terminalState
     node_value = heuristicValue
     children = gamestates
 
+-- | Number of turns to look-ahead.
 plies :: Int
-plies = 3
+plies = 2
 
+-- | Get new game state after Floyd's turn (number of plies can be specified).
 aiTurn :: Int -> GameState -> GameState
 aiTurn plies' gs = case turnMode gs of
                 PseudoTurn -> fromJust $ newGameState gs (0, 0)
                 _ -> pv !! 1
             where pv = fst $ aiRes plies' gs
 
+-- | Get the principal variation and heuristic value for a given ply.
 aiRes :: Int -> GameState -> ([GameState], Int)
 aiRes plies' gs = NS.negascout gs plies'
 -- TODO: negascout really seems to be the fastest. But test this for more game states
