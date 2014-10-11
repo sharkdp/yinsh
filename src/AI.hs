@@ -1,3 +1,6 @@
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE UndecidableInstances #-}
+
 module AI where
 
 import qualified Data.Tree.Game_tree.Game_tree as GT
@@ -8,12 +11,18 @@ import Data.List (nubBy, sort)
 
 import Yinsh
 
+-- | Every AI should provide a function @ai..@, returning an AIFunction.
+type AIFunction = GameState -> GameState
+
+-- | Result of an heuristic evaluation function
+type AIValue = Int
+
 -- | Wrapper class for AI players which encapsules the current game state.
 class AIPlayer a where
     -- | Heuristic evaluation function for a game state. Everything is calulated
-    -- from the perspective of the AI player (white). This is sufficient since
+    -- from the perspective of the white player. This is sufficient since
     -- Yinsh is a zero sum game.
-    valueForWhite :: a -> Int
+    valueForWhite :: a -> AIValue
 
     -- | Number of turns to look ahead in the game tree.
     getPlies :: a -> Int
@@ -24,9 +33,6 @@ class AIPlayer a where
     -- | Update AI with new gamestate
     update :: a -> GameState -> a
 
-    -- | Name of the AI player
-    name :: a -> String
-
 -- | Make the GameState (wrapped in the AIPlayer) an instance of Game_tree
 -- (actually rather an instance of a node in the game tree).
 instance (AIPlayer a) => GT.Game_tree a where
@@ -36,10 +42,6 @@ instance (AIPlayer a) => GT.Game_tree a where
         where sign | activePlayer gs == W = 1
                    | otherwise            = -1
               gs = getGamestate ai
-
--- | Name of the AI
-repr :: (AIPlayer ai) => ai -> String
-repr ai = name ai ++ " " ++ show (getPlies ai) ++ "-ply"
 
 -- | Possible new game states. The input and output game states are guaranteed
 -- to be in turn mode AddRing, AddMarker, RemoveRun or PseudoTurn.
@@ -87,4 +89,4 @@ aiPV ai = map getGamestate gss
 -- | A large number for symbolizing a win (maxBound does *not* work here due
 -- to restrictions in the gametree module.)
 hugeNumber :: Int
-hugeNumber = 10000000000000
+hugeNumber = 10^15

@@ -1,6 +1,7 @@
 *.o
 *.js
 *.hi
+AIHistory.hs
 prof
 docs
 build

@@ -12,6 +12,9 @@ import Yinsh
 import AI
 import Floyd
 
+-- testing:
+-- import AIHistory
+
 -- | Current state of the user interface
 data DisplayState = WaitUser | WaitAI | ViewBoard | ViewHistory Int
                     deriving (Show, Eq)
@@ -197,16 +200,14 @@ updateState :: GameState  -- ^ old state
 updateState gs cc = fromMaybe gs (newGameState gs cc)
 
 -- | Specify the AI player for the frontend
-frontendAI :: GameState -> Floyd
-frontendAI gs = Floyd { floydGS = gs, floydPL = 2 }
--- frontendAI :: GameState -> RandomAI
--- frontendAI gs = RandomAI { raiGS = gs, raiPL = 2 }
+frontendAI :: AIFunction
+frontendAI = aiFloyd 3 mhNumber rhZero
 
 -- | Resolve pseudo turns for the *human* player automatically
 aiTurn' :: GameState -> GameState
-aiTurn' gs = let gs' = aiTurn (frontendAI gs) in
+aiTurn' gs = let gs' = frontendAI gs in
                  if turnMode gs' == PseudoTurn
-                 then aiTurn (frontendAI $ fromJust $ newGameState gs' (0, 0))
+                 then frontendAI $ fromJust $ newGameState gs' (0, 0)
                  else gs'
 
 keyLeft = 37

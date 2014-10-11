@@ -139,7 +139,7 @@ emptyBoard = Board { bmap = M.empty
                    }
 
 -- | Required runs for a win.
-pointsForWin = 1
+pointsForWin = 3
 pointsForWin :: Int
 
 -- | Similar to Enum's succ, but for cyclic data structures.
