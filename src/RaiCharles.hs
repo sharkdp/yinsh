@@ -5,7 +5,7 @@ module RaiCharles (aiRaiCharles) where
 import AI
 import Yinsh
 
-heuristic :: RaiCharles -> Int
+heuristic :: RaiCharles -> AIValue
 heuristic _ = 42 -- yeah..
 
 data RaiCharles = RaiCharles { gs :: GameState

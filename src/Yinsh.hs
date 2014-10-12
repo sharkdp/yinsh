@@ -19,12 +19,12 @@ type YCoord = (Int, Int)
 
 -- | The six hex directions.
 data Direction = N | NE | SE | S | SW | NW
-                 deriving (Eq, Enum, Bounded, Show)
+                 deriving (Eq, Enum, Bounded, Show, Read)
 
 -- | Board element (ring or marker).
 data Element = Ring Player
              | Marker Player
-             deriving (Show, Eq)
+             deriving (Show, Eq, Read)
 
 -- | Status of the game (required action).
 --
@@ -35,11 +35,11 @@ data TurnMode = AddRing
               | RemoveRun
               | RemoveRing
               | PseudoTurn
-              deriving (Eq, Show)
+              deriving (Eq, Show, Read)
 
 -- | Player types: black & white (or blue & green).
 data Player = B | W
-              deriving (Eq, Enum, Bounded, Show)
+              deriving (Eq, Enum, Bounded, Show, Read)
 
 -- | Efficient data structure for the board with two-way access.
 -- The Map is used to get log(n) access to the element at a certain
@@ -53,7 +53,7 @@ data Board = Board { bmap :: M.Map YCoord Element
                    , ringsW :: [YCoord]
                    , markersB :: [YCoord]
                    , markersW :: [YCoord]
-                   } deriving (Show, Eq)
+                   } deriving (Eq, Show, Read)
 
 -- | Yinsh game state.
 data GameState = GameState
@@ -62,7 +62,7 @@ data GameState = GameState
     , board :: Board         -- ^ current Yinsh board
     , pointsB :: Int         -- ^ number of runs / rings removed (black)
     , pointsW :: Int         -- ^ number of runs / rings removed (white)
-    } deriving (Eq, Show)
+    } deriving (Eq, Show, Read)
 
 -- | Get all marker coordinates of one player.
 markers :: Player -> Board -> [YCoord]

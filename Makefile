@@ -25,10 +25,10 @@ opt: $(SRC_FRONTEND)
 match: $(SRC_CLI)
 	ghc $(GHCFLAGS) -O2 -threaded src/match.hs -o match
 
-prof: $(SRC_CLI)
-	ghc $(GHCFLAGS) -prof -auto-all -O2 src/match.hs -o match
-	./match +RTS -p
-	mv match.prof prof
+match-prof: $(SRC_CLI)
+	ghc $(GHCFLAGS) -prof -auto-all -O2 src/match.hs -o match-prof
+	./match-prof +RTS -p
+	mv match-prof.prof prof
 
 clean:
 	rm -rf build
