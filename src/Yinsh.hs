@@ -237,10 +237,7 @@ ringMoves b start = ringMovesD b start =<< directions
 
 -- | Check if a player has a run of five in a row.
 hasRun :: Board -> Player -> Bool
-hasRun b p = -- (length ms >= 5) &&
-           any (hasRunD b p) [NW, N, NE]
-    -- where ms = markers p b
--- TODO: check if the (length >= 5) part is increasing performance
+hasRun b p = any (hasRunD b p) [NW, N, NE]
 
 isMarkerOf :: Board -> Player -> YCoord -> Bool
 isMarkerOf b p c = case elementAt b c of
@@ -254,7 +251,8 @@ hasRunD b p d = any middleOfRun ms
               where surrounding = left ++ right
                     left  = take 2 $ tail $ adjacent c d
                     right = take 2 $ tail $ adjacent c $ opposite d
-
+-- TODO: this can be improved.. we are checking for every marker if it sits
+-- in the middle of a run
 
 -- | Check if a coordinate is one of five in a row.
 --

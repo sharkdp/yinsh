@@ -86,7 +86,9 @@ aiPV ai = map getGamestate gss
 -- NS.alpha_beta_search gs plies'
 -- NS.principal_variation_search gs plies'
 
--- | A large number for symbolizing a win (maxBound does *not* work here due
--- to restrictions in the gametree module.)
+-- | A large number for symbolizing a win.
+-- Very ugly: if this number is higher than 2^31, there is an integer overflow
+-- in haste/javascript, resulting in the AI playing *very* bad.
+-- So 2^31 - 1 ~ 2 * 10^9 is our hardcoded magic 'huge' number.
 hugeNumber :: Int
-hugeNumber = 10^15
+hugeNumber = 2147483647

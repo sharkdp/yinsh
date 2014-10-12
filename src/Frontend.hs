@@ -194,6 +194,9 @@ renderCanvasAction can ds point = render can $ pDisplayAction ds (coordFromXY po
 coordFromXY :: (Int, Int) -> YCoord
 coordFromXY (x, y) = closestCoord (fromIntegral x, fromIntegral y)
 
+-- | Update the game state after interacting at a certain coordinate. If this
+-- would return in an invalid game state, @newGameState@ returns @Nothing@ and
+-- the state is left unchanged.
 updateState :: GameState  -- ^ old state
             -> YCoord     -- ^ clicked coordinate
             -> GameState  -- ^ new state
@@ -266,10 +269,10 @@ main = do
             let gameover = terminalState gs
             renderCanvasAction can gs point
 
-            putStrLn $ "DEBUG: gs = " ++ show gs
+            putStrLn $ "DEBUG: let gs = " ++ show gs
 
             if activePlayer gs == W && not gameover
-            then do
+            then do -- AI turn
                 writeIORef ioState (gs:oldGS:gslist, WaitAI)
                 setTimeout 0 $ do
                     let gs' = aiTurn' gs
@@ -277,7 +280,7 @@ main = do
                     let ds' = if gameover' then ViewBoard else WaitUser
                     renderCanvasAction can gs' point
                     writeIORef ioState (gs':gs:oldGS:gslist, ds')
-            else do
+            else do -- users turn or game over
                 let ds' = if gameover then ViewBoard else WaitUser
                 writeIORef ioState (gs:oldGS:gslist, ds')
 
