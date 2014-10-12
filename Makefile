@@ -33,6 +33,6 @@ match-prof: $(SRC_CLI)
 clean:
 	rm -rf build
 	rm -rf main
-	rm -rf docs
+	# rm -rf docs
 	rm -f Frontend.js
 	rm -f match match.prof

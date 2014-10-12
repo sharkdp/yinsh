@@ -1,3 +1,5 @@
+{-# LANGUAGE BangPatterns #-}
+
 -- |
 -- Data structures and functions for playing the board game Yinsh.
 
@@ -203,11 +205,11 @@ connected (x, y) (a, b) =        x == a
 
 -- | Vectorially add two coordinates.
 add :: YCoord -> YCoord -> YCoord
-add (x1, y1) (x2, y2) = (x1 + x2, y1 + y2)
+add (!x1, !y1) (!x2, !y2) = (x1 + x2, y1 + y2)
 
 -- | Vectorially subtract two coordinates.
 sub :: YCoord -> YCoord -> YCoord
-sub (x1, y1) (x2, y2) = (x1 - x2, y1 - y2)
+sub (!x1, !y1) (!x2, !y2) = (x1 - x2, y1 - y2)
 
 -- | Squared norm.
 norm2 :: YCoord -> Int
@@ -233,14 +235,26 @@ ringMovesD b s d = free ++ freeAfterJump
 ringMoves :: Board -> YCoord -> [YCoord]
 ringMoves b start = ringMovesD b start =<< directions
 
--- | Check if a player has a run of five in a row. The input is a coordinate
--- list of his markers.
-hasRun :: [YCoord] -> Bool
-hasRun [] = False
-hasRun ms@(m:rest) = partOfRun (filter (connected m) ms) m || hasRun rest
--- TODO: is this part          ^^^^^^^^^^^^^^^^^^^^^^^^^
---       really increasing performance? (can be replace by 'ms')
--- TODO: is it useful to introduce sth like: (length ms >= 5) && ... ?
+-- | Check if a player has a run of five in a row.
+hasRun :: Board -> Player -> Bool
+hasRun b p = -- (length ms >= 5) &&
+           any (hasRunD b p) [NW, N, NE]
+    -- where ms = markers p b
+-- TODO: check if the (length >= 5) part is increasing performance
+
+isMarkerOf :: Board -> Player -> YCoord -> Bool
+isMarkerOf b p c = case elementAt b c of
+                       Just (Marker x) -> x == p
+                       _               -> False
+
+hasRunD :: Board -> Player -> Direction -> Bool
+hasRunD b p d = any middleOfRun ms
+    where ms = markers p b
+          middleOfRun c = all (isMarkerOf b p) surrounding
+              where surrounding = left ++ right
+                    left  = take 2 $ tail $ adjacent c d
+                    right = take 2 $ tail $ adjacent c $ opposite d
+
 
 -- | Check if a coordinate is one of five in a row.
 --
@@ -324,11 +338,10 @@ newGameState gs cc = -- TODO: the guards should be (?) unnecessary when calling 
                     , turnMode = nextTurnMode
                     , board = addElement flippedBoard cc (Ring activePlayer')
                     }
-            where nextTurnMode = if hasRun playerMarkers'
-                                 then PseudoTurn
-                                 else AddMarker -- TODO: other player could have a run
+            where nextTurnMode | hasRun flippedBoard activePlayer' = PseudoTurn
+                               | hasRun flippedBoard nextPlayer    = RemoveRun
+                               | otherwise                         = AddMarker
                   flippedBoard = flippedMarkers board' start cc
-                  playerMarkers' = markers activePlayer' flippedBoard
         RemoveRun -> do
             guard (partOfRun playerMarkers cc)
             Just gs { turnMode = RemoveRing
