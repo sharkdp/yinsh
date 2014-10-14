@@ -2,10 +2,13 @@ import System.IO
 import System.Environment
 import Control.Parallel.Strategies
 import Control.DeepSeq
+import Data.Maybe
+import Data.List
 
 import Yinsh
 import AI
 import Floyd
+import Pink
 import RaiCharles
 
 -- | Match between two AI players
@@ -36,7 +39,7 @@ pmap = parMap rdeepseq
 --
 -- Input: A list of the names and AI functions
 --
--- Output: A list of all matches with the winning player
+-- Output: A list of all matches with the winning player and number of turns
 aiTournament :: [(String, AIFunction)] -> [(String, String, Player, Int)]
 aiTournament aiList = pmap resolve matches
     where matches = [(nW, nB, fW, fB) | (nW, fW) <- aiList
@@ -94,11 +97,12 @@ singleGame haskellOutput = do
 
 ioTournament :: IO ()
 ioTournament = do
-    let aiList = [ ("Floyd 3-ply C", aiFloyd 3 mhNumber rhConnected)
+    let aiList = [ ("Pink  3-ply C", aiPink  3 mhNumber rhConnected)
+                 , ("Floyd 3-ply C", aiFloyd 3 mhNumber rhConnected)
+                 , ("Pink  3-ply M", aiPink  3 mhNumber rhRingMoves)
                  , ("Floyd 3-ply M", aiFloyd 3 mhNumber rhRingMoves)
                  , ("Floyd 4-ply C", aiFloyd 4 mhNumber rhConnected)
-                 -- , ("Floyd 4-ply M", aiFloyd 4 mhNumber rhRingMoves)
-                 -- , ("Floyd 5-ply C", aiFloyd 5 mhNumber rhConnected)
+                 , ("Floyd 4-ply M", aiFloyd 4 mhNumber rhRingMoves)
                  , ("Rai Charles  ", aiRaiCharles 1)
                  ]
         res = aiTournament aiList
@@ -109,12 +113,47 @@ ioTournament = do
                   sWin str =  "* \x1b[01m" ++ str ++ "\x1b[0m"
                   sLose str = "  " ++ str
 
-    putStrLn $ "Playing Yinsh Tournament with " ++ show (length aiList) ++ " AI players"
+    let nPlayers = length aiList
+    putStrLn $ "Playing Yinsh Tournament with " ++ show nPlayers ++ " AI players"
     putStrLn ""
     putStrLn out
 
+    writeFile "match-results.html" $
+        resTable (map fst aiList) (map (\(_, _, w, t) -> (w, t)) res)
+
+colors = [ "e51c23"
+         , "9c27b0"
+         , "3f51b5"
+         , "03a9f4"
+         , "009688"
+         , "8bc34a"
+         , "ffeb3b"
+         , "ff9800"
+         , "795548"
+         , "607d8b"
+         ]
+
+resTable :: [String] -> [(Player, Int)] -> String
+resTable names res = "<table border='1'>\n" ++ firstRow ++ rest ++ "</table>"
+    where nameCells = zipWith nameCell names colors
+          nameCell n c = "<td style=\"width: 100px; height: 100px; background-color: #" ++ c ++ "\">" ++ n ++ "</td>"
+          firstRow = htmlRow ("<td></td>" : nameCells)
+          ns = [0 .. (length names - 1)]
+          rest = ns >>= rowNr
+          rowNr k = htmlRow ((nameCells !! k) : content k)
+          content k = map resultCell (indTable !! k)
+
+          indices = [(r, c) | r <- ns , c <- ns , r /= c]
+          resultCell (x, y) | x == y =    "<td></td>"
+                            | otherwise = winnerCell (x, y)
+          winnerCell (x, y) = nameCells !! (winnerInd (x, y) $ fromJust $ elemIndex (x, y) indices)
+          winnerInd (x, y) ind = case fst (res !! ind) of
+                              W -> x
+                              B -> y
+          indTable = [[(r,c) | c <- ns] | r <- ns]
+          htmlRow cols = "<tr>" ++ concat cols ++ "</tr>"
+
 main :: IO ()
--- main = ioTournament
 main = do
     args <- getArgs
     if not (null args) && head args == "-single"

@@ -1,35 +1,26 @@
--- | Simply the best AI for Yinsh, seriously.
+-- | Trying to complete with the best
 
-module Floyd ( aiFloyd
-             , mhNumber
-             , rhRingMoves
-             , rhConnected
-             , rhZero
+module Pink ( aiPink
+             -- , mhNumber
+             -- , rhRingMoves
+             -- , rhConnected
+             -- , rhZero
              )
     where
 
 import AI
 import Yinsh
 
+-- TODO: should we care which turn mode we are in? -> Yes, PseudoTurn can be evaluated..
 -- TODO: adjust numbers: 5, 10
-floydHeuristic :: Floyd -> AIValue
-floydHeuristic ai | points' W >= pointsForWin = hugeNumber
-                  | points' B >= pointsForWin = -hugeNumber
-                  | otherwise                = value W - value B
+pinkHeuristic :: Pink -> AIValue
+pinkHeuristic ai | points W >= pointsForWin = hugeNumber
+                 | points B >= pointsForWin = -hugeNumber
+                 | otherwise                = value W - value B
     where gs' = getGamestate ai
-          board' = board gs'
           points W = pointsW gs'
           points B = pointsB gs'
-
-          points' p = points p + futurePoints p
-          -- If we are in a pseudo turn, the *opponent* of the current player
-          -- will necessarily have one more point next turn. We can already
-          -- include this in our evaluation.
-          futurePoints p | (turnMode gs' == PseudoTurn) &&
-                           (activePlayer gs' /= p)          = 1
-                         | otherwise                        = 0
-
-          valuePoints p = 100000 * points' p
+          board' = board gs'
 
           valueMarkers = markerH ai
           valueRings = ringH ai
@@ -38,6 +29,7 @@ floydHeuristic ai | points' W >= pointsForWin = hugeNumber
                   + valueMarkers board' p
                   + valueRings   board' p
 
+          valuePoints p = 100000 * points p
 
 type MarkerHeuristic = Board -> Player -> AIValue
 type RingHeuristic   = Board -> Player -> AIValue
@@ -60,20 +52,20 @@ rhConnected b p = (1 *) $ length $ filter connectedToRings coords
 rhZero :: RingHeuristic
 rhZero _ _ = 0
 
-data Floyd = Floyd { gs :: GameState
+data Pink = Pink { gs :: GameState
                    , plies :: Int
                    , markerH :: MarkerHeuristic
                    , ringH :: RingHeuristic
                    }
 
-instance AIPlayer Floyd where
-    valueForWhite = floydHeuristic
+instance AIPlayer Pink where
+    valueForWhite = pinkHeuristic
     getGamestate = gs
     getPlies = plies
     update ai gs' = ai { gs = gs' }
 
-aiFloyd :: Int -> MarkerHeuristic -> RingHeuristic -> AIFunction
-aiFloyd plies' mh' rh' gs' = aiTurn Floyd { gs = gs'
+aiPink :: Int -> MarkerHeuristic -> RingHeuristic -> AIFunction
+aiPink plies' mh' rh' gs' = aiTurn Pink { gs = gs'
                                           , plies = plies'
                                           , markerH = mh'
                                           , ringH = rh'

@@ -7,5 +7,6 @@ docs
 build
 match
 match-prof
+match-results.html
 todo
 trigger.sh
