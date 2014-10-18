@@ -75,8 +75,8 @@ handleTurn' turn gs = do
         handleTurn' (turn + 1) gs'
 
 aiPlay :: Player -> AIFunction
-aiPlay W = aiFloyd 3 mhNumber rhZero
-aiPlay B = aiFloyd 3 mhNumber rhConnected
+aiPlay W = aiFloyd 4 mhNumber rhRingMoves
+aiPlay B = aiFloyd 4 mhNumber rhConnected
 
 singleGame :: Bool -> IO ()
 singleGame haskellOutput = do
@@ -95,15 +95,20 @@ singleGame haskellOutput = do
     else
         handleTurn 1 initGS
 
+rhCMandC = rhCombined [(1, rhControlledMarkers), (1, rhConnected)]
+
 ioTournament :: IO ()
 ioTournament = do
     let aiList = [ ("Pink  3-ply C", aiPink  3 mhNumber rhConnected)
                  , ("Floyd 3-ply C", aiFloyd 3 mhNumber rhConnected)
                  , ("Pink  3-ply M", aiPink  3 mhNumber rhRingMoves)
                  , ("Floyd 3-ply M", aiFloyd 3 mhNumber rhRingMoves)
-                 , ("Floyd 4-ply C", aiFloyd 4 mhNumber rhConnected)
-                 , ("Floyd 4-ply M", aiFloyd 4 mhNumber rhRingMoves)
-                 , ("Rai Charles  ", aiRaiCharles 1)
+                 -- , ("Floyd 3-ply CM", aiFloyd 3 mhNumber rhControlledMarkers)
+                 -- , ("Floyd 3-ply 2CM+C", aiFloyd 3 mhNumber rhCMandC)
+                 -- , ("Floyd 4-ply C", aiFloyd 4 mhNumber rhConnected)
+                 -- , ("Floyd 4-ply M", aiFloyd 4 mhNumber rhRingMoves)
+                 -- , ("Floyd 4-ply CM", aiFloyd 4 mhNumber rhControlledMarkers)
+                 -- , ("Rai Charles  ", aiRaiCharles 1)
                  ]
         res = aiTournament aiList
         out = unlines $ map matchLine res
@@ -146,7 +151,7 @@ resTable names res = "<table border='1'>\n" ++ firstRow ++ rest ++ "</table>"
           indices = [(r, c) | r <- ns , c <- ns , r /= c]
           resultCell (x, y) | x == y =    "<td></td>"
                             | otherwise = winnerCell (x, y)
-          winnerCell (x, y) = nameCells !! (winnerInd (x, y) $ fromJust $ elemIndex (x, y) indices)
+          winnerCell (x, y) = nameCells !! winnerInd (x, y) (fromJust $ elemIndex (x, y) indices)
           winnerInd (x, y) ind = case fst (res !! ind) of
                               W -> x
                               B -> y
@@ -156,9 +161,8 @@ resTable names res = "<table border='1'>\n" ++ firstRow ++ rest ++ "</table>"
 main :: IO ()
 main = do
     args <- getArgs
-    if not (null args) && head args == "-single"
-    then
-        singleGame True
-    else
-        ioTournament
+    case args of
+        ["-s"] -> singleGame False
+        ["-h"] -> singleGame True
+        _      -> ioTournament
 

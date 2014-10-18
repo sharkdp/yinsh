@@ -44,17 +44,18 @@ instance (AIPlayer a) => GT.Game_tree a where
               gs = getGamestate ai
 
 -- | Possible new game states. The input and output game states are guaranteed
--- to be in turn mode AddRing, AddMarker, RemoveRun or PseudoTurn.
+-- to be in turn mode AddRing, AddMarker, RemoveRun or Wait*.
 gamestates :: GameState -> [GameState]
 gamestates gs | terminalState gs = []
               | otherwise =
                     case turnMode gs of
                         AddRing -> freeCoords >>= newGS gs
                         AddMarker -> rings' >>= newGS gs
-                        RemoveRun -> runCoords' >>= newGS gs
-                        PseudoTurn -> [fromJust (newGameState gs (0, 0))]
+                        (RemoveRun _) -> runCoords' >>= newGS gs
+                        (WaitRemoveRun _) -> [fromJust (newGameState gs (0, 0))]
+                        WaitAddMarker -> [fromJust (newGameState gs (0, 0))]
                         (MoveRing _) -> error "This is not supposed to happen"
-                        RemoveRing -> error "This is not supposed to happen"
+                        (RemoveRing _) -> error "This is not supposed to happen"
     where freeCoords = filter (freeCoord (board gs)) coords -- TODO: factor out, optimize
           rings' = rings (activePlayer gs) (board gs)
           runCoords' = removeDups $ filter (partOfRun markers') coords
@@ -63,16 +64,18 @@ gamestates gs | terminalState gs = []
           newGS gs' c = case turnMode nextGS of
                             AddRing -> [nextGS]
                             AddMarker -> [nextGS]
-                            RemoveRun -> [nextGS]
-                            PseudoTurn -> [nextGS]
+                            (RemoveRun _) -> [nextGS]
+                            (WaitRemoveRun _) -> [nextGS]
+                            WaitAddMarker -> [nextGS]
                             (MoveRing start) -> ringMoves (board nextGS) start >>= newGS nextGS
-                            RemoveRing -> rings (activePlayer nextGS) (board gs') >>= newGS nextGS
+                            (RemoveRing _) -> rings (activePlayer nextGS) (board gs') >>= newGS nextGS
                         where nextGS = fromJust $ newGameState gs' c
 
 -- | Get new game state after the AI turn.
 aiTurn :: (AIPlayer ai) => ai -> GameState
 aiTurn ai = case turnMode gs of
-                PseudoTurn -> fromJust $ newGameState gs (0, 0)
+                (WaitRemoveRun _) -> fromJust $ newGameState gs (0, 0)
+                WaitAddMarker     -> fromJust $ newGameState gs (0, 0)
                 _ -> pv !! 1
             where pv = aiPV ai
                   gs = getGamestate ai
@@ -83,8 +86,8 @@ aiPV ai = map getGamestate gss
     where (gss, _) = NS.negascout ai ply
           ply = getPlies ai
 -- TODO: negascout really seems to be the fastest. But test this for more game states
--- NS.alpha_beta_search gs plies'
--- NS.principal_variation_search gs plies'
+-- NS.alpha_beta_search gs ply
+-- NS.principal_variation_search gs ply
 
 -- | A large number for symbolizing a win.
 -- Very ugly: if this number is higher than 2^31, there is an integer overflow

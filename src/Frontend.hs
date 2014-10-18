@@ -120,12 +120,11 @@ pAction b (MoveRing start) mc p = do
     let allowed = ringMoves b start
     mapM_ (`translateC` pDot) allowed
     when (mc `elem` allowed) $ pElement (Ring p) mc
-pAction b RemoveRun mc p        = do
+pAction b (RemoveRun _) mc p    = do
     let runC = runCoords (markers p b) mc
     setFillColor hl
     mapM_ (`translateC` pHighlightRing) runC
-pAction _ RemoveRing _ _        = return ()
-pAction _ PseudoTurn _ _        = return ()
+pAction _ _ _ _                 = return ()
 
 pRings :: Player -> Int -> Picture ()
 pRings p rw =
@@ -151,8 +150,9 @@ pDisplay gs = do
     pRings W (pointsW gs)
 
     -- Draw thick borders for markers which are part of a run
-    when (turnMode gs == RemoveRun) $
-        mapM_ (pHighlight (board gs)) [B, W]
+    case turnMode gs of
+        (RemoveRun _) -> mapM_ (pHighlight (board gs)) [B, W]
+        _             -> return ()
     where message | pointsB gs == pointsForWin = "You win!"
                   | otherwise                  = "Floyd wins!"
 
@@ -206,12 +206,13 @@ updateState gs cc = fromMaybe gs (newGameState gs cc)
 frontendAI :: AIFunction
 frontendAI = aiFloyd 3 mhNumber rhZero
 
--- | Resolve pseudo turns for the *human* player automatically
+-- | Resolve @Wait*@ turns for the *human* player automatically
 aiTurn' :: GameState -> GameState
 aiTurn' gs = let gs' = frontendAI gs in
-                 if turnMode gs' == PseudoTurn
-                 then frontendAI $ fromJust $ newGameState gs' (0, 0)
-                 else gs'
+                 case turnMode gs' of
+                     (WaitRemoveRun _) -> frontendAI $ fromJust $ newGameState gs' (0, 0)
+                     WaitAddMarker     -> frontendAI $ fromJust $ newGameState gs' (0, 0)
+                     _                 -> gs'
 
 keyLeft = 37
 keyRight = 39
@@ -251,7 +252,9 @@ main = do
                         ViewHistory h ->
                             when (h + 1 < numGS) $ do
                                 writeIORef ioState (gslist, ViewHistory (h + 1))
-                                renderCanvas can (gslist !! (h + 1))
+                                let gs = gslist !! (h + 1)
+                                renderCanvas can gs
+                                putStrLn $ "DEBUG: let gs = " ++ show gs
                         _ -> return ()
         when (key == keyRight) $ do
             (gslist, ds) <- readIORef ioState
@@ -259,7 +262,9 @@ main = do
                 ViewHistory h -> do
                     let newDS = if h == 1 then WaitUser else ViewHistory (h - 1)
                     writeIORef ioState (gslist, newDS)
-                    renderCanvas can (gslist !! (h - 1))
+                    let gs = gslist !! (h - 1)
+                    renderCanvas can gs
+                    putStrLn $ "DEBUG: let gs = " ++ show gs
                 _ -> return ()
 
     _ <- ce `onEvent` OnClick $ \_ point -> do

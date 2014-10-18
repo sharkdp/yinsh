@@ -28,15 +28,20 @@ data Element = Ring Player
              | Marker Player
              deriving (Show, Eq, Read)
 
--- | Status of the game (required action).
+-- | Status of the game (required action). The two modes @WaitRemoveRun@ and
+-- @WaitAddMarker@ are introduced to preserve the alternating turn structure
+-- for the minmax-algorithm. The full structure is explained in the figure:
 --
 -- <<turn-structure.svg>>
-data TurnMode = AddRing
-              | AddMarker
-              | MoveRing YCoord
-              | RemoveRun
-              | RemoveRing
-              | PseudoTurn
+data TurnMode = AddRing              -- ^ place a ring on a free field
+              | AddMarker            -- ^ place a marker in one of your rings
+              | MoveRing YCoord      -- ^ move the ring at the given position
+              | RemoveRun Player     -- ^ remove (one of your) run(s).
+                                     -- the parameter holds the last player who
+                                     -- moved a ring
+              | RemoveRing Player    -- ^ remove one of your rings
+              | WaitRemoveRun Player -- ^ do nothing
+              | WaitAddMarker        -- ^ do nothing
               deriving (Eq, Show, Read)
 
 -- | Player types: black & white (or blue & green).
@@ -314,9 +319,13 @@ flippedMarkers b s e = foldl' flipMaybe b (coordLine s e)
 terminalState :: GameState -> Bool
 terminalState gs = pointsB gs == pointsForWin || pointsW gs == pointsForWin
 
--- | Get new game state after 'interacting' at a certain coordinate.
+-- | Get new game state after 'interacting' at a certain coordinate. Returns
+-- @Nothing@ if the action leads to an invalid turn. For details, see
+-- documentation of the @TurnMode@ type.
 newGameState :: GameState -> YCoord -> Maybe GameState
-newGameState gs cc = -- TODO: the guards should be (?) unnecessary when calling this function from 'gamestates'
+-- TODO: the guards should be (?) unnecessary when calling this function
+-- from 'gamestates'.. (for AI-only matches). unless the AI tries to cheat..
+newGameState gs cc =
     case turnMode gs of
         AddRing -> do
             guard (freeCoord board' cc)
@@ -324,7 +333,7 @@ newGameState gs cc = -- TODO: the guards should be (?) unnecessary when calling 
                     , turnMode = if numRings < 9 then AddRing else AddMarker
                     , board = addElement board' cc (Ring activePlayer')
                     }
-            where numRings = length (ringsB board') + length (ringsW board') -- TODO: length is O(n)... is this a problem? we could use maps/arrays
+            where numRings = length (ringsB board') + length (ringsW board')
         AddMarker -> do
             guard (cc `elem` rings activePlayer' board')
             Just gs { turnMode = MoveRing cc
@@ -336,26 +345,38 @@ newGameState gs cc = -- TODO: the guards should be (?) unnecessary when calling 
                     , turnMode = nextTurnMode
                     , board = addElement flippedBoard cc (Ring activePlayer')
                     }
-            where nextTurnMode | hasRun flippedBoard activePlayer' = PseudoTurn
-                               | hasRun flippedBoard nextPlayer    = RemoveRun
+            where nextTurnMode | hasRun flippedBoard activePlayer' = WaitRemoveRun activePlayer'
+                               | hasRun flippedBoard nextPlayer    = RemoveRun activePlayer'
                                | otherwise                         = AddMarker
                   flippedBoard = flippedMarkers board' start cc
-        RemoveRun -> do
+        (RemoveRun lastRingMove) -> do
             guard (partOfRun playerMarkers cc)
-            Just gs { turnMode = RemoveRing
+            Just gs { turnMode = RemoveRing lastRingMove
                     , board = removedRun
                     }
-        RemoveRing -> do
+        (RemoveRing lastRingMove) -> do
             guard (cc `elem` rings activePlayer' board')
             Just gs { activePlayer = nextPlayer
-                    , turnMode = AddMarker -- TODO: other player could have a run
+                    , turnMode = nextTurnMode
                     , board = removedRing
                     , pointsB = if activePlayer' == B then pointsB gs + 1 else pointsB gs
                     , pointsW = if activePlayer' == W then pointsW gs + 1 else pointsW gs
                     }
-        PseudoTurn ->
+            where nextTurnMode | hasRun removedRing activePlayer'
+                                   = WaitRemoveRun lastRingMove -- player has a second run
+                               | hasRun removedRing nextPlayer
+                                   = RemoveRun lastRingMove     -- opponent also has a run
+                               | otherwise
+                                   = if lastRingMove == activePlayer'
+                                     then AddMarker
+                                     else WaitAddMarker
+        (WaitRemoveRun lastRingMove) ->
             Just gs { activePlayer = nextPlayer
-                    , turnMode = RemoveRun
+                    , turnMode = RemoveRun lastRingMove
+                    }
+        WaitAddMarker ->
+            Just gs { activePlayer = nextPlayer
+                    , turnMode = AddMarker
                     }
     where activePlayer' = activePlayer gs
           nextPlayer    = next activePlayer'

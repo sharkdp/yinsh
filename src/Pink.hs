@@ -11,8 +11,6 @@ module Pink ( aiPink
 import AI
 import Yinsh
 
--- TODO: should we care which turn mode we are in? -> Yes, PseudoTurn can be evaluated..
--- TODO: adjust numbers: 5, 10
 pinkHeuristic :: Pink -> AIValue
 pinkHeuristic ai | points W >= pointsForWin = hugeNumber
                  | points B >= pointsForWin = -hugeNumber
