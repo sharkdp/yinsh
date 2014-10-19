@@ -318,6 +318,7 @@ flippedMarkers b s e = foldl' flipMaybe b (coordLine s e)
 -- | Check whether one player has won the game.
 terminalState :: GameState -> Bool
 terminalState gs = pointsB gs == pointsForWin || pointsW gs == pointsForWin
+-- TODO: we need to support draws (if no moves are possible)
 
 -- | Get new game state after 'interacting' at a certain coordinate. Returns
 -- @Nothing@ if the action leads to an invalid turn. For details, see

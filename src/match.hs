@@ -96,19 +96,21 @@ singleGame haskellOutput = do
         handleTurn 1 initGS
 
 rhCMandC = rhCombined [(1, rhControlledMarkers), (1, rhConnected)]
+rh2CMandC = rhCombined [(1, rhControlledMarkers), (1, rhConnected)]
 
 ioTournament :: IO ()
 ioTournament = do
-    let aiList = [ ("Pink  3-ply C", aiPink  3 mhNumber rhConnected)
-                 , ("Floyd 3-ply C", aiFloyd 3 mhNumber rhConnected)
-                 , ("Pink  3-ply M", aiPink  3 mhNumber rhRingMoves)
+    let aiList = [-- ("Pink  3-ply C", aiPink  3 mhNumber rhConnected)
+                 --  ("Pink  3-ply M", aiPink  3 mhNumber rhRingMoves)
+                   ("Floyd 3-ply C", aiFloyd 3 mhNumber rhConnected)
                  , ("Floyd 3-ply M", aiFloyd 3 mhNumber rhRingMoves)
-                 -- , ("Floyd 3-ply CM", aiFloyd 3 mhNumber rhControlledMarkers)
-                 -- , ("Floyd 3-ply 2CM+C", aiFloyd 3 mhNumber rhCMandC)
-                 -- , ("Floyd 4-ply C", aiFloyd 4 mhNumber rhConnected)
-                 -- , ("Floyd 4-ply M", aiFloyd 4 mhNumber rhRingMoves)
-                 -- , ("Floyd 4-ply CM", aiFloyd 4 mhNumber rhControlledMarkers)
-                 -- , ("Rai Charles  ", aiRaiCharles 1)
+                 , ("Floyd 3-ply CM", aiFloyd 3 mhNumber rhControlledMarkers)
+                 -- , ("Floyd 3-ply CM+C", aiFloyd 3 mhNumber rhCMandC)
+                 -- , ("Floyd 3-ply 2CM+C", aiFloyd 3 mhNumber rh2CMandC)
+                 , ("Floyd 4-ply C", aiFloyd 4 mhNumber rhConnected)
+                 , ("Floyd 4-ply M", aiFloyd 4 mhNumber rhRingMoves)
+                 , ("Floyd 4-ply CM", aiFloyd 4 mhNumber rhControlledMarkers)
+                 , ("Rai Charles  ", aiRaiCharles 1)
                  ]
         res = aiTournament aiList
         out = unlines $ map matchLine res
