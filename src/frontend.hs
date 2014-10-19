@@ -6,6 +6,7 @@ import Data.IORef
 import Control.Monad (when, forM_)
 import Data.Maybe (isJust, fromJust, fromMaybe)
 import Haste (elemById, onEvent, Event(..), setTimeout)
+import Haste.Ajax (textRequest, Method(..))
 import Haste.Graphics.Canvas
 
 import Yinsh
@@ -28,6 +29,9 @@ blue   = RGB   38 173 228
 white  = RGB  255 255 255
 hl     = RGBA 255   0   0 0.5
 black  = RGB    0   0   0
+
+-- Font
+frontendFont = "15px 'Open Sans', sans-serif"
 
 -- Dimensions
 spacing         = 60 :: Double
@@ -198,7 +202,7 @@ pDisplay :: GameState
          -> Picture ()
 pDisplay gs mmc = do
     when (terminalState gs) $
-        font "13pt 'Lato', sans-serif" $
+        font frontendFont $
             text (420, 20) message
 
     pBoard (board gs)
@@ -215,13 +219,13 @@ pDisplay gs mmc = do
     when (isJust mmc && not (terminalState gs)) $ do
         let (Just mc) = mmc
         -- TODO: just debugging:
-        font "13pt 'Lato', sans-serif" $
+        font frontendFont $
             text (550, 620) $ show mc
 
         pAction (board gs) (turnMode gs) mc (activePlayer gs)
 
         when (activePlayer gs == W) $
-            font "13pt 'Lato', sans-serif" $
+            font frontendFont $
                 text (420, 20) "Floyd is thinking ..."
 
     where message | pointsB gs == pointsForWin = "You win!"
@@ -237,8 +241,8 @@ main = do
     Just can <- getCanvasById "canvas"
     Just ce  <- elemById "canvas"
 
-    -- let initGS = initialGameState
-    let initGS = testGameState
+    let initGS = initialGameState
+    -- let initGS = testGameState
     let initBoard = board initGS
 
     -- 'ioState' holds a chronological list of game states and the display
@@ -294,12 +298,23 @@ main = do
             if activePlayer gs == W && not gameover
             then do -- AI turn
                 writeIORef ioState (gs:oldGS:gslist, WaitAI)
-                setTimeout 0 $ do
-                    let gs' = aiTurn' gs
-                    let gameover' = terminalState gs'
-                    let ds' = if gameover' then ViewBoard else WaitUser
-                    renderCanvas can gs' (Just point)
-                    writeIORef ioState (gs':gs:oldGS:gslist, ds')
+                -- setTimeout 0 $ do
+                --     let gs' = aiTurn' gs
+                --     let gameover' = terminalState gs'
+                --     let ds' = if gameover' then ViewBoard else WaitUser
+                --     renderCanvas can gs' (Just point)
+                --     writeIORef ioState (gs':gs:oldGS:gslist, ds')
+                setTimeout 0 $
+                    textRequest GET "http://localhost:8000/" [("gamestate", show gs)] $
+                        \mResponse ->
+                            case mResponse of
+                                Nothing      -> return () -- TODO !!
+                                (Just strGS) -> do
+                                    let gs' = read strGS
+                                    let gameover' = terminalState gs'
+                                    let ds' = if gameover' then ViewBoard else WaitUser
+                                    renderCanvas can gs' (Just point)
+                                    writeIORef ioState (gs':gs:oldGS:gslist, ds')
             else do -- users turn or game over
                 let ds' = if gameover then ViewBoard else WaitUser
                 writeIORef ioState (gs:oldGS:gslist, ds')

@@ -300,11 +300,10 @@ adjacent start dir = iterate step start
 
 -- | Get all coordinates connecting two points.
 coordLine :: YCoord -> YCoord -> [YCoord]
-coordLine x y = take (num - 1) . tail $ iterate (`add` step) x
-    where (d1, d2) = y `sub` x
-          num = max (abs d1) (abs d2)
-          reduce s = round $ fromIntegral s / fromIntegral num
-          step = (reduce d1, reduce d2)
+coordLine p1 p2 = take (num - 1) . tail $ iterate (`add` step) p1
+    where (dx, dy) = p2 `sub` p1
+          num = max (abs dx) (abs dy)
+          step = (dx `div` num, dy `div` num)
 
 -- | Flip all markers between two given coordinates.
 flippedMarkers :: Board -> YCoord -> YCoord -> Board
