@@ -175,7 +175,7 @@ vector SW = (-1, -1)
 vector NW = (-1,  0)
 
 -- | Check if the point is within the boundaries of the board.
--- All Yinsh coordinates on a hexagonal grid within a circle of radius 4.6.
+-- All Yinsh coordinates lie on a hexagonal grid within a circle of radius 4.6.
 validCoord :: YCoord -> Bool
 validCoord (x', y') = (0.5 * sqrt 3 * x)**2 + (0.5 * x - y)**2 <= 4.6**2
     where x = fromIntegral x'
