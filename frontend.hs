@@ -306,6 +306,7 @@ main = do
                 --     writeIORef ioState (gs':gs:oldGS:gslist, ds')
                 setTimeout 0 $
                     textRequest GET "http://localhost:8000/" [("gamestate", show gs)] $
+                    -- textRequest GET "http://yinsh-backend.herokuapp.com/" [("gamestate", show gs)] $
                         \mResponse ->
                             case mResponse of
                                 Nothing      -> return () -- TODO !!

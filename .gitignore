@@ -1,13 +1,1 @@
-*.o
-*.js
-*.hi
-AIHistory.hs
-prof
-docs
-build
-match
-match-prof
-match-results.html
-backend
-todo
-trigger.sh
+/dist-newstyle

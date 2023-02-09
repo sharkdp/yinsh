@@ -1,3 +1,4 @@
+import Happstack.Server.SimpleHTTPS
 import Happstack.Server
 import Data.Maybe (listToMaybe, fromJust)
 
@@ -29,4 +30,11 @@ handler = do gsString <- look "gamestate"
     where xssHeader = setHeader "Access-Control-Allow-Origin" "*"
 
 main :: IO ()
-main = simpleHTTP nullConf handler
+main = do
+  putStrLn "Yinsh backend: waiting for incoming requests..."
+  let conf = nullTLSConf {
+                          tlsCert = "/etc/letsencrypt/live/andrea-peter.de/fullchain.pem",
+                          tlsKey = "/etc/letsencrypt/live/andrea-peter.de/privkey.pem",
+                          tlsPort = 8000
+                         }
+  simpleHTTPS conf handler
