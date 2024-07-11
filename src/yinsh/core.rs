@@ -1,10 +1,12 @@
-use std::ops::{Add, Sub};
+use std::ops::{Add, Mul, Sub};
+
+use serde::{Deserialize, Serialize};
 
 /// All Yinsh coordinates lie on a hexagonal grid within a circle of radius 4.6.
 const BOARD_RADIUS_SQUARED: f32 = 4.6_f32 * 4.6_f32;
 
 /// Yinsh hex coordinates
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Coord {
     pub x: i8,
     pub y: i8,
@@ -64,6 +66,17 @@ impl Sub<Coord> for Coord {
     }
 }
 
+impl Mul<i8> for Coord {
+    type Output = Coord;
+
+    fn mul(self, rhs: i8) -> Self::Output {
+        Coord {
+            x: self.x * rhs,
+            y: self.y * rhs,
+        }
+    }
+}
+
 /// The six hex directions
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Direction {
@@ -76,7 +89,7 @@ pub enum Direction {
 }
 
 impl Direction {
-    pub fn delta(&self) -> Coord {
+    pub fn direction(&self) -> Coord {
         match self {
             Direction::N => Coord { x: -1, y: 0 },
             Direction::S => Coord { x: 1, y: 0 },
@@ -97,8 +110,10 @@ pub const DIRECTIONS: &'static [Direction; 6] = &[
     Direction::NW,
 ];
 
+pub const AXES: &'static [Direction; 3] = &[Direction::N, Direction::NE, Direction::NW];
+
 /// Player types (white and black)
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Player {
     A,
     B,

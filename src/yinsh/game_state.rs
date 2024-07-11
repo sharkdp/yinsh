@@ -1,6 +1,10 @@
+use std::path::Path;
+
+use serde::{Deserialize, Serialize};
+
 use super::{Board, Coord, Player};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TurnMode {
     /// place a ring on a free field
     RingPlacement,
@@ -35,7 +39,7 @@ pub enum Action {
     Wait,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GameState {
     pub active_player: Player,
     pub turn_mode: TurnMode,
@@ -80,25 +84,41 @@ impl GameState {
 
                 self.board.flip_markers_between(*start, *end);
 
-                // TODO
-                // self.turn_mode = if self.board.has_run(self.active_player) {
-                //     TurnMode::RunRemovalFiller(self.active_player)
-                // } else if self.board.has_run(self.active_player.next()) {
-                //     TurnMode::RunRemoval(self.active_player)
-                // } else {
-                //     TurnMode::MarkerPlacement
-                // };
-                self.turn_mode = TurnMode::MarkerPlacement;
+                self.turn_mode = if self.board.has_run(self.active_player) {
+                    TurnMode::RunRemovalFiller(self.active_player)
+                } else if self.board.has_run(self.active_player.next()) {
+                    TurnMode::RunRemoval(self.active_player)
+                } else {
+                    TurnMode::MarkerPlacement
+                };
 
                 self.active_player = self.active_player.next();
             }
-            (TurnMode::RunRemoval(_), _) => todo!(),
+            (TurnMode::RunRemoval(player), Action::RemoveRun(coord)) => {
+                self.board.remove_run(*coord);
+
+                self.turn_mode = TurnMode::RingRemoval(*player);
+            }
             (TurnMode::RingRemoval(_), _) => todo!(),
-            (TurnMode::RunRemovalFiller(_), _) => todo!(),
+            (TurnMode::RunRemovalFiller(p), Action::Wait) => {
+                self.turn_mode = TurnMode::RunRemoval(*p);
+
+                self.active_player = self.active_player.next();
+            }
             (TurnMode::MarkerPlacementFiller, _) => todo!(),
             (turn_mode, action) => {
                 unreachable!("Received unexpected player action {action:?} in mode {turn_mode:?}")
             }
         }
+    }
+
+    pub fn save_to<P: AsRef<Path>>(&self, path: P) {
+        let file = std::fs::File::create(path).unwrap();
+        serde_yaml::to_writer(file, &self).unwrap();
+    }
+
+    pub fn load_from<P: AsRef<Path>>(path: P) -> Self {
+        let file = std::fs::File::open(path).unwrap();
+        serde_yaml::from_reader(file).unwrap()
     }
 }

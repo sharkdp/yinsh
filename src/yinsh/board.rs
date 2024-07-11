@@ -1,14 +1,18 @@
 use std::collections::HashMap;
 
+use serde::{Deserialize, Serialize};
+
+use crate::yinsh::core::AXES;
+
 use super::{core::all_coords, Coord, Player, DIRECTIONS};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ElementKind {
     Ring,
     Marker,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 struct Element {
     kind: ElementKind,
     player: Player,
@@ -28,7 +32,7 @@ impl Element {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Board {
     map: HashMap<Coord, Element>,
     rings_a: Vec<Coord>,
@@ -87,6 +91,13 @@ impl Board {
         self.rings_b.retain(|&x| x != coord);
     }
 
+    pub fn remove_marker(&mut self, coord: Coord) {
+        self.map
+            .retain(|&k, e| k != coord || e.kind != ElementKind::Marker);
+        self.markers_a.retain(|&x| x != coord);
+        self.markers_b.retain(|&x| x != coord);
+    }
+
     pub fn add_marker(&mut self, active_player: Player, coord: Coord) {
         self.map.insert(
             coord,
@@ -114,20 +125,27 @@ impl Board {
         }
     }
 
+    pub fn marker_coords(&self, player: Player) -> impl Iterator<Item = Coord> + '_ {
+        match player {
+            Player::A => self.markers_a.iter().copied(),
+            Player::B => self.markers_b.iter().copied(),
+        }
+    }
+
     pub fn ring_moves(&self, start: Coord) -> Vec<Coord> {
         let mut moves = Vec::new();
         for d in DIRECTIONS {
-            let mut current = start + d.delta();
+            let mut current = start + d.direction();
 
             // Skip over arbirary many free fields
             while current.is_inside_board() && self.is_free(current) {
                 moves.push(current);
-                current = current + d.delta();
+                current = current + d.direction();
             }
 
             // Skip over arbitrary many markers, but stop immediately after
             while current.is_inside_board() && self.is_marker_at(current) {
-                current = current + d.delta();
+                current = current + d.direction();
             }
 
             if current.is_inside_board() && self.is_free(current) {
@@ -149,17 +167,17 @@ impl Board {
 
     pub fn has_run(&self, player: Player) -> bool {
         let markers = match player {
-            Player::A => &self.rings_a,
-            Player::B => &self.rings_b,
+            Player::A => &self.markers_a,
+            Player::B => &self.markers_b,
         };
 
         for &start in markers {
             for d in DIRECTIONS {
-                let mut current = start + d.delta();
-                let mut count = 0;
+                let mut current = start + d.direction();
+                let mut count = 1;
                 while current.is_inside_board() && self.is_marker_at(current) {
                     count += 1;
-                    current = current + d.delta();
+                    current = current + d.direction();
                 }
                 if count >= 5 {
                     return true;
@@ -170,12 +188,78 @@ impl Board {
         false
     }
 
-    pub(crate) fn flip_markers_between(&mut self, start: Coord, end: Coord) {
+    pub fn flip_markers_between(&mut self, start: Coord, end: Coord) {
         for coord in Coord::between(start, end) {
             self.element_at_mut(coord).map(|e| {
                 debug_assert!(e.is_marker());
                 e.flip_player()
             });
+        }
+    }
+
+    pub fn run_coords_from(&self, start: Coord) -> Vec<Coord> {
+        let seed = self.element_at(start).unwrap();
+
+        debug_assert!(seed.is_marker());
+
+        for a in AXES {
+            let mut run_coords = vec![start];
+
+            for i in 1i8.. {
+                let coord_left = start + a.direction() * i;
+                let coord_right = start - a.direction() * i;
+
+                for &coord in &[coord_left, coord_right] {
+                    if self
+                        .element_at(coord)
+                        .map_or(false, |e| e.is_marker() && e.player == seed.player)
+                    {
+                        run_coords.push(coord);
+                        if run_coords.len() == 5 {
+                            return run_coords;
+                        }
+                    }
+                }
+            }
+        }
+
+        unreachable!();
+    }
+
+    /// Return all coordinates that belong to a run
+    pub fn run_coords(&self, player: Player) -> Vec<Coord> {
+        let markers = match player {
+            Player::A => &self.markers_a,
+            Player::B => &self.markers_b,
+        };
+
+        let mut run_coords = Vec::new();
+
+        for &start in markers {
+            for d in DIRECTIONS {
+                let mut current = start + d.direction();
+                let mut count = 1;
+                while current.is_inside_board() && self.is_marker_at(current) {
+                    count += 1;
+                    current = current + d.direction();
+                }
+                if count >= 5 {
+                    let mut current = start;
+                    for _ in 0..5 {
+                        run_coords.push(current);
+                        current = current + d.direction();
+                    }
+                }
+            }
+        }
+
+        run_coords
+    }
+
+    pub fn remove_run(&mut self, seed: Coord) {
+        let run_coords = self.run_coords_from(seed);
+        for coord in run_coords {
+            self.remove_marker(coord);
         }
     }
 }

@@ -3,6 +3,7 @@ mod yinsh;
 
 use std::time::Duration;
 
+use bevy::input::mouse;
 use bevy::tasks::futures_lite::future;
 use bevy::tasks::{block_on, AsyncComputeTaskPool, Task};
 use bevy::{
@@ -37,7 +38,25 @@ pub enum InteractionState {
     RingPlacement,
     MarkerPlacement,
     RingMovement(Coord),
+    RunRemoval { run_coords: Vec<Coord> },
+    RingRemoval,
     WaitForAI,
+}
+
+impl InteractionState {
+    fn from_turn_mode(game_state: &yinsh::GameState) -> Self {
+        match game_state.turn_mode {
+            TurnMode::RingPlacement => Self::RingPlacement,
+            TurnMode::MarkerPlacement => Self::MarkerPlacement,
+            TurnMode::RingMovement(start) => Self::RingMovement(start),
+            TurnMode::RunRemoval(_) => Self::RunRemoval {
+                run_coords: game_state.board.run_coords(PLAYER_HUMAN),
+            },
+            TurnMode::RingRemoval(_) => Self::RingRemoval,
+            TurnMode::RunRemovalFiller(_) => todo!(),
+            TurnMode::MarkerPlacementFiller => todo!(),
+        }
+    }
 }
 
 #[derive(Resource)]
@@ -66,13 +85,6 @@ struct AiTask(Option<Task<Action>>);
 #[derive(Resource)]
 struct GameState(yinsh::GameState);
 
-#[derive(Component)]
-enum Appearance {
-    Default,
-    Highlighted,
-    Transparent,
-}
-
 const ANIMATION_DURATION: Duration = Duration::from_millis(300);
 
 fn main() {
@@ -100,6 +112,7 @@ fn main() {
                 draw_grid,
                 draw_indicators,
                 keyboard_control,
+                save_and_load_game_state,
                 mouse_cursor_system,
                 mouse_interaction_system,
                 update_board_elements,
@@ -111,8 +124,8 @@ fn main() {
         .insert_resource(ClearColor(Color::hsl(0.0, 0.0, 0.4)))
         .insert_resource(Msaa::Sample8)
         .insert_resource(InteractionState::RingPlacement)
-        .insert_resource(CursorCoord(None))
         .insert_resource(AiTask(None))
+        .insert_resource(CursorCoord(None))
         .insert_resource(GameState(yinsh::GameState::initial()))
         .add_event::<PlayerActionEvent>()
         .run();
@@ -182,7 +195,7 @@ fn setup(
     let human_transparent = materials.add(Color::srgba(1.5, 1.5, 1.5, 0.1));
     commands.insert_resource(PlayerColors {
         human: materials.add(Color::srgba(1.5, 1.5, 1.5, 1.0)),
-        human_highlighted: materials.add(Color::srgba(3., 3., 3., 1.0)),
+        human_highlighted: materials.add(Color::srgba(5., 5., 5., 1.0)),
         human_transparent: human_transparent.clone(),
         ai: materials.add(Color::srgba(0.0, 0.0, 0.0, 1.0)),
     });
@@ -195,7 +208,6 @@ fn setup(
         BoardElement(Coord { x: 0, y: 0 }, PLAYER_HUMAN),
         Ring,
         CursorElement,
-        Appearance::Transparent,
         FOREGROUND_RENDER_LAYER,
     ));
 
@@ -204,7 +216,6 @@ fn setup(
         BoardElement(Coord { x: 0, y: 0 }, PLAYER_HUMAN),
         Marker,
         CursorElement,
-        Appearance::Transparent,
         FOREGROUND_RENDER_LAYER,
     ));
 }
@@ -266,15 +277,7 @@ fn update_game_state(
 
             *interaction_state = InteractionState::WaitForAI;
         } else {
-            *interaction_state = match game_state.0.turn_mode {
-                TurnMode::RingPlacement => InteractionState::RingPlacement,
-                TurnMode::MarkerPlacement => InteractionState::MarkerPlacement,
-                TurnMode::RingMovement(start) => InteractionState::RingMovement(start),
-                TurnMode::RunRemoval(_) => todo!(),
-                TurnMode::RingRemoval(_) => todo!(),
-                TurnMode::RunRemovalFiller(_) => todo!(),
-                TurnMode::MarkerPlacementFiller => todo!(),
-            };
+            *interaction_state = InteractionState::from_turn_mode(&game_state.0);
         }
     }
 }
@@ -343,58 +346,76 @@ fn draw_indicators(
     }
 }
 
+fn spawn_ring(
+    commands: &mut Commands,
+    meshes: &mut Assets<Mesh>,
+    player_colors: &PlayerColors,
+    coord: Coord,
+    player: Player,
+) {
+    let color = if player == PLAYER_HUMAN {
+        player_colors.human.clone()
+    } else {
+        player_colors.ai.clone()
+    };
+
+    commands.spawn((
+        ring_mesh(meshes, color, Visibility::Visible),
+        BoardElement(coord, player),
+        Ring,
+        FOREGROUND_RENDER_LAYER,
+    ));
+}
+
+fn spawn_marker(
+    commands: &mut Commands,
+    meshes: &mut Assets<Mesh>,
+    player_colors: &PlayerColors,
+    coord: Coord,
+    player: Player,
+) {
+    let color = if player == PLAYER_HUMAN {
+        player_colors.human.clone()
+    } else {
+        player_colors.ai.clone()
+    };
+
+    commands.spawn((
+        marker_mesh(meshes, color, Visibility::Visible),
+        BoardElement(coord, player),
+        Marker,
+        FOREGROUND_RENDER_LAYER,
+    ));
+}
+
 fn update_board_elements(
     mut player_action_events: EventReader<PlayerActionEvent>,
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
+    player_colors: Res<PlayerColors>,
     mut q_rings: Query<
-        (Entity, &mut BoardElement, &mut Appearance),
+        (Entity, &mut BoardElement),
         (With<Ring>, (Without<Marker>, Without<CursorElement>)),
     >,
-    mut q_markers: Query<&mut BoardElement, (With<Marker>, Without<CursorElement>)>,
-    player_colors: Res<PlayerColors>,
+    mut q_markers: Query<(Entity, &mut BoardElement), (With<Marker>, Without<CursorElement>)>,
+    game_state: Res<GameState>,
 ) {
     for PlayerActionEvent(player, action) in player_action_events.read() {
-        let color = if player == &PLAYER_HUMAN {
-            player_colors.human.clone()
-        } else {
-            player_colors.ai.clone()
-        };
-
         match *action {
             Action::PlaceRing(coord) => {
-                commands.spawn((
-                    ring_mesh(&mut meshes, color, Visibility::Visible),
-                    BoardElement(coord, *player),
-                    Ring,
-                    Appearance::Default,
-                    FOREGROUND_RENDER_LAYER,
-                ));
+                spawn_ring(&mut commands, &mut meshes, &player_colors, coord, *player);
             }
             Action::PlaceMarker(coord) => {
-                commands.spawn((
-                    marker_mesh(&mut meshes, color, Visibility::Visible),
-                    BoardElement(coord, *player),
-                    Marker,
-                    Appearance::Default,
-                    FOREGROUND_RENDER_LAYER,
-                ));
-
-                for (_, ring, mut appearance) in q_rings.iter_mut() {
-                    if ring.0 == coord {
-                        *appearance = Appearance::Highlighted;
-                    }
-                }
+                spawn_marker(&mut commands, &mut meshes, &player_colors, coord, *player);
             }
             Action::MoveRing(old_coord, new_coord) => {
-                for (entity, mut ring, mut appearance) in q_rings.iter_mut() {
+                for (entity, mut ring) in q_rings.iter_mut() {
                     if ring.0 == old_coord {
-                        *appearance = Appearance::Default;
                         ring.0 = new_coord;
 
                         // Flip markers between old and new coord
                         let coords_between = Coord::between(old_coord, new_coord);
-                        for mut element in q_markers.iter_mut() {
+                        for (_, mut element) in q_markers.iter_mut() {
                             if coords_between.contains(&element.0) {
                                 element.1.flip();
                             }
@@ -415,9 +436,17 @@ fn update_board_elements(
                     }
                 }
             }
-            Action::RemoveRun(_) => todo!(),
+            Action::RemoveRun(seed) => {
+                let run_coords = game_state.0.board.run_coords_from(seed);
+
+                for (entity, element) in q_markers.iter_mut() {
+                    if run_coords.contains(&element.0) {
+                        commands.entity(entity).despawn();
+                    }
+                }
+            }
             Action::RemoveRing(_) => todo!(),
-            Action::Wait => todo!(),
+            Action::Wait => {}
         }
     }
 }
@@ -431,15 +460,52 @@ fn move_board_elements(
 }
 
 fn colorize_board_elements(
-    mut query: Query<(&BoardElement, &Appearance, &mut Handle<ColorMaterial>)>,
+    mut query: Query<(
+        &BoardElement,
+        &mut Handle<ColorMaterial>,
+        Option<&Ring>,
+        Option<&Marker>,
+        Option<&CursorElement>,
+    )>,
+    interaction_state: Res<InteractionState>,
     player_colors: Res<PlayerColors>,
+    mouse_cursor_coord: Res<CursorCoord>,
+    game_state: Res<GameState>,
 ) {
-    for (BoardElement(_, player), appearance, mut color_material) in query.iter_mut() {
+    for (BoardElement(coord, player), mut color_material, ring, marker, cursor_element) in
+        query.iter_mut()
+    {
         *color_material = if player == &PLAYER_HUMAN {
-            match appearance {
-                Appearance::Default => player_colors.human.clone(),
-                Appearance::Highlighted => player_colors.human_highlighted.clone(),
-                Appearance::Transparent => player_colors.human_transparent.clone(),
+            if cursor_element.is_some() {
+                player_colors.human_transparent.clone()
+            } else {
+                match *interaction_state {
+                    InteractionState::RingMovement(start) => {
+                        if *coord == start && ring.is_some() {
+                            player_colors.human_highlighted.clone()
+                        } else {
+                            player_colors.human.clone()
+                        }
+                    }
+                    InteractionState::RunRemoval { ref run_coords } => match mouse_cursor_coord.0 {
+                        Some(cursor_coord) if run_coords.contains(&cursor_coord) => {
+                            let run_from_cursor = game_state.0.board.run_coords_from(cursor_coord);
+                            if run_from_cursor.contains(coord) {
+                                player_colors.human_highlighted.clone()
+                            } else {
+                                player_colors.human.clone()
+                            }
+                        }
+                        _ => {
+                            if marker.is_some() && run_coords.contains(coord) {
+                                player_colors.human_highlighted.clone()
+                            } else {
+                                player_colors.human.clone()
+                            }
+                        }
+                    },
+                    _ => player_colors.human.clone(),
+                }
             }
         } else {
             player_colors.ai.clone()
@@ -518,6 +584,8 @@ fn mouse_cursor_system(
                         cursor_ring_coord.0 = cursor_coord;
                     }
                 }
+                InteractionState::RunRemoval { .. } => {}
+                InteractionState::RingRemoval => {}
                 InteractionState::WaitForAI => {}
             }
 
@@ -565,6 +633,15 @@ fn mouse_interaction_system(
                     }
                 }
                 InteractionState::WaitForAI => {}
+                InteractionState::RunRemoval { ref run_coords } => {
+                    if run_coords.contains(&cursor_coord) {
+                        player_action_events.send(PlayerActionEvent(
+                            PLAYER_HUMAN,
+                            Action::RemoveRun(cursor_coord),
+                        ));
+                    }
+                }
+                InteractionState::RingRemoval => {}
             }
         }
     }
@@ -573,5 +650,45 @@ fn mouse_interaction_system(
 fn keyboard_control(keyboard: Res<ButtonInput<KeyCode>>, mut exit: EventWriter<AppExit>) {
     if keyboard.just_pressed(KeyCode::Escape) || keyboard.just_pressed(KeyCode::KeyQ) {
         exit.send(AppExit::Success);
+    }
+}
+
+fn save_and_load_game_state(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    player_colors: Res<PlayerColors>,
+    keyboard: Res<ButtonInput<KeyCode>>,
+    mut game_state: ResMut<GameState>,
+    mut interaction_state: ResMut<InteractionState>,
+    mut ai_task: ResMut<AiTask>,
+    q_board_elements: Query<Entity, (With<BoardElement>, Without<CursorElement>)>,
+) {
+    let filename = "gamestate.yml";
+
+    if keyboard.just_pressed(KeyCode::KeyS) {
+        println!("Saving game state to {}", filename);
+        game_state.0.save_to(filename);
+    } else if keyboard.just_pressed(KeyCode::KeyL) {
+        println!("Loading game state from {}", filename);
+        game_state.0 = yinsh::GameState::load_from(filename);
+
+        *interaction_state = InteractionState::from_turn_mode(&game_state.0);
+        ai_task.0 = None; // Cancel any ongoing AI computation
+
+        // Despawn all board elements
+        for entity in q_board_elements.iter() {
+            commands.entity(entity).despawn();
+        }
+
+        // Respawn board elements
+        for p in [Player::A, Player::B] {
+            for coord in game_state.0.board.ring_coords(p) {
+                spawn_ring(&mut commands, &mut meshes, &player_colors, coord, p);
+            }
+
+            for coord in game_state.0.board.marker_coords(p) {
+                spawn_marker(&mut commands, &mut meshes, &player_colors, coord, p);
+            }
+        }
     }
 }
