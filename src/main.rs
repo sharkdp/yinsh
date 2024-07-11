@@ -40,12 +40,14 @@ const PLAYER_COMPUTER: Player = Player::B;
 #[derive(Resource)]
 struct PlayerColors {
     human: Handle<ColorMaterial>,
-    human_transparent: Handle<ColorMaterial>,
     computer: Handle<ColorMaterial>,
 }
 
 const BACKGROUND_RENDER_LAYER: RenderLayers = RenderLayers::layer(1);
 const FOREGROUND_RENDER_LAYER: RenderLayers = RenderLayers::layer(2);
+
+#[derive(Event)]
+struct BoardChangedEvent;
 
 fn main() {
     App::new()
@@ -144,7 +146,6 @@ fn setup(
     let human_transparent = materials.add(Color::srgba(2., 2., 2., 0.5));
     commands.insert_resource(PlayerColors {
         human: materials.add(Color::srgba(2., 2., 2., 1.0)),
-        human_transparent: human_transparent.clone(),
         computer: materials.add(Color::srgba(0.0, 0.0, 0.0, 1.0)),
     });
 
@@ -181,7 +182,12 @@ fn screen_point(coord: Coord) -> Vec3 {
 fn determine_game_state(
     mut game_state: ResMut<GameState>,
     q_rings: Query<&BoardElement, (With<Ring>, Without<CursorElement>)>,
+    mut board_changed_events: EventReader<BoardChangedEvent>,
 ) {
+    if board_changed_events.read().count() == 0 {
+        return;
+    }
+
     let rings_human: Vec<_> = q_rings
         .iter()
         .filter(|e| e.1 == PLAYER_HUMAN)
@@ -332,6 +338,8 @@ fn mouse_interaction_system(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     player_colors: Res<PlayerColors>,
+    q_rings: Query<&BoardElement, (With<Ring>, Without<CursorElement>)>,
+    mut board_changed_events: EventWriter<BoardChangedEvent>,
 ) {
     if let Some(mouse_cursor_coord) = mouse_cursor_coord.0 {
         if buttons.just_pressed(MouseButton::Left) {
@@ -343,14 +351,24 @@ fn mouse_interaction_system(
                         Ring,
                         FOREGROUND_RENDER_LAYER,
                     ));
+                    board_changed_events.send(BoardChangedEvent);
                 }
                 GameState::PlaceMarker => {
-                    commands.spawn((
-                        marker_mesh(&mut meshes, player_colors.human.clone()),
-                        BoardElement(mouse_cursor_coord, PLAYER_HUMAN),
-                        Marker,
-                        FOREGROUND_RENDER_LAYER,
-                    ));
+                    let rings_human = q_rings
+                        .iter()
+                        .filter(|e| e.1 == PLAYER_HUMAN)
+                        .map(|e| e.0)
+                        .collect::<Vec<_>>();
+
+                    if rings_human.contains(&mouse_cursor_coord) {
+                        commands.spawn((
+                            marker_mesh(&mut meshes, player_colors.human.clone()),
+                            BoardElement(mouse_cursor_coord, PLAYER_HUMAN),
+                            Marker,
+                            FOREGROUND_RENDER_LAYER,
+                        ));
+                        board_changed_events.send(BoardChangedEvent);
+                    }
                 }
             }
         }
