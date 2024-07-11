@@ -1,12 +1,10 @@
 mod ai;
 mod yinsh;
 
-use bevy::render::view::visibility;
 use bevy::tasks::futures_lite::future;
 use bevy::tasks::{block_on, AsyncComputeTaskPool, Task};
 use bevy::{
     core_pipeline::bloom::BloomSettings,
-    diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin},
     prelude::*,
     render::view::RenderLayers,
     sprite::{MaterialMesh2dBundle, Mesh2dHandle},
@@ -72,21 +70,17 @@ enum Appearance {
 
 fn main() {
     App::new()
-        .add_plugins((
-            DefaultPlugins.set(WindowPlugin {
-                primary_window: Some(Window {
-                    title: "Yinsh".into(),
-                    name: Some("yinsh".into()),
-                    resolution: (960., 960.).into(),
-                    mode: WindowMode::Windowed,
-                    present_mode: PresentMode::Immediate,
-                    ..default()
-                }),
+        .add_plugins((DefaultPlugins.set(WindowPlugin {
+            primary_window: Some(Window {
+                title: "Yinsh".into(),
+                name: Some("yinsh".into()),
+                resolution: (960., 960.).into(),
+                mode: WindowMode::Windowed,
+                present_mode: PresentMode::Immediate,
                 ..default()
             }),
-            // LogDiagnosticsPlugin::default(),
-            // FrameTimeDiagnosticsPlugin,
-        ))
+            ..default()
+        }),))
         .add_systems(Startup, setup)
         .add_systems(
             Update,
@@ -94,6 +88,7 @@ fn main() {
                 wait_for_ai_move,
                 update_game_state,
                 draw_grid,
+                draw_indicators,
                 keyboard_control,
                 mouse_cursor_system,
                 mouse_interaction_system,
@@ -102,8 +97,8 @@ fn main() {
             )
                 .chain(),
         )
-        .insert_resource(ClearColor(Color::hsl(0.0, 0.0, 0.3)))
-        .insert_resource(Msaa::default())
+        .insert_resource(ClearColor(Color::hsl(0.0, 0.0, 0.4)))
+        .insert_resource(Msaa::Sample8)
         .insert_resource(InteractionState::PlaceRing)
         .insert_resource(MouseCursorCoord(None))
         .insert_resource(AiTask(None))
@@ -248,32 +243,26 @@ fn update_game_state(
             let task_pool = AsyncComputeTaskPool::get();
 
             let game_state = game_state.0.clone();
-            task.0 = Some(task_pool.spawn(async move {
-                let mut gamestates = crate::ai::gamestates(&game_state);
-                let first = gamestates.next();
-
-                assert!(first.is_some());
-
-                first.unwrap()
-            }));
+            task.0 =
+                Some(task_pool.spawn(async move { crate::ai::get_ai_player_action(&game_state) }));
 
             *interaction_state = InteractionState::WaitForAI;
         } else {
             *interaction_state = match game_state.0.turn_mode {
-                TurnMode::PlaceRing => InteractionState::PlaceRing,
-                TurnMode::PlaceMarker => InteractionState::PlaceMarker,
-                TurnMode::MoveRing(start) => InteractionState::MoveRing(start),
-                TurnMode::RemoveRun(_) => todo!(),
-                TurnMode::RemoveRing(_) => todo!(),
-                TurnMode::WaitRemoveRun(_) => todo!(),
-                TurnMode::WaitPlaceMarker => todo!(),
+                TurnMode::RingPlacement => InteractionState::PlaceRing,
+                TurnMode::MarkerPlacement => InteractionState::PlaceMarker,
+                TurnMode::RingMovement(start) => InteractionState::MoveRing(start),
+                TurnMode::RunRemoval(_) => todo!(),
+                TurnMode::RingRemoval(_) => todo!(),
+                TurnMode::RunRemovalFiller(_) => todo!(),
+                TurnMode::MarkerPlacementFiller => todo!(),
             };
         }
     }
 }
 
 fn draw_grid(mut gizmos: Gizmos) {
-    let grid_line_color = Color::hsl(0.0, 0.0, 0.6);
+    let grid_line_color = Color::hsl(0.0, 0.0, 0.3);
 
     // Draw lines parallel to y-axis
     for x in -5i8..=5i8 {
@@ -321,12 +310,22 @@ fn draw_grid(mut gizmos: Gizmos) {
     }
 }
 
+fn draw_indicators(mut gizmos: Gizmos, game_state: Res<GameState>) {
+    let indicator_color = Color::hsla(0.0, 0.0, 1.5, 0.1);
+
+    if let TurnMode::RingMovement(start) = game_state.0.turn_mode {
+        for coord in game_state.0.board.ring_moves(start) {
+            let screen_pos = screen_point(coord);
+            gizmos.circle(screen_pos, Dir3::Z, SPACING / 5., indicator_color);
+        }
+    }
+}
+
 fn update_board_elements(
-    game_state: Res<GameState>,
     mut player_action_events: EventReader<PlayerActionEvent>,
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
-    mut q_rings: Query<(&mut BoardElement, &mut Appearance), With<Ring>>,
+    mut q_rings: Query<(&mut BoardElement, &mut Appearance), (With<Ring>, Without<CursorElement>)>,
     player_colors: Res<PlayerColors>,
 ) {
     for PlayerActionEvent(player, action) in player_action_events.read() {
@@ -404,6 +403,7 @@ fn move_and_colorize_board_elements(
 }
 
 fn mouse_cursor_system(
+    game_state: Res<GameState>,
     mut q_window: Query<&mut Window, With<PrimaryWindow>>,
     q_camera: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
     mut cursor_ring: Query<
@@ -414,11 +414,12 @@ fn mouse_cursor_system(
         (&mut BoardElement, &mut Visibility),
         (With<Marker>, Without<Ring>, With<CursorElement>),
     >,
-    q_rings: Query<&BoardElement, (With<Ring>, Without<CursorElement>)>,
     interaction_state: Res<InteractionState>,
     mut mouse_cursor_coord: ResMut<MouseCursorCoord>,
 ) {
-    let mut window = q_window.single_mut();
+    let Ok(mut window) = q_window.get_single_mut() else {
+        return;
+    };
 
     window.cursor.icon = match *interaction_state {
         InteractionState::WaitForAI => CursorIcon::Progress,
@@ -432,12 +433,6 @@ fn mouse_cursor_system(
             .viewport_to_world(camera_transform, cursor_position)
             .map(|ray| ray.origin.truncate())
         {
-            let rings_human = q_rings
-                .iter()
-                .filter(|e| e.1 == PLAYER_HUMAN)
-                .map(|e| e.0)
-                .collect::<Vec<_>>();
-
             let cursor_coord = yinsh::all_coords()
                 .into_iter()
                 .min_by_key(|c| {
@@ -461,15 +456,22 @@ fn mouse_cursor_system(
                     cursor_ring_coord.0 = cursor_coord;
                 }
                 InteractionState::PlaceMarker => {
-                    if rings_human.contains(&cursor_coord) {
+                    if game_state
+                        .0
+                        .board
+                        .element_at(cursor_coord)
+                        .map(|e| e.is_ring() && e.player == PLAYER_HUMAN)
+                        .unwrap_or(false)
+                    {
                         *cursor_marker_visibility = Visibility::Visible;
                         cursor_marker_coord.0 = cursor_coord;
                     }
                 }
-                InteractionState::MoveRing(_) => {
-                    // TODO
-                    *cursor_ring_visibility = Visibility::Visible;
-                    cursor_ring_coord.0 = cursor_coord;
+                InteractionState::MoveRing(start) => {
+                    if game_state.0.board.is_valid_ring_move(start, cursor_coord) {
+                        *cursor_ring_visibility = Visibility::Visible;
+                        cursor_ring_coord.0 = cursor_coord;
+                    }
                 }
                 InteractionState::WaitForAI => {}
             }

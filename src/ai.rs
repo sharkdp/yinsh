@@ -1,17 +1,17 @@
 use crate::yinsh::{Action, GameState};
 
-pub fn gamestates<'a>(state: &'a GameState) -> Box<dyn Iterator<Item = Action> + 'a> {
+fn possible_next_gamestates<'a>(state: &'a GameState) -> Box<dyn Iterator<Item = Action> + 'a> {
     match state.turn_mode {
-        crate::yinsh::TurnMode::PlaceRing => {
+        crate::yinsh::TurnMode::RingPlacement => {
             Box::new(state.board.free_coords().map(Action::PlaceRing))
         }
-        crate::yinsh::TurnMode::PlaceMarker => Box::new(
+        crate::yinsh::TurnMode::MarkerPlacement => Box::new(
             state
                 .board
                 .ring_coords(state.active_player)
                 .map(Action::PlaceMarker),
         ),
-        crate::yinsh::TurnMode::MoveRing(ref start) => {
+        crate::yinsh::TurnMode::RingMovement(ref start) => {
             Box::new(
                 state
                     .board
@@ -20,9 +20,18 @@ pub fn gamestates<'a>(state: &'a GameState) -> Box<dyn Iterator<Item = Action> +
                     .map(|end| Action::MoveRing(start.clone(), end)),
             ) // TODO
         }
-        crate::yinsh::TurnMode::RemoveRun(_) => todo!(),
-        crate::yinsh::TurnMode::RemoveRing(_) => todo!(),
-        crate::yinsh::TurnMode::WaitRemoveRun(_) => todo!(),
-        crate::yinsh::TurnMode::WaitPlaceMarker => todo!(),
+        crate::yinsh::TurnMode::RunRemoval(_) => todo!(),
+        crate::yinsh::TurnMode::RingRemoval(_) => todo!(),
+        crate::yinsh::TurnMode::RunRemovalFiller(_) => todo!(),
+        crate::yinsh::TurnMode::MarkerPlacementFiller => todo!(),
     }
+}
+
+pub fn get_ai_player_action(state: &GameState) -> Action {
+    let mut gamestates = possible_next_gamestates(&state);
+    let first = gamestates.next();
+
+    assert!(first.is_some());
+
+    first.unwrap()
 }
