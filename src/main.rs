@@ -1,5 +1,7 @@
-pub mod yinsh;
+mod ai;
+mod yinsh;
 
+use bevy::render::view::visibility;
 use bevy::tasks::futures_lite::future;
 use bevy::tasks::{block_on, AsyncComputeTaskPool, Task};
 use bevy::{
@@ -10,7 +12,7 @@ use bevy::{
     sprite::{MaterialMesh2dBundle, Mesh2dHandle},
     window::{PresentMode, PrimaryWindow, WindowMode},
 };
-use yinsh::{Coord, Player};
+use yinsh::{Action, Coord, Player, TurnMode};
 
 #[derive(Component)]
 struct BoardElement(Coord, Player);
@@ -28,9 +30,10 @@ struct MainCamera;
 struct CursorElement;
 
 #[derive(Resource)]
-pub enum GameState {
+pub enum InteractionState {
     PlaceRing,
     PlaceMarker,
+    MoveRing(Coord),
     WaitForAI,
 }
 
@@ -38,22 +41,34 @@ pub enum GameState {
 pub struct MouseCursorCoord(Option<Coord>);
 
 const PLAYER_HUMAN: Player = Player::A;
-const PLAYER_COMPUTER: Player = Player::B;
+const PLAYER_AI: Player = Player::B;
 
 #[derive(Resource)]
 struct PlayerColors {
     human: Handle<ColorMaterial>,
-    computer: Handle<ColorMaterial>,
+    human_highlighted: Handle<ColorMaterial>,
+    human_transparent: Handle<ColorMaterial>,
+    ai: Handle<ColorMaterial>,
 }
 
 const BACKGROUND_RENDER_LAYER: RenderLayers = RenderLayers::layer(1);
 const FOREGROUND_RENDER_LAYER: RenderLayers = RenderLayers::layer(2);
 
 #[derive(Event)]
-struct BoardChangedEvent;
+struct PlayerActionEvent(Player, Action);
 
 #[derive(Resource)]
-struct AiTask(Option<Task<Coord>>);
+struct AiTask(Option<Task<Action>>);
+
+#[derive(Resource)]
+struct GameState(yinsh::GameState);
+
+#[derive(Component)]
+enum Appearance {
+    Default,
+    Highlighted,
+    Transparent,
+}
 
 fn main() {
     App::new()
@@ -69,39 +84,43 @@ fn main() {
                 }),
                 ..default()
             }),
-            LogDiagnosticsPlugin::default(),
-            FrameTimeDiagnosticsPlugin,
+            // LogDiagnosticsPlugin::default(),
+            // FrameTimeDiagnosticsPlugin,
         ))
         .add_systems(Startup, setup)
         .add_systems(
             Update,
             (
-                start_ai_move,
                 wait_for_ai_move,
+                update_game_state,
                 draw_grid,
                 keyboard_control,
                 mouse_cursor_system,
                 mouse_interaction_system,
+                update_board_elements,
                 move_and_colorize_board_elements,
             )
                 .chain(),
         )
-        .insert_resource(ClearColor(Color::hsl(0.0, 0.0, 0.1)))
+        .insert_resource(ClearColor(Color::hsl(0.0, 0.0, 0.3)))
         .insert_resource(Msaa::default())
-        .insert_resource(GameState::PlaceRing)
+        .insert_resource(InteractionState::PlaceRing)
         .insert_resource(MouseCursorCoord(None))
         .insert_resource(AiTask(None))
-        .add_event::<BoardChangedEvent>()
+        .insert_resource(GameState(yinsh::GameState::initial()))
+        .add_event::<PlayerActionEvent>()
         .run();
 }
 
 fn ring_mesh(
     meshes: &mut Assets<Mesh>,
     color_material: Handle<ColorMaterial>,
+    visibility: Visibility,
 ) -> MaterialMesh2dBundle<ColorMaterial> {
     MaterialMesh2dBundle {
         mesh: Mesh2dHandle(meshes.add(Annulus::new(SPACING / 4., SPACING / 3.))),
         material: color_material,
+        visibility,
         ..default()
     }
 }
@@ -109,10 +128,12 @@ fn ring_mesh(
 fn marker_mesh(
     meshes: &mut Assets<Mesh>,
     color_material: Handle<ColorMaterial>,
+    visibility: Visibility,
 ) -> MaterialMesh2dBundle<ColorMaterial> {
     MaterialMesh2dBundle {
         mesh: Mesh2dHandle(meshes.add(Circle::new(SPACING / 5.))),
         material: color_material,
+        visibility,
         ..default()
     }
 }
@@ -152,28 +173,32 @@ fn setup(
         MainCamera,
     ));
 
-    let human_transparent = materials.add(Color::srgba(2., 2., 2., 0.5));
+    let human_transparent = materials.add(Color::srgba(1.5, 1.5, 1.5, 0.1));
     commands.insert_resource(PlayerColors {
-        human: materials.add(Color::srgba(2., 2., 2., 1.0)),
-        computer: materials.add(Color::srgba(0.0, 0.0, 0.0, 1.0)),
+        human: materials.add(Color::srgba(1.5, 1.5, 1.5, 1.0)),
+        human_highlighted: materials.add(Color::srgba(3., 3., 3., 1.0)),
+        human_transparent: human_transparent.clone(),
+        ai: materials.add(Color::srgba(0.0, 0.0, 0.0, 1.0)),
     });
 
     let (config, _) = config_store.config_mut::<DefaultGizmoConfigGroup>();
     config.render_layers = BACKGROUND_RENDER_LAYER;
 
     commands.spawn((
-        ring_mesh(&mut meshes, human_transparent.clone()),
+        ring_mesh(&mut meshes, human_transparent.clone(), Visibility::Hidden),
         BoardElement(Coord { x: 0, y: 0 }, PLAYER_HUMAN),
         Ring,
         CursorElement,
+        Appearance::Transparent,
         FOREGROUND_RENDER_LAYER,
     ));
 
     commands.spawn((
-        marker_mesh(&mut meshes, human_transparent),
+        marker_mesh(&mut meshes, human_transparent, Visibility::Hidden),
         BoardElement(Coord { x: 0, y: 0 }, PLAYER_HUMAN),
         Marker,
         CursorElement,
+        Appearance::Transparent,
         FOREGROUND_RENDER_LAYER,
     ));
 }
@@ -188,29 +213,9 @@ fn screen_point(coord: Coord) -> Vec3 {
     )
 }
 
-fn start_ai_move(
-    mut board_changed_events: EventReader<BoardChangedEvent>,
-    mut task: ResMut<AiTask>,
-    mut game_state: ResMut<GameState>,
-) {
-    if board_changed_events.read().count() == 0 {
-        return;
-    }
-
-    *game_state = GameState::WaitForAI;
-
-    let task_pool = AsyncComputeTaskPool::get();
-
-    task.0 = Some(task_pool.spawn(async move {
-        std::thread::sleep(std::time::Duration::from_secs(2));
-        Coord { x: 0, y: 0 }
-    }));
-}
-
 fn wait_for_ai_move(
-    mut game_state: ResMut<GameState>,
-    q_rings: Query<&BoardElement, (With<Ring>, Without<CursorElement>)>,
     mut task: ResMut<AiTask>,
+    mut player_action_events: EventWriter<PlayerActionEvent>,
 ) {
     if task.0.is_none() {
         return;
@@ -224,23 +229,46 @@ fn wait_for_ai_move(
 
     task.0 = None;
 
-    let coord = status.unwrap();
+    let action = status.unwrap();
 
-    let rings_human: Vec<_> = q_rings
-        .iter()
-        .filter(|e| e.1 == PLAYER_HUMAN)
-        .map(|e| e.0)
-        .collect();
-    let rings_computer: Vec<_> = q_rings
-        .iter()
-        .filter(|e| e.1 == PLAYER_COMPUTER)
-        .map(|e| e.0)
-        .collect();
+    player_action_events.send(PlayerActionEvent(PLAYER_AI, action));
+}
 
-    if rings_human.len() < 3 {
-        *game_state = GameState::PlaceRing;
-    } else {
-        *game_state = GameState::PlaceMarker;
+fn update_game_state(
+    mut game_state: ResMut<GameState>,
+    mut player_action_events: EventReader<PlayerActionEvent>,
+    mut interaction_state: ResMut<InteractionState>,
+    mut task: ResMut<AiTask>,
+) {
+    for PlayerActionEvent(player, action) in player_action_events.read() {
+        assert!(player == &game_state.0.active_player);
+        game_state.0.transition(action);
+
+        if game_state.0.active_player == PLAYER_AI {
+            let task_pool = AsyncComputeTaskPool::get();
+
+            let game_state = game_state.0.clone();
+            task.0 = Some(task_pool.spawn(async move {
+                let mut gamestates = crate::ai::gamestates(&game_state);
+                let first = gamestates.next();
+
+                assert!(first.is_some());
+
+                first.unwrap()
+            }));
+
+            *interaction_state = InteractionState::WaitForAI;
+        } else {
+            *interaction_state = match game_state.0.turn_mode {
+                TurnMode::PlaceRing => InteractionState::PlaceRing,
+                TurnMode::PlaceMarker => InteractionState::PlaceMarker,
+                TurnMode::MoveRing(start) => InteractionState::MoveRing(start),
+                TurnMode::RemoveRun(_) => todo!(),
+                TurnMode::RemoveRing(_) => todo!(),
+                TurnMode::WaitRemoveRun(_) => todo!(),
+                TurnMode::WaitPlaceMarker => todo!(),
+            };
+        }
     }
 }
 
@@ -293,17 +321,84 @@ fn draw_grid(mut gizmos: Gizmos) {
     }
 }
 
-fn move_and_colorize_board_elements(
-    mut query: Query<(&BoardElement, &mut Transform, &mut Handle<ColorMaterial>)>,
+fn update_board_elements(
+    game_state: Res<GameState>,
+    mut player_action_events: EventReader<PlayerActionEvent>,
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut q_rings: Query<(&mut BoardElement, &mut Appearance), With<Ring>>,
     player_colors: Res<PlayerColors>,
 ) {
-    for (BoardElement(coord, player), mut transform, mut color_material) in query.iter_mut() {
+    for PlayerActionEvent(player, action) in player_action_events.read() {
+        let color = if player == &PLAYER_HUMAN {
+            player_colors.human.clone()
+        } else {
+            player_colors.ai.clone()
+        };
+
+        match *action {
+            Action::PlaceRing(coord) => {
+                commands.spawn((
+                    ring_mesh(&mut meshes, color, Visibility::Visible),
+                    BoardElement(coord, *player),
+                    Ring,
+                    Appearance::Default,
+                    FOREGROUND_RENDER_LAYER,
+                ));
+            }
+            Action::PlaceMarker(coord) => {
+                commands.spawn((
+                    marker_mesh(&mut meshes, color, Visibility::Visible),
+                    BoardElement(coord, *player),
+                    Marker,
+                    Appearance::Default,
+                    FOREGROUND_RENDER_LAYER,
+                ));
+
+                for (ring, mut appearance) in q_rings.iter_mut() {
+                    if ring.0 == coord {
+                        *appearance = Appearance::Highlighted;
+                    }
+                }
+            }
+            Action::MoveRing(old_coord, new_coord) => {
+                for (mut ring, mut appearance) in q_rings.iter_mut() {
+                    if ring.0 == old_coord {
+                        *appearance = Appearance::Default;
+                        ring.0 = new_coord;
+                        break;
+                    }
+                }
+            }
+            Action::RemoveRun(_) => todo!(),
+            Action::RemoveRing(_) => todo!(),
+            Action::Wait => todo!(),
+        }
+    }
+}
+
+fn move_and_colorize_board_elements(
+    mut query: Query<(
+        &BoardElement,
+        &Appearance,
+        &mut Transform,
+        &mut Handle<ColorMaterial>,
+    )>,
+    player_colors: Res<PlayerColors>,
+) {
+    for (BoardElement(coord, player), appearance, mut transform, mut color_material) in
+        query.iter_mut()
+    {
         transform.translation = screen_point(*coord);
 
         *color_material = if player == &PLAYER_HUMAN {
-            player_colors.human.clone()
+            match appearance {
+                Appearance::Default => player_colors.human.clone(),
+                Appearance::Highlighted => player_colors.human_highlighted.clone(),
+                Appearance::Transparent => player_colors.human_transparent.clone(),
+            }
         } else {
-            player_colors.computer.clone()
+            player_colors.ai.clone()
         };
     }
 }
@@ -320,15 +415,14 @@ fn mouse_cursor_system(
         (With<Marker>, Without<Ring>, With<CursorElement>),
     >,
     q_rings: Query<&BoardElement, (With<Ring>, Without<CursorElement>)>,
-    game_state: Res<GameState>,
+    interaction_state: Res<InteractionState>,
     mut mouse_cursor_coord: ResMut<MouseCursorCoord>,
 ) {
     let mut window = q_window.single_mut();
 
-    window.cursor.icon = match *game_state {
-        GameState::PlaceRing => CursorIcon::Pointer,
-        GameState::PlaceMarker => CursorIcon::Pointer,
-        GameState::WaitForAI => CursorIcon::Progress,
+    window.cursor.icon = match *interaction_state {
+        InteractionState::WaitForAI => CursorIcon::Progress,
+        _ => CursorIcon::Pointer,
     };
 
     if let Some(cursor_position) = window.cursor_position() {
@@ -361,18 +455,23 @@ fn mouse_cursor_system(
                 cursor_marker.single_mut();
             *cursor_marker_visibility = Visibility::Hidden;
 
-            match *game_state {
-                GameState::PlaceRing => {
+            match *interaction_state {
+                InteractionState::PlaceRing => {
                     *cursor_ring_visibility = Visibility::Visible;
                     cursor_ring_coord.0 = cursor_coord;
                 }
-                GameState::PlaceMarker => {
+                InteractionState::PlaceMarker => {
                     if rings_human.contains(&cursor_coord) {
                         *cursor_marker_visibility = Visibility::Visible;
                         cursor_marker_coord.0 = cursor_coord;
                     }
                 }
-                GameState::WaitForAI => {}
+                InteractionState::MoveRing(_) => {
+                    // TODO
+                    *cursor_ring_visibility = Visibility::Visible;
+                    cursor_ring_coord.0 = cursor_coord;
+                }
+                InteractionState::WaitForAI => {}
             }
 
             mouse_cursor_coord.0 = Some(cursor_coord);
@@ -382,27 +481,21 @@ fn mouse_cursor_system(
 
 fn mouse_interaction_system(
     buttons: Res<ButtonInput<MouseButton>>,
-    game_state: Res<GameState>,
+    interaction_state: Res<InteractionState>,
     mouse_cursor_coord: Res<MouseCursorCoord>,
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    player_colors: Res<PlayerColors>,
     q_rings: Query<&BoardElement, (With<Ring>, Without<CursorElement>)>,
-    mut board_changed_events: EventWriter<BoardChangedEvent>,
+    mut player_action_events: EventWriter<PlayerActionEvent>,
 ) {
     if let Some(mouse_cursor_coord) = mouse_cursor_coord.0 {
         if buttons.just_pressed(MouseButton::Left) {
-            match *game_state {
-                GameState::PlaceRing => {
-                    commands.spawn((
-                        ring_mesh(&mut meshes, player_colors.human.clone()),
-                        BoardElement(mouse_cursor_coord, PLAYER_HUMAN),
-                        Ring,
-                        FOREGROUND_RENDER_LAYER,
+            match *interaction_state {
+                InteractionState::PlaceRing => {
+                    player_action_events.send(PlayerActionEvent(
+                        PLAYER_HUMAN,
+                        Action::PlaceRing(mouse_cursor_coord),
                     ));
-                    board_changed_events.send(BoardChangedEvent);
                 }
-                GameState::PlaceMarker => {
+                InteractionState::PlaceMarker => {
                     let rings_human = q_rings
                         .iter()
                         .filter(|e| e.1 == PLAYER_HUMAN)
@@ -410,16 +503,20 @@ fn mouse_interaction_system(
                         .collect::<Vec<_>>();
 
                     if rings_human.contains(&mouse_cursor_coord) {
-                        commands.spawn((
-                            marker_mesh(&mut meshes, player_colors.human.clone()),
-                            BoardElement(mouse_cursor_coord, PLAYER_HUMAN),
-                            Marker,
-                            FOREGROUND_RENDER_LAYER,
+                        player_action_events.send(PlayerActionEvent(
+                            PLAYER_HUMAN,
+                            Action::PlaceMarker(mouse_cursor_coord),
                         ));
-                        board_changed_events.send(BoardChangedEvent);
                     }
                 }
-                GameState::WaitForAI => {}
+                InteractionState::MoveRing(start) => {
+                    // TODO
+                    player_action_events.send(PlayerActionEvent(
+                        PLAYER_HUMAN,
+                        Action::MoveRing(start, mouse_cursor_coord),
+                    ));
+                }
+                InteractionState::WaitForAI => {}
             }
         }
     }

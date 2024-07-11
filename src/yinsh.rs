@@ -38,6 +38,15 @@ pub enum Player {
     B,
 }
 
+impl Player {
+    fn next(self) -> Self {
+        match self {
+            Player::A => Player::B,
+            Player::B => Player::A,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ElementKind {
     Ring,
@@ -63,10 +72,10 @@ impl Element {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TurnMode {
     /// place a ring on a free field
-    AddRing,
+    PlaceRing,
 
     /// place a marker in one of your rings
-    AddMarker,
+    PlaceMarker,
 
     /// move the ring at the given position
     MoveRing(Coord),
@@ -82,19 +91,23 @@ pub enum TurnMode {
     WaitRemoveRun(Player),
 
     /// Do nothing
-    WaitAddMarker,
+    WaitPlaceMarker,
 }
 
 #[derive(Debug, Clone, Default)]
 pub struct Board {
     map: HashMap<Coord, Element>,
-    rings_black: Vec<Coord>,
-    rings_white: Vec<Coord>,
-    markers_black: Vec<Coord>,
-    markers_white: Vec<Coord>,
+    rings_a: Vec<Coord>,
+    rings_b: Vec<Coord>,
+    markers_a: Vec<Coord>,
+    markers_b: Vec<Coord>,
 }
 
 impl Board {
+    pub fn empty() -> Self {
+        Self::default()
+    }
+
     /// Returns the element at a certain position or None if the coordinate is free (or invalid)
     pub fn element_at(&self, coord: Coord) -> Option<Element> {
         self.map.get(&coord).copied()
@@ -114,14 +127,135 @@ impl Board {
     pub fn is_free(&self, coord: Coord) -> bool {
         self.map.get(&coord).is_none()
     }
+
+    pub fn add_ring(&mut self, player: Player, coord: Coord) {
+        self.map.insert(
+            coord,
+            Element {
+                kind: ElementKind::Ring,
+                player,
+            },
+        );
+        match player {
+            Player::A => self.rings_a.push(coord),
+            Player::B => self.rings_b.push(coord),
+        }
+    }
+
+    fn num_rings(&self) -> usize {
+        self.rings_a.len() + self.rings_b.len()
+    }
+
+    fn remove_ring(&mut self, coord: Coord) {
+        self.map
+            .retain(|&k, e| k != coord || e.kind != ElementKind::Ring);
+        self.rings_a.retain(|&x| x != coord);
+        self.rings_b.retain(|&x| x != coord);
+    }
+
+    fn add_marker(&mut self, active_player: Player, coord: Coord) {
+        self.map.insert(
+            coord,
+            Element {
+                kind: ElementKind::Marker,
+                player: active_player,
+            },
+        );
+        match active_player {
+            Player::A => self.markers_a.push(coord),
+            Player::B => self.markers_b.push(coord),
+        }
+    }
+
+    pub fn free_coords(&self) -> impl Iterator<Item = Coord> + '_ {
+        all_coords()
+            .into_iter()
+            .filter(|&coord| self.is_free(coord))
+    }
+
+    pub fn ring_coords(&self, player: Player) -> impl Iterator<Item = Coord> + '_ {
+        match player {
+            Player::A => self.rings_a.iter().copied(),
+            Player::B => self.rings_b.iter().copied(),
+        }
+    }
 }
 
+#[derive(Debug, Clone)]
+pub enum Action {
+    PlaceRing(Coord),
+    PlaceMarker(Coord),
+    MoveRing(Coord, Coord),
+    RemoveRun(Coord),
+    RemoveRing(Coord),
+    Wait,
+}
+
+#[derive(Debug, Clone)]
 pub struct GameState {
-    active_player: Player,
-    turn_mode: TurnMode,
-    board: Board,
-    points_black: usize,
-    points_white: usize,
+    pub active_player: Player,
+    pub turn_mode: TurnMode,
+    pub board: Board,
+    points_a: usize,
+    points_b: usize,
+}
+
+impl GameState {
+    pub fn initial() -> Self {
+        Self {
+            active_player: Player::A,
+            turn_mode: TurnMode::PlaceRing,
+            board: Board::empty(),
+            points_a: 0,
+            points_b: 0,
+        }
+    }
+
+    pub fn transition(&mut self, action: &Action) {
+        match self.turn_mode {
+            TurnMode::PlaceRing => {
+                let Action::PlaceRing(coord) = action else {
+                    unreachable!("Invalid action for PlaceRing mode");
+                };
+
+                self.board.add_ring(self.active_player, *coord);
+
+                self.turn_mode = if self.board.num_rings() <= 9 {
+                    TurnMode::PlaceRing
+                } else {
+                    TurnMode::PlaceMarker
+                };
+
+                self.active_player = self.active_player.next();
+            }
+            TurnMode::PlaceMarker => {
+                let Action::PlaceMarker(coord) = action else {
+                    unreachable!("Invalid action for PlaceMarker mode");
+                };
+
+                self.board.remove_ring(*coord);
+                self.board.add_marker(self.active_player, *coord);
+
+                self.turn_mode = TurnMode::MoveRing(*coord);
+            }
+            TurnMode::MoveRing(_) => {
+                let Action::MoveRing(start, end) = action else {
+                    unreachable!("Invalid action for MoveRing mode");
+                };
+
+                self.board.remove_ring(*start);
+                self.board.add_ring(self.active_player, *end);
+
+                self.turn_mode = TurnMode::PlaceMarker; //TODO
+
+                self.active_player = self.active_player.next();
+            }
+            TurnMode::RemoveRun(_) => todo!(),
+            TurnMode::RemoveRing(_) => todo!(),
+            TurnMode::WaitRemoveRun(_) => todo!(),
+            TurnMode::WaitPlaceMarker => todo!(),
+        }
+    }
 }
 
 pub fn all_coords() -> Vec<Coord> {
