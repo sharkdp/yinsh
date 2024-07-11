@@ -91,17 +91,17 @@ pub enum ElementKind {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Element {
-    pub kind: ElementKind,
-    pub player: Player,
+struct Element {
+    kind: ElementKind,
+    player: Player,
 }
 
 impl Element {
-    pub fn is_marker(&self) -> bool {
+    fn is_marker(&self) -> bool {
         self.kind == ElementKind::Marker
     }
 
-    pub fn is_ring(&self) -> bool {
+    fn is_ring(&self) -> bool {
         self.kind == ElementKind::Ring
     }
 }
@@ -146,7 +146,7 @@ impl Board {
     }
 
     /// Returns the element at a certain position or None if the coordinate is free (or invalid)
-    pub fn element_at(&self, coord: Coord) -> Option<Element> {
+    fn element_at(&self, coord: Coord) -> Option<Element> {
         self.map.get(&coord).copied()
     }
 
@@ -221,6 +221,14 @@ impl Board {
         let mut moves = Vec::new();
         for d in DIRECTIONS {
             let mut current = start + d.delta();
+
+            // Skip over arbirary many free fields
+            while current.is_inside_board() && self.is_free(current) {
+                moves.push(current);
+                current = current + d.delta();
+            }
+
+            // Skip over arbitrary many markers, but stop immediately after
             while current.is_inside_board()
                 && self
                     .element_at(current)
@@ -229,6 +237,7 @@ impl Board {
             {
                 current = current + d.delta();
             }
+
             if current.is_inside_board() && self.is_free(current) {
                 moves.push(current);
             }
@@ -238,6 +247,11 @@ impl Board {
 
     pub fn is_valid_ring_move(&self, start: Coord, end: Coord) -> bool {
         self.ring_moves(start).contains(&end)
+    }
+
+    pub fn can_place_marker_at(&self, coord: Coord, player: Player) -> bool {
+        self.element_at(coord)
+            .map_or(false, |e| e.is_ring() && e.player == player)
     }
 }
 
