@@ -46,6 +46,10 @@ impl Coord {
         }
         coords
     }
+
+    pub fn norm(&self) -> f32 {
+        ((self.x as f32).powi(2) + (self.y as f32).powi(2)).sqrt()
+    }
 }
 
 impl Add<Coord> for Coord {

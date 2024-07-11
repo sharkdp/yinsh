@@ -9,5 +9,5 @@ pub enum BoardUpdateEvent {
     MoveRing(Coord, Coord),
     RemoveRing(Coord),
     RemoveRun(Vec<Coord>),
-    FlipMarkers(Vec<Coord>),
+    FlipMarkers(Coord, Coord, Vec<Coord>),
 }

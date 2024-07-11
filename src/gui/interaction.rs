@@ -1,16 +1,20 @@
+use std::time::Duration;
+
 use bevy::prelude::*;
 
 use bevy::window::PrimaryWindow;
 
-use bevy_tweening::AnimationSystem;
+use bevy_tweening::lens::ColorMaterialColorLens;
 use bevy_tweening::{lens::TransformPositionLens, Animator, EaseFunction, Tween, TweeningPlugin};
+use bevy_tweening::{AnimationSystem, AnimatorState, AssetAnimator, Delay, EaseMethod};
 use yinsh::{all_coords, Action, Coord};
 
+use super::ai::AiSet;
 use super::board::{BoardElement, Marker, Ring};
 use super::board_update_event::BoardUpdateEvent;
 use super::graphics::{
-    marker_mesh, ring_mesh, spawn_marker, spawn_ring, MainCamera, PlayerColors, ANIMATION_DURATION,
-    FOREGROUND_RENDER_LAYER,
+    color_for_player, marker_mesh, ring_mesh, spawn_marker, spawn_ring, MainCamera, PlayerColors,
+    ANIMATION_DURATION, FOREGROUND_RENDER_LAYER,
 };
 use super::state_update::{GameState, PlayerActionEvent, StateUpdateSet};
 use super::PLAYER_HUMAN;
@@ -75,7 +79,10 @@ fn update_board_elements(
         (Entity, &mut BoardElement),
         (With<Ring>, (Without<Marker>, Without<CursorElement>)),
     >,
-    mut q_markers: Query<(Entity, &mut BoardElement), (With<Marker>, Without<CursorElement>)>,
+    mut q_markers: Query<
+        (Entity, &mut BoardElement, &mut Handle<ColorMaterial>),
+        (With<Marker>, Without<CursorElement>),
+    >,
 ) {
     for event in board_update_events.read() {
         match *event {
@@ -88,8 +95,6 @@ fn update_board_elements(
             BoardUpdateEvent::MoveRing(old_coord, new_coord) => {
                 for (entity, mut ring) in q_rings.iter_mut() {
                     if ring.0 == old_coord {
-                        ring.0 = new_coord;
-
                         let tween = Tween::new(
                             EaseFunction::QuadraticInOut,
                             ANIMATION_DURATION,
@@ -101,12 +106,14 @@ fn update_board_elements(
 
                         commands.entity(entity).insert(Animator::new(tween));
 
+                        ring.0 = new_coord; // To make the change permanent
+
                         break;
                     }
                 }
             }
             BoardUpdateEvent::RemoveRun(ref run_coords) => {
-                for (entity, element) in q_markers.iter_mut() {
+                for (entity, element, _) in q_markers.iter_mut() {
                     if run_coords.contains(&element.0) {
                         commands.entity(entity).despawn();
                     }
@@ -120,13 +127,54 @@ fn update_board_elements(
                     }
                 }
             }
-            BoardUpdateEvent::FlipMarkers(ref marker_coords) => {
-                for (_, mut element) in q_markers.iter_mut() {
+            BoardUpdateEvent::FlipMarkers(start, end, ref marker_coords) => {
+                let mut i = 0;
+                let total_distance = (end - start).norm();
+
+                for (entity, mut element, mut color_material) in q_markers.iter_mut() {
                     if marker_coords.contains(&element.0) {
-                        element.1.flip();
+                        let distance_from_start = (element.0 - start).norm();
+
+                        let delay =
+                            ANIMATION_DURATION.mul_f32(distance_from_start / total_distance);
+
+                        let tween = Tween::new(
+                            EaseMethod::Linear,
+                            Duration::from_secs_f32(1e-9),
+                            ColorMaterialColorLens {
+                                start: color_for_player(element.1),
+                                end: color_for_player(element.1),
+                            },
+                        )
+                        .then(Delay::new(delay).then(Tween::new(
+                            EaseMethod::Linear,
+                            ANIMATION_DURATION.div_f32(5.0),
+                            ColorMaterialColorLens {
+                                start: color_for_player(element.1),
+                                end: color_for_player(element.1.next()),
+                            },
+                        )));
+
+                        *color_material = player_colors.animated_markers[i].clone();
+                        commands.entity(entity).insert(AssetAnimator::new(tween));
+
+                        element.1.flip(); // To make the change permanent
+
+                        i += 1;
                     }
                 }
             }
+        }
+    }
+}
+
+fn clear_animators(mut q: Query<(Entity, &AssetAnimator<ColorMaterial>)>, mut commands: Commands) {
+    for (entity, animator) in q.iter_mut() {
+        if animator.tweenable().times_completed() == 1 {
+            dbg!("Removing animator");
+            commands
+                .entity(entity)
+                .remove::<AssetAnimator<ColorMaterial>>();
         }
     }
 }
@@ -146,14 +194,19 @@ fn colorize_board_elements(
         Option<&Ring>,
         Option<&Marker>,
         Option<&CursorElement>,
+        Option<&AssetAnimator<ColorMaterial>>,
     )>,
     interaction_state: Res<InteractionState>,
     player_colors: Res<PlayerColors>,
     mouse_cursor_coord: Res<CursorCoord>,
 ) {
-    for (BoardElement(coord, player), mut color_material, ring, marker, cursor_element) in
+    for (BoardElement(coord, player), mut color_material, ring, marker, cursor_element, animated) in
         query.iter_mut()
     {
+        if animated.is_some() {
+            continue;
+        }
+
         *color_material = if player == &PLAYER_HUMAN {
             if cursor_element.is_some() {
                 player_colors.human_transparent.clone()
@@ -195,7 +248,7 @@ fn colorize_board_elements(
     }
 }
 
-fn mouse_cursor_system(
+fn grid_cursor_system(
     mut q_window: Query<&mut Window, With<PrimaryWindow>>,
     q_camera: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
     mut cursor_ring: Query<
@@ -349,11 +402,12 @@ pub fn plugin(app: &mut App) {
             (
                 draw_ring_move_indicators,
                 (
-                    mouse_cursor_system,
+                    clear_animators,
+                    grid_cursor_system,
                     update_board_elements,
                     move_board_elements.ambiguous_with(AnimationSystem::AnimationUpdate),
                     colorize_board_elements.ambiguous_with(AnimationSystem::AnimationUpdate),
-                    mouse_interaction_system,
+                    mouse_interaction_system.ambiguous_with(AiSet),
                 )
                     .chain(),
             )

@@ -26,7 +26,7 @@ fn main() {
             gui::interaction::plugin,
             gui::information_display::plugin,
             gui::keyboard_control::plugin,
-            // gui::history::plugin,
+            gui::history::plugin,
         ))
         .edit_schedule(Update, |schedule| {
             schedule.set_build_settings(ScheduleBuildSettings {

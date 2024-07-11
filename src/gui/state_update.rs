@@ -115,6 +115,8 @@ fn state_update(
             Action::MoveRing(start, end) => {
                 board_update_events.send(BoardUpdateEvent::MoveRing(*start, *end));
                 board_update_events.send(BoardUpdateEvent::FlipMarkers(
+                    *start,
+                    *end,
                     Coord::between(*start, *end)
                         .into_iter()
                         .filter(|&coord| game_state.board.has_marker_at(coord))
@@ -134,12 +136,12 @@ fn state_update(
 
         game_state.transition(action);
 
-        *interaction_state = InteractionState::from_game_state(&game_state);
-
         if game_state.active_player == PLAYER_AI && game_state.winner().is_none() {
             ai_computation_events.send(AiComputationEvent::Start(game_state.clone()));
         }
     }
+
+    *interaction_state = InteractionState::from_game_state(&game_state);
 }
 
 pub fn plugin(app: &mut App) {
