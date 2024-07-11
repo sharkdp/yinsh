@@ -101,76 +101,6 @@ fn possible_actions<'a>(state: &'a GameState) -> Box<dyn Iterator<Item = Action>
     }
 }
 
-// pub struct PlainNegamax<E: Evaluator> {
-//     depth: u8,
-//     root_value: Evaluation,
-//     // All moves tied with the best valuation.
-//     best_moves: Vec<<E::G as Game>::M>,
-//     eval: E,
-// }
-
-// impl<E: Evaluator> PlainNegamax<E> {
-//     pub fn new(eval: E, depth: u8) -> PlainNegamax<E> {
-//         PlainNegamax {
-//             depth: depth,
-//             root_value: 0,
-//             best_moves: Vec::new(),
-//             eval,
-//         }
-//     }
-
-//     fn negamax(&self, s: &mut <E::G as Game>::S, depth: u8) -> Evaluation
-//     where
-//         <<E as Evaluator>::G as Game>::M: Copy,
-//     {
-//         use std::cmp::max;
-
-//         if let Some(winner) = E::G::get_winner(s) {
-//             return winner.evaluate();
-//         }
-//         if depth == 0 {
-//             return self.eval.evaluate(s);
-//         }
-//         let mut moves = Vec::new();
-//         E::G::generate_moves(s, &mut moves);
-//         let mut best = WORST_EVAL;
-//         for &m in moves.iter() {
-//             let mut new = E::G::apply(s, m).unwrap();
-//             let value = -self.negamax(&mut new, depth - 1);
-//             best = max(best, value);
-//         }
-//         best
-//     }
-// }
-
-// impl<E: Evaluator> Strategy<E::G> for PlainNegamax<E>
-// where
-//     <E::G as Game>::S: Clone,
-//     <E::G as Game>::M: Copy,
-// {
-//     fn choose_move(&mut self, s: &<E::G as Game>::S) -> Option<<E::G as Game>::M> {
-//         let mut moves = Vec::new();
-//         E::G::generate_moves(s, &mut moves);
-
-//         self.best_moves.clear();
-//         let mut best_value = WORST_EVAL;
-//         let mut s = s.clone();
-//         for &m in moves.iter() {
-//             let mut new = E::G::apply(&mut s, m).unwrap();
-//             let value = -self.negamax(&mut new, self.depth - 1);
-//             if value == best_value {
-//                 self.best_moves.push(m);
-//             } else if value > best_value {
-//                 best_value = value;
-//                 self.best_moves.clear();
-//                 self.best_moves.push(m);
-//             }
-//         }
-//         self.root_value = best_value;
-//         self.best_moves.first().map(|m| *m)
-//     }
-// }
-
 pub fn get_ai_player_action(state: &GameState) -> Action {
     // Early return if the only thing we can do is wait. Would be great
     // if this could be handled by 'minimax' itself (if there is only one
@@ -188,10 +118,9 @@ pub fn get_ai_player_action(state: &GameState) -> Action {
     let depth = if matches!(state.turn_mode, TurnMode::RingPlacement) {
         1
     } else {
-        17
+        15
     };
 
-    // let mut strategy = PlainNegamax::new(MarkerCountHeuristic {}, depth);
     let mut strategy = minimax::Negamax::new(MarkerCountHeuristic {}, depth);
     assert!(state.active_player == yinsh::Player::B);
     strategy.choose_move(&state).unwrap()
