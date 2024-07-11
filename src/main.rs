@@ -3,7 +3,6 @@ mod yinsh;
 
 use std::time::Duration;
 
-use bevy::input::mouse;
 use bevy::tasks::futures_lite::future;
 use bevy::tasks::{block_on, AsyncComputeTaskPool, Task};
 use bevy::{
@@ -387,11 +386,11 @@ fn show_information(
     cursor_coord: Res<CursorCoord>,
 ) {
     q_text.single_mut().sections[0].value = format!(
-        "Active player: {:?}, Score: {}:{}, Turn mode: {:?}, Grid coord: {:?}",
-        game_state.0.turn_mode,
+        "Active player: {:?}, Score: {}:{}, Grid coord: {:?}\nTurn mode: {:?}",
+        game_state.0.active_player,
         game_state.0.points_a,
         game_state.0.points_b,
-        game_state.0.active_player,
+        game_state.0.turn_mode,
         cursor_coord.0
     );
 }
@@ -700,7 +699,7 @@ fn mouse_interaction_system(
                     }
                 }
                 InteractionState::RingRemoval => {
-                    if game_state.0.board.is_ring_at(cursor_coord) {
+                    if game_state.0.board.is_ring_at(cursor_coord, PLAYER_HUMAN) {
                         player_action_events.send(PlayerActionEvent(
                             PLAYER_HUMAN,
                             Action::RemoveRing(cursor_coord),

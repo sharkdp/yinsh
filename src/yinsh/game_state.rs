@@ -29,7 +29,7 @@ pub enum TurnMode {
     MarkerPlacementFiller,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Action {
     PlaceRing(Coord),
     PlaceMarker(Coord),
@@ -60,10 +60,10 @@ impl GameState {
     }
 
     pub fn transition(&mut self, action: &Action) {
-        println!();
-        println!("Current turn mode: {:?}", self.turn_mode);
-        println!("Current active player: {:?}", self.active_player);
-        println!("Action: {:?}", action);
+        // println!();
+        // println!("Current turn mode: {:?}", self.turn_mode);
+        // println!("Current active player: {:?}", self.active_player);
+        // println!("Action: {:?}", action);
 
         match (&self.turn_mode, action) {
             (TurnMode::RingPlacement, Action::PlaceRing(coord)) => {
@@ -138,8 +138,8 @@ impl GameState {
             }
         }
 
-        println!("New turn mode: {:?}", self.turn_mode);
-        println!("New active player: {:?}", self.active_player);
+        // println!("New turn mode: {:?}", self.turn_mode);
+        // println!("New active player: {:?}", self.active_player);
     }
 
     pub fn save_to<P: AsRef<Path>>(&self, path: P) {
