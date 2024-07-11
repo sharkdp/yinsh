@@ -391,7 +391,7 @@ fn show_information(
     ai_player_strength: Res<AiPlayerStrength>,
 ) {
     q_text.single_mut().sections[0].value = format!(
-        "Active player: {:?}, Score: {}:{}, Grid coord: {:?}\nMode: {}\nAI strength: {} [Stronger: J, Weaker: K]",
+        "Active player: {:?}, Score: {}:{}, Grid coord: {:?}\nMode: {}\nAI strength: {} [Weaker: J, Stronger: K]",
         game_state.0.active_player,
         game_state.0.points_a,
         game_state.0.points_b,
