@@ -4,12 +4,12 @@ use yinsh::Player;
 use crate::gui::graphics::{spawn_marker, spawn_ring};
 
 use super::{
-    ai::AiComputationEvent, board::BoardElement, graphics::PlayerColors,
-    interaction::CursorElement, state_update::GameState,
+    ai::AiComputationEvent,
+    board::BoardElement,
+    graphics::PlayerColors,
+    interaction::CursorElement,
+    state_update::{GameState, StateUpdateSet},
 };
-
-#[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
-pub struct HistorySet;
 
 pub fn save_and_load_game_state(
     keyboard: Res<ButtonInput<KeyCode>>,
@@ -50,5 +50,5 @@ pub fn save_and_load_game_state(
 }
 
 pub fn plugin(app: &mut App) {
-    app.add_systems(Update, save_and_load_game_state.in_set(HistorySet));
+    app.add_systems(Update, save_and_load_game_state.before(StateUpdateSet));
 }

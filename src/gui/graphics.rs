@@ -19,10 +19,26 @@ pub const FOREGROUND_RENDER_LAYER: RenderLayers = RenderLayers::layer(2);
 pub const BACKGROUND_RENDER_LAYER: RenderLayers = RenderLayers::layer(1);
 
 pub const COLOR_GRID: Color = Color::hsl(0.0, 0.0, 0.3);
+
 pub const COLOR_BACKGROUND: Color = Color::hsl(0.0, 0.0, 0.4);
+
 pub const COLOR_RING_MOVEMENT_INDICATOR: Color = Color::hsla(0.0, 0.0, 1.5, 0.1);
 
-pub const ANIMATION_DURATION: Duration = Duration::from_millis(300);
+pub const COLOR_WHITE: Color = Color::srgba(1.5, 1.5, 1.5, 1.0);
+pub const COLOR_WHITE_HIGHLIGHTED: Color = Color::srgba(4., 4., 4., 1.0);
+pub const COLOR_WHITE_TRANSPARENT: Color = Color::srgba(1.5, 1.5, 1.5, 0.1);
+
+pub const COLOR_BLACK: Color = Color::srgba(0.0, 0.0, 0.0, 1.0);
+
+pub fn color_for_player(player: Player) -> Color {
+    if player == PLAYER_HUMAN {
+        COLOR_WHITE
+    } else {
+        COLOR_BLACK
+    }
+}
+
+pub const ANIMATION_DURATION: Duration = Duration::from_millis(500);
 
 pub const SPACING: f32 = 90.0;
 
@@ -43,6 +59,7 @@ pub struct PlayerColors {
     pub human_highlighted: Handle<ColorMaterial>,
     pub human_transparent: Handle<ColorMaterial>,
     pub ai: Handle<ColorMaterial>,
+    pub animated_markers: [Handle<ColorMaterial>; 8],
 }
 
 pub fn ring_mesh(
@@ -150,10 +167,20 @@ fn setup_graphics(
     ));
 
     commands.insert_resource(PlayerColors {
-        human: materials.add(Color::srgba(1.5, 1.5, 1.5, 1.0)),
-        human_highlighted: materials.add(Color::srgba(4., 4., 4., 1.0)),
-        human_transparent: materials.add(Color::srgba(1.5, 1.5, 1.5, 0.1)),
-        ai: materials.add(Color::srgba(0.0, 0.0, 0.0, 1.0)),
+        human: materials.add(COLOR_WHITE),
+        human_highlighted: materials.add(COLOR_WHITE_HIGHLIGHTED),
+        human_transparent: materials.add(COLOR_WHITE_TRANSPARENT),
+        ai: materials.add(COLOR_BLACK),
+        animated_markers: [
+            materials.add(COLOR_BLACK),
+            materials.add(COLOR_BLACK),
+            materials.add(COLOR_BLACK),
+            materials.add(COLOR_BLACK),
+            materials.add(COLOR_BLACK),
+            materials.add(COLOR_BLACK),
+            materials.add(COLOR_BLACK),
+            materials.add(COLOR_BLACK),
+        ],
     });
 
     let (config, _) = config_store.config_mut::<DefaultGizmoConfigGroup>();
