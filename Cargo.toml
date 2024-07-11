@@ -14,17 +14,23 @@ serde = "1.0.204"
 itertools = "0.13.0"
 minimax = "0.5.3"
 
+# separate lib and app:
+[[bin]]
+name = "yinsh"
+path = "src/main.rs"
+
+
 [profile.dev]
 opt-level = 1
 
 [profile.dev.package."*"]
 opt-level = 3
 
-[profile.release]
-codegen-units = 1
-lto = "thin"
-
-[profile.wasm-release]
-inherits = "release"
-opt-level = "z"
-strip = "debuginfo"
+#[profile.release]
+#codegen-units = 1
+#lto = "thin"
+#
+#[profile.wasm-release]
+#inherits = "release"
+#opt-level = "z"
+#strip = "debuginfo"

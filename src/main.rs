@@ -1,6 +1,3 @@
-mod ai;
-mod yinsh;
-
 use std::time::Duration;
 
 use bevy::tasks::futures_lite::future;
@@ -286,6 +283,7 @@ fn update_game_state(
 ) {
     for PlayerActionEvent(player, action) in player_action_events.read() {
         assert!(player == &game_state.0.active_player);
+
         game_state.0.transition(action);
 
         if game_state.0.active_player == PLAYER_AI {
@@ -299,7 +297,7 @@ fn update_game_state(
                     std::thread::sleep(ANIMATION_DURATION);
                 }
 
-                crate::ai::get_ai_player_action(&game_state)
+                yinsh::get_ai_player_action(&game_state)
             }));
 
             *interaction_state = InteractionState::WaitForAI;
@@ -698,7 +696,7 @@ fn mouse_interaction_system(
                     }
                 }
                 InteractionState::RingRemoval => {
-                    if game_state.0.board.is_ring_at(cursor_coord, PLAYER_HUMAN) {
+                    if game_state.0.board.has_ring_at(cursor_coord, PLAYER_HUMAN) {
                         player_action_events.send(PlayerActionEvent(
                             PLAYER_HUMAN,
                             Action::RemoveRing(cursor_coord),

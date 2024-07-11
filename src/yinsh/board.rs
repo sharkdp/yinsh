@@ -33,7 +33,7 @@ impl Element {
     }
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Board {
     map: HashMap<Coord, Element>,
     rings_a: Vec<Coord>,
@@ -49,32 +49,45 @@ impl Board {
 
     /// Returns the element at a certain position or None if the coordinate is free (or invalid)
     fn element_at(&self, coord: Coord) -> Option<Element> {
+        self.check_invariants();
+
         self.map.get(&coord).copied()
     }
 
     /// Returns the element at a certain position or None if the coordinate is free (or invalid)
     fn element_at_mut(&mut self, coord: Coord) -> Option<&mut Element> {
+        self.check_invariants();
+
         self.map.get_mut(&coord)
     }
 
+    /// Returns true if a certain point on the board is free. Does not check for validity.
+    pub fn is_free(&self, coord: Coord) -> bool {
+        self.check_invariants();
+
+        self.map.get(&coord).is_none()
+    }
+
     /// Returns true if the element at the given point is a ring of any color.
-    pub fn is_ring_at(&self, coord: Coord, player: Player) -> bool {
+    pub fn has_ring_at(&self, coord: Coord, player: Player) -> bool {
+        self.check_invariants();
+
         self.map
             .get(&coord)
             .map_or(false, |e| e.is_ring() && e.player == player)
     }
 
     /// Returns true if the element at the given point is a marker of any color.
-    fn is_marker_at(&self, coord: Coord) -> bool {
+    fn has_marker_at(&self, coord: Coord) -> bool {
+        self.check_invariants();
+
         self.map.get(&coord).map_or(false, Element::is_marker)
     }
 
-    /// Returns true if a certain point on the board is free. Does not check for validity.
-    pub fn is_free(&self, coord: Coord) -> bool {
-        self.map.get(&coord).is_none()
-    }
-
     pub fn add_ring(&mut self, player: Player, coord: Coord) {
+        self.check_invariants();
+        debug_assert!(self.is_free(coord));
+
         self.map.insert(
             coord,
             Element {
@@ -88,25 +101,25 @@ impl Board {
         }
     }
 
-    pub fn num_rings(&self) -> usize {
-        self.rings_a.len() + self.rings_b.len()
-    }
-
     pub fn remove_ring(&mut self, coord: Coord) {
-        self.map
-            .retain(|&k, e| k != coord || e.kind != ElementKind::Ring);
+        self.check_invariants();
+        debug_assert!(self.element_at(coord).map_or(false, |e| e.is_ring()));
+
+        self.map.remove(&coord);
         self.rings_a.retain(|&x| x != coord);
         self.rings_b.retain(|&x| x != coord);
     }
 
-    pub fn remove_marker(&mut self, coord: Coord) {
-        self.map
-            .retain(|&k, e| k != coord || e.kind != ElementKind::Marker);
-        self.markers_a.retain(|&x| x != coord);
-        self.markers_b.retain(|&x| x != coord);
+    pub fn num_rings(&self) -> usize {
+        self.check_invariants();
+
+        self.rings_a.len() + self.rings_b.len()
     }
 
     pub fn add_marker(&mut self, active_player: Player, coord: Coord) {
+        self.check_invariants();
+        debug_assert!(self.is_free(coord));
+
         self.map.insert(
             coord,
             Element {
@@ -120,13 +133,36 @@ impl Board {
         }
     }
 
+    pub fn remove_marker(&mut self, coord: Coord) {
+        self.check_invariants();
+        debug_assert!(self.has_marker_at(coord));
+
+        self.map
+            .retain(|&k, e| k != coord || e.kind != ElementKind::Marker);
+        self.markers_a.retain(|&x| x != coord);
+        self.markers_b.retain(|&x| x != coord);
+    }
+
+    pub fn num_markers(&self, player: Player) -> usize {
+        self.check_invariants();
+
+        match player {
+            Player::A => self.markers_a.len(),
+            Player::B => self.markers_b.len(),
+        }
+    }
+
     pub fn free_coords(&self) -> impl Iterator<Item = Coord> + '_ {
+        self.check_invariants();
+
         all_coords()
             .into_iter()
             .filter(|&coord| self.is_free(coord))
     }
 
     pub fn ring_coords(&self, player: Player) -> impl Iterator<Item = Coord> + '_ {
+        self.check_invariants();
+
         match player {
             Player::A => self.rings_a.iter().copied(),
             Player::B => self.rings_b.iter().copied(),
@@ -134,6 +170,8 @@ impl Board {
     }
 
     pub fn marker_coords(&self, player: Player) -> impl Iterator<Item = Coord> + '_ {
+        self.check_invariants();
+
         match player {
             Player::A => self.markers_a.iter().copied(),
             Player::B => self.markers_b.iter().copied(),
@@ -141,7 +179,10 @@ impl Board {
     }
 
     pub fn ring_moves(&self, start: Coord) -> Vec<Coord> {
+        self.check_invariants();
+
         let mut moves = Vec::new();
+
         for d in DIRECTIONS {
             let mut current = start + d.direction();
 
@@ -151,8 +192,8 @@ impl Board {
                 current = current + d.direction();
             }
 
-            // Skip over arbitrary many markers, but stop immediately after
-            while current.is_inside_board() && self.is_marker_at(current) {
+            // Skip over arbitrarily many markers, but stop immediately after
+            while self.has_marker_at(current) && current.is_inside_board() {
                 current = current + d.direction();
             }
 
@@ -164,26 +205,44 @@ impl Board {
     }
 
     pub fn is_valid_ring_move(&self, start: Coord, end: Coord) -> bool {
+        self.check_invariants();
+
         self.ring_moves(start).contains(&end)
     }
 
     pub fn can_place_marker_at(&self, coord: Coord, player: Player) -> bool {
+        self.check_invariants();
+
+        // TODO: is this logic correct?
         self.element_at(coord)
             .map_or(false, |e| e.is_ring() && e.player == player)
             && !self.ring_moves(coord).is_empty()
     }
 
     pub fn flip_markers_between(&mut self, start: Coord, end: Coord) {
+        self.check_invariants();
+
         for coord in Coord::between(start, end) {
-            self.element_at_mut(coord).map(|e| {
+            if let Some(e) = self.element_at_mut(coord) {
                 debug_assert!(e.is_marker());
-                e.flip_player()
-            });
+
+                e.flip_player();
+
+                if e.player == Player::A {
+                    self.markers_a.push(coord);
+                    self.markers_b.retain(|&x| x != coord);
+                } else {
+                    self.markers_b.push(coord);
+                    self.markers_a.retain(|&x| x != coord);
+                }
+            }
         }
     }
 
     /// Returns the coordinates of a run (if one exists), starting at the given seed.
     pub fn run_coords_from(&self, start: Coord) -> Option<Vec<Coord>> {
+        self.check_invariants();
+
         let seed = self.element_at(start).unwrap();
 
         debug_assert!(seed.is_marker());
@@ -217,6 +276,8 @@ impl Board {
 
     /// Returns true if the player has a run
     pub fn has_run(&self, player: Player) -> bool {
+        self.check_invariants();
+
         for coord in self.marker_coords(player) {
             if self.run_coords_from(coord).is_some() {
                 return true;
@@ -227,6 +288,8 @@ impl Board {
 
     /// Return coordinates that belong to a run. Multiple runs can exist at the same time.
     pub fn run_coords(&self, player: Player) -> Vec<Coord> {
+        self.check_invariants();
+
         let mut run_coords = Vec::new();
         for coord in self.marker_coords(player) {
             if let Some(coords) = self.run_coords_from(coord) {
@@ -237,6 +300,8 @@ impl Board {
     }
 
     pub fn remove_run(&mut self, seed: Coord) {
+        self.check_invariants();
+
         let run_coords = self
             .run_coords_from(seed)
             .expect("remove_run called with invalid seed");
@@ -245,10 +310,60 @@ impl Board {
         }
     }
 
-    pub fn num_markers(&self, player: Player) -> usize {
-        match player {
-            Player::A => self.markers_a.len(),
-            Player::B => self.markers_b.len(),
+    #[cfg(debug_assertions)]
+    fn check_invariants(&self) {
+        for (coord, element) in &self.map {
+            debug_assert!(coord.is_inside_board());
+
+            match (element.kind, element.player) {
+                (ElementKind::Ring, Player::A) => {
+                    debug_assert!(self.rings_a.contains(coord));
+                    debug_assert!(!self.rings_b.contains(coord));
+                }
+                (ElementKind::Ring, Player::B) => {
+                    debug_assert!(self.rings_b.contains(coord));
+                    debug_assert!(!self.rings_a.contains(coord));
+                }
+                (ElementKind::Marker, Player::A) => {
+                    debug_assert!(self.markers_a.contains(coord));
+                    debug_assert!(!self.markers_b.contains(coord));
+                }
+                (ElementKind::Marker, Player::B) => {
+                    debug_assert!(self.markers_b.contains(coord));
+                    debug_assert!(!self.markers_a.contains(coord));
+                }
+            }
+        }
+
+        for coord in self.rings_a.iter().copied() {
+            debug_assert!(self
+                .map
+                .get(&coord)
+                .map_or(false, |e| e.is_ring() && e.player == Player::A));
+        }
+
+        for coord in self.rings_b.iter().copied() {
+            debug_assert!(self
+                .map
+                .get(&coord)
+                .map_or(false, |e| e.is_ring() && e.player == Player::B));
+        }
+
+        for coord in self.markers_a.iter().copied() {
+            debug_assert!(self
+                .map
+                .get(&coord)
+                .map_or(false, |e| e.is_marker() && e.player == Player::A));
+        }
+
+        for coord in self.markers_b.iter().copied() {
+            debug_assert!(self
+                .map
+                .get(&coord)
+                .map_or(false, |e| e.is_marker() && e.player == Player::B));
         }
     }
+
+    #[cfg(not(debug_assertions))]
+    fn check_invariants(&self) {}
 }

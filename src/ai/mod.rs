@@ -1,6 +1,6 @@
 use std::iter;
 
-use minimax::{Evaluation, Evaluator, Game, Strategy, WORST_EVAL};
+use minimax::Strategy;
 
 use crate::yinsh::{self, Action, GameState, TurnMode};
 
@@ -172,10 +172,23 @@ fn possible_actions<'a>(state: &'a GameState) -> Box<dyn Iterator<Item = Action>
 // }
 
 pub fn get_ai_player_action(state: &GameState) -> Action {
+    // Early return if the only thing we can do is wait. Would be great
+    // if this could be handled by 'minimax' itself (if there is only one
+    // possible mobe in best_move, return that immediately).
+    match state.turn_mode {
+        TurnMode::WaitForRunRemoval(_)
+        | TurnMode::WaitForRingMovement(_)
+        | TurnMode::WaitForRingRemoval(_)
+        | TurnMode::WaitForMarkerPlacement => {
+            return Action::Wait;
+        }
+        _ => {}
+    }
+
     let depth = if matches!(state.turn_mode, TurnMode::RingPlacement) {
         1
     } else {
-        15
+        17
     };
 
     // let mut strategy = PlainNegamax::new(MarkerCountHeuristic {}, depth);

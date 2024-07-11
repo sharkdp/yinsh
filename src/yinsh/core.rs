@@ -13,6 +13,10 @@ pub struct Coord {
 }
 
 impl Coord {
+    pub fn new(x: i8, y: i8) -> Self {
+        Coord { x, y }
+    }
+
     /// Check if the point lies within the boundaries of the board.
     pub fn is_inside_board(&self) -> bool {
         let sqrt_3 = 3.0_f32.sqrt();

@@ -90,7 +90,6 @@ impl GameState {
                 self.turn_mode = TurnMode::RingMovement(*start);
             }
             (TurnMode::RingMovement(_), Action::MoveRing(start, end)) => {
-                self.board.remove_ring(*start);
                 self.board.add_ring(self.active_player, *end);
 
                 self.board.flip_markers_between(*start, *end);
@@ -103,17 +102,21 @@ impl GameState {
                     TurnMode::MarkerPlacement
                 };
             }
+            (TurnMode::WaitForRunRemoval(player_last_ring_move), Action::Wait) => {
+                self.turn_mode = TurnMode::RunRemoval(*player_last_ring_move);
+            }
             (TurnMode::RunRemoval(player_last_ring_move), Action::RemoveRun(coord)) => {
                 self.board.remove_run(*coord);
 
                 self.turn_mode = TurnMode::WaitForRingRemoval(*player_last_ring_move);
             }
-            (TurnMode::WaitForRingRemoval(p), Action::Wait) => {
-                self.turn_mode = TurnMode::RingRemoval(*p);
+            (TurnMode::WaitForRingRemoval(player_last_ring_move), Action::Wait) => {
+                self.turn_mode = TurnMode::RingRemoval(*player_last_ring_move);
             }
             (TurnMode::RingRemoval(player_last_ring_move), Action::RemoveRing(coord)) => {
                 self.board.remove_ring(*coord);
 
+                // TODO: move this to run removal? would allow the AI to see it earlier
                 if self.active_player == Player::A {
                     self.points_a += 1;
                 } else {
@@ -131,9 +134,6 @@ impl GameState {
                 } else {
                     TurnMode::WaitForMarkerPlacement
                 };
-            }
-            (TurnMode::WaitForRunRemoval(p), Action::Wait) => {
-                self.turn_mode = TurnMode::RunRemoval(*p);
             }
             (TurnMode::WaitForMarkerPlacement, Action::Wait) => {
                 self.turn_mode = TurnMode::MarkerPlacement;
