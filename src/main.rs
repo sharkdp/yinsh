@@ -1,5 +1,7 @@
 pub mod yinsh;
 
+use bevy::tasks::futures_lite::future;
+use bevy::tasks::{block_on, AsyncComputeTaskPool, Task};
 use bevy::{
     core_pipeline::bloom::BloomSettings,
     diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin},
@@ -29,6 +31,7 @@ struct CursorElement;
 pub enum GameState {
     PlaceRing,
     PlaceMarker,
+    WaitForAI,
 }
 
 #[derive(Resource)]
@@ -48,6 +51,9 @@ const FOREGROUND_RENDER_LAYER: RenderLayers = RenderLayers::layer(2);
 
 #[derive(Event)]
 struct BoardChangedEvent;
+
+#[derive(Resource)]
+struct AiTask(Option<Task<Coord>>);
 
 fn main() {
     App::new()
@@ -70,7 +76,8 @@ fn main() {
         .add_systems(
             Update,
             (
-                determine_game_state,
+                start_ai_move,
+                wait_for_ai_move,
                 draw_grid,
                 keyboard_control,
                 mouse_cursor_system,
@@ -83,6 +90,8 @@ fn main() {
         .insert_resource(Msaa::default())
         .insert_resource(GameState::PlaceRing)
         .insert_resource(MouseCursorCoord(None))
+        .insert_resource(AiTask(None))
+        .add_event::<BoardChangedEvent>()
         .run();
 }
 
@@ -179,14 +188,43 @@ fn screen_point(coord: Coord) -> Vec3 {
     )
 }
 
-fn determine_game_state(
-    mut game_state: ResMut<GameState>,
-    q_rings: Query<&BoardElement, (With<Ring>, Without<CursorElement>)>,
+fn start_ai_move(
     mut board_changed_events: EventReader<BoardChangedEvent>,
+    mut task: ResMut<AiTask>,
+    mut game_state: ResMut<GameState>,
 ) {
     if board_changed_events.read().count() == 0 {
         return;
     }
+
+    *game_state = GameState::WaitForAI;
+
+    let task_pool = AsyncComputeTaskPool::get();
+
+    task.0 = Some(task_pool.spawn(async move {
+        std::thread::sleep(std::time::Duration::from_secs(2));
+        Coord { x: 0, y: 0 }
+    }));
+}
+
+fn wait_for_ai_move(
+    mut game_state: ResMut<GameState>,
+    q_rings: Query<&BoardElement, (With<Ring>, Without<CursorElement>)>,
+    mut task: ResMut<AiTask>,
+) {
+    if task.0.is_none() {
+        return;
+    }
+
+    let status = block_on(future::poll_once(task.0.as_mut().unwrap()));
+
+    if status.is_none() {
+        return;
+    }
+
+    task.0 = None;
+
+    let coord = status.unwrap();
 
     let rings_human: Vec<_> = q_rings
         .iter()
@@ -199,7 +237,9 @@ fn determine_game_state(
         .map(|e| e.0)
         .collect();
 
-    if rings_human.len() >= 2 {
+    if rings_human.len() < 3 {
+        *game_state = GameState::PlaceRing;
+    } else {
         *game_state = GameState::PlaceMarker;
     }
 }
@@ -324,6 +364,7 @@ fn mouse_cursor_system(
                         cursor_marker_coord.0 = cursor_coord;
                     }
                 }
+                GameState::WaitForAI => {}
             }
 
             mouse_cursor_coord.0 = Some(cursor_coord);
@@ -370,6 +411,7 @@ fn mouse_interaction_system(
                         board_changed_events.send(BoardChangedEvent);
                     }
                 }
+                GameState::WaitForAI => {}
             }
         }
     }
