@@ -2,18 +2,23 @@ use std::time::Duration;
 
 use bevy::{
     prelude::*,
+    render::view::RenderLayers,
     sprite::{MaterialMesh2dBundle, Mesh2dHandle},
 };
+
 use yinsh::{Coord, Player};
-
-pub const ANIMATION_DURATION: Duration = Duration::from_millis(300);
-
-use crate::FOREGROUND_RENDER_LAYER;
 
 use super::{
     board::{BoardElement, Marker, Ring},
     PLAYER_HUMAN,
 };
+
+pub const FOREGROUND_RENDER_LAYER: RenderLayers = RenderLayers::layer(2);
+pub const BACKGROUND_RENDER_LAYER: RenderLayers = RenderLayers::layer(1);
+
+pub const COLOR_GRID: Color = Color::hsl(0.0, 0.0, 0.3);
+
+pub const ANIMATION_DURATION: Duration = Duration::from_millis(300);
 
 pub const SPACING: f32 = 90.0;
 

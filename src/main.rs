@@ -3,7 +3,6 @@ mod gui;
 use bevy::{
     core_pipeline::bloom::BloomSettings,
     prelude::*,
-    render::view::RenderLayers,
     window::{PresentMode, PrimaryWindow, WindowMode},
 };
 use bevy_tweening::lens::TransformPositionLens;
@@ -14,14 +13,16 @@ use gui::{
     board::{BoardElement, Marker, Ring},
     graphics::{
         marker_mesh, ring_mesh, screen_point, spawn_marker, spawn_ring, PlayerColors,
-        ANIMATION_DURATION, SPACING,
+        ANIMATION_DURATION, BACKGROUND_RENDER_LAYER, FOREGROUND_RENDER_LAYER, SPACING,
     },
+    grid::draw_grid,
+    information_display::information_display_plugin,
     io::save_and_load_game_state,
     keyboard::keyboard_control,
     state::{update_game_state, GameState, InteractionState, PlayerActionEvent},
     PLAYER_HUMAN,
 };
-use yinsh::{Action, Coord, Player};
+use yinsh::{Action, Coord};
 
 #[derive(Component)]
 struct MainCamera;
@@ -29,14 +30,8 @@ struct MainCamera;
 #[derive(Component)]
 struct CursorElement;
 
-#[derive(Component)]
-struct GameStateInformation;
-
 #[derive(Resource)]
 pub struct CursorCoord(Option<Coord>);
-
-const BACKGROUND_RENDER_LAYER: RenderLayers = RenderLayers::layer(1);
-const FOREGROUND_RENDER_LAYER: RenderLayers = RenderLayers::layer(2);
 
 fn main() {
     App::new()
@@ -53,6 +48,7 @@ fn main() {
                 ..default()
             }),
             TweeningPlugin,
+            information_display_plugin,
         ))
         .add_systems(Startup, setup)
         .add_systems(
@@ -64,7 +60,6 @@ fn main() {
                 update_game_state,
                 draw_grid,
                 draw_indicators,
-                show_information,
                 keyboard_control,
                 mouse_cursor_system,
                 mouse_interaction_system,
@@ -145,74 +140,6 @@ fn setup(
         CursorElement,
         FOREGROUND_RENDER_LAYER,
     ));
-
-    commands.spawn((
-        TextBundle::from_section(
-            "",
-            TextStyle {
-                font_size: 20.0,
-                color: Color::hsl(0., 0., 0.1),
-                ..default()
-            },
-        )
-        .with_style(Style {
-            position_type: PositionType::Absolute,
-            top: Val::Px(10.),
-            left: Val::Px(10.),
-            ..default()
-        }),
-        GameStateInformation,
-        BACKGROUND_RENDER_LAYER,
-    ));
-}
-
-fn draw_grid(mut gizmos: Gizmos) {
-    let grid_line_color = Color::hsl(0.0, 0.0, 0.3);
-
-    // Draw lines parallel to y-axis
-    for x in -5i8..=5i8 {
-        let coords: Vec<_> = (-5..=5)
-            .map(|y| Coord { x, y })
-            .filter(|c| c.is_inside_board())
-            .collect();
-
-        let min_y = coords.iter().map(|c| c.y).min().unwrap();
-        let max_y = coords.iter().map(|c| c.y).max().unwrap();
-
-        let start = screen_point(Coord { x, y: min_y });
-        let end = screen_point(Coord { x, y: max_y });
-        gizmos.line(start, end, grid_line_color);
-    }
-
-    // Draw lines parallel to x-axis
-    for y in -5i8..=5i8 {
-        let coords: Vec<_> = (-5..=5)
-            .map(|x| Coord { x, y })
-            .filter(|c| c.is_inside_board())
-            .collect();
-
-        let min_x = coords.iter().map(|c| c.x).min().unwrap();
-        let max_x = coords.iter().map(|c| c.x).max().unwrap();
-
-        let start = screen_point(Coord { x: min_x, y });
-        let end = screen_point(Coord { x: max_x, y });
-        gizmos.line(start, end, grid_line_color);
-    }
-
-    // Draw lines parallel to y = x
-    for d in -5i8..=5i8 {
-        let coords: Vec<_> = (-5..=5)
-            .map(|x| Coord { x, y: x + d })
-            .filter(|c| c.is_inside_board())
-            .collect();
-
-        let min = coords.iter().map(|c| c.x).min().unwrap();
-        let max = coords.iter().map(|c| c.x).max().unwrap();
-
-        let start = screen_point(Coord { x: min, y: min + d });
-        let end = screen_point(Coord { x: max, y: max + d });
-        gizmos.line(start, end, grid_line_color);
-    }
 }
 
 fn draw_indicators(
@@ -228,33 +155,6 @@ fn draw_indicators(
             gizmos.circle(screen_pos, Dir3::Z, SPACING / 8., indicator_color);
         }
     }
-}
-
-fn show_information(
-    game_state: Res<GameState>,
-    mut q_text: Query<&mut Text, With<GameStateInformation>>,
-    cursor_coord: Res<CursorCoord>,
-    interaction_state: Res<InteractionState>,
-    ai_player_strength: Res<AiPlayerStrength>,
-) {
-    q_text.single_mut().sections[0].value = format!(
-        "Active player: {:?}, Score: {}:{}, Grid coord: {:?}\nMode: {}\nAI strength: {} [Weaker: J, Stronger: K]",
-        game_state.active_player,
-        game_state.points_a,
-        game_state.points_b,
-        cursor_coord.0,
-        match *interaction_state {
-            InteractionState::RingPlacement => "Place a ring on the board",
-            InteractionState::MarkerPlacement => "Place a marker in one of your rings",
-            InteractionState::RingMovement(_) => "Move the selected ring",
-            InteractionState::RunRemoval { .. } => "Select a run of five markers to remove",
-            InteractionState::RingRemoval => "Select one of your rings to remove it",
-            InteractionState::AutoMove | InteractionState::WaitForAI => "AI is thinking...",
-            InteractionState::Winner(Player::A) => "Game over. You win!",
-            InteractionState::Winner(Player::B) => "Game over. Floyd wins!",
-        },
-        ai_player_strength.0,
-    );
 }
 
 fn update_board_elements(
