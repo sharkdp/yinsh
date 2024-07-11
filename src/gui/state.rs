@@ -38,7 +38,7 @@ impl GameState {
 pub enum InteractionState {
     RingPlacement,
     MarkerPlacement,
-    RingMovement(Coord),
+    RingMovement(Coord, Vec<Coord>),
     RunRemoval { run_coords: Vec<Coord> },
     RingRemoval,
     AutoMove,
@@ -53,7 +53,9 @@ impl InteractionState {
         match game_state.turn_mode {
             TurnMode::RingPlacement => Self::RingPlacement,
             TurnMode::MarkerPlacement => Self::MarkerPlacement,
-            TurnMode::RingMovement(start) => Self::RingMovement(start),
+            TurnMode::RingMovement(start) => {
+                Self::RingMovement(start, game_state.board.ring_moves(start))
+            }
             TurnMode::RunRemoval(_) => Self::RunRemoval {
                 run_coords: game_state.board.run_coords(PLAYER_HUMAN),
             },

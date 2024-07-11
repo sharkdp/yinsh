@@ -5,6 +5,7 @@ pub mod board;
 pub mod graphics;
 pub mod grid;
 pub mod information_display;
+pub mod interaction;
 pub mod io;
 pub mod keyboard;
 pub mod resources;
