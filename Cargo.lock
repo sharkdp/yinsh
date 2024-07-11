@@ -1013,6 +1013,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "bevy_tweening"
+version = "0.10.0"
+source = "git+https://github.com/BraymatterOrg/bevy_tweening_0_14?branch=0.14#1e46e67938ef21cfd3b80a9bd7f9e3de1edd425c"
+dependencies = [
+ "bevy",
+ "interpolation",
+]
+
+[[package]]
 name = "bevy_ui"
 version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2105,6 +2114,12 @@ checksum = "e05c02b5e89bff3b946cedeca278abc628fe811e604f027c45a8aa3cf793d0eb"
 dependencies = [
  "libc",
 ]
+
+[[package]]
+name = "interpolation"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e9c13ae9d91148fcb4aab6654c4c2a7d02a15395ea9e23f65170f175f8b269ce"
 
 [[package]]
 name = "io-kit-sys"
@@ -4268,6 +4283,7 @@ name = "yinsh"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "bevy_tweening",
  "rand",
 ]
 
