@@ -1,27 +1,26 @@
+mod gui;
+
 use std::time::Duration;
 
-use bevy::tasks::futures_lite::future;
-use bevy::tasks::{block_on, AsyncComputeTaskPool, Task};
 use bevy::{
     core_pipeline::bloom::BloomSettings,
     prelude::*,
     render::view::RenderLayers,
     sprite::{MaterialMesh2dBundle, Mesh2dHandle},
+    tasks::AsyncComputeTaskPool,
     window::{PresentMode, PrimaryWindow, WindowMode},
 };
 use bevy_tweening::lens::TransformPositionLens;
 use bevy_tweening::{Animator, EaseFunction, Tween, TweeningPlugin};
 
+use gui::{
+    ai::{AiPlayerStrength, AiTask},
+    board::{BoardElement, Marker, Ring},
+    keyboard::keyboard_control,
+    resources::InteractionState,
+    PLAYER_AI, PLAYER_HUMAN,
+};
 use yinsh::{Action, Coord, Player, TurnMode};
-
-#[derive(Component)]
-struct BoardElement(Coord, Player);
-
-#[derive(Component)]
-struct Ring;
-
-#[derive(Component)]
-struct Marker;
 
 #[derive(Component)]
 struct MainCamera;
@@ -33,42 +32,7 @@ struct CursorElement;
 struct GameStateInformation;
 
 #[derive(Resource)]
-pub enum InteractionState {
-    RingPlacement,
-    MarkerPlacement,
-    RingMovement(Coord),
-    RunRemoval { run_coords: Vec<Coord> },
-    RingRemoval,
-    AutoMove,
-    WaitForAI,
-    Winner(Player),
-}
-
-impl InteractionState {
-    fn from_turn_mode(game_state: &yinsh::GameState) -> Self {
-        assert!(game_state.active_player == PLAYER_HUMAN);
-
-        match game_state.turn_mode {
-            TurnMode::RingPlacement => Self::RingPlacement,
-            TurnMode::MarkerPlacement => Self::MarkerPlacement,
-            TurnMode::RingMovement(start) => Self::RingMovement(start),
-            TurnMode::RunRemoval(_) => Self::RunRemoval {
-                run_coords: game_state.board.run_coords(PLAYER_HUMAN),
-            },
-            TurnMode::RingRemoval(_) => Self::RingRemoval,
-            TurnMode::WaitForRunRemoval(_)
-            | TurnMode::WaitForMarkerPlacement
-            | TurnMode::WaitForRingMovement(_)
-            | TurnMode::WaitForRingRemoval(_) => Self::AutoMove,
-        }
-    }
-}
-
-#[derive(Resource)]
 pub struct CursorCoord(Option<Coord>);
-
-const PLAYER_HUMAN: Player = Player::A;
-const PLAYER_AI: Player = Player::B;
 
 #[derive(Resource)]
 struct PlayerColors {
@@ -85,15 +49,9 @@ const FOREGROUND_RENDER_LAYER: RenderLayers = RenderLayers::layer(2);
 struct PlayerActionEvent(Player, Action);
 
 #[derive(Resource)]
-struct AiTask(Option<Task<Action>>);
-
-#[derive(Resource)]
 struct GameState(yinsh::GameState);
 
 const ANIMATION_DURATION: Duration = Duration::from_millis(300);
-
-#[derive(Resource)]
-struct AiPlayerStrength(usize);
 
 fn main() {
     App::new()
@@ -133,8 +91,8 @@ fn main() {
         .insert_resource(ClearColor(Color::hsl(0.0, 0.0, 0.4)))
         .insert_resource(Msaa::Sample8)
         .insert_resource(InteractionState::RingPlacement)
-        .insert_resource(AiTask(None))
-        .insert_resource(AiPlayerStrength(13))
+        .insert_resource(AiTask::new())
+        .insert_resource(AiPlayerStrength(11))
         .insert_resource(CursorCoord(None))
         .insert_resource(GameState(yinsh::GameState::initial()))
         .add_event::<PlayerActionEvent>()
@@ -215,7 +173,7 @@ fn setup(
 
     commands.spawn((
         ring_mesh(&mut meshes, human_transparent.clone(), Visibility::Hidden),
-        BoardElement(Coord { x: 0, y: 0 }, PLAYER_HUMAN),
+        BoardElement(Coord::new(0, 0), PLAYER_HUMAN),
         Ring,
         CursorElement,
         FOREGROUND_RENDER_LAYER,
@@ -223,7 +181,7 @@ fn setup(
 
     commands.spawn((
         marker_mesh(&mut meshes, human_transparent, Visibility::Hidden),
-        BoardElement(Coord { x: 0, y: 0 }, PLAYER_HUMAN),
+        BoardElement(Coord::new(0, 0), PLAYER_HUMAN),
         Marker,
         CursorElement,
         FOREGROUND_RENDER_LAYER,
@@ -263,17 +221,17 @@ fn wait_for_ai_move(
     mut task: ResMut<AiTask>,
     mut player_action_events: EventWriter<PlayerActionEvent>,
 ) {
-    if task.0.is_none() {
+    if !task.is_running() {
         return;
     }
 
-    let status = block_on(future::poll_once(task.0.as_mut().unwrap()));
+    let status = task.get_status();
 
     if status.is_none() {
         return;
     }
 
-    task.0 = None;
+    task.cancel();
 
     let action = status.unwrap();
 
@@ -302,7 +260,7 @@ fn update_game_state(
 
             let game_state = game_state.0.clone();
             let search_depth = ai_player_strength.0;
-            task.0 = Some(task_pool.spawn(async move {
+            task.start(task_pool.spawn(async move {
                 // TODO! This is a hack to make sure the AI takes at least as long as
                 // the animation.
                 if matches!(game_state.turn_mode, TurnMode::MarkerPlacement) {
@@ -736,20 +694,6 @@ fn mouse_interaction_system(
     }
 }
 
-fn keyboard_control(
-    keyboard: Res<ButtonInput<KeyCode>>,
-    mut exit: EventWriter<AppExit>,
-    mut ai_player_strength: ResMut<AiPlayerStrength>,
-) {
-    if keyboard.just_pressed(KeyCode::Escape) || keyboard.just_pressed(KeyCode::KeyQ) {
-        exit.send(AppExit::Success);
-    } else if keyboard.just_pressed(KeyCode::KeyK) {
-        ai_player_strength.0 = ai_player_strength.0 + 1;
-    } else if keyboard.just_pressed(KeyCode::KeyJ) {
-        ai_player_strength.0 = (ai_player_strength.0 - 1).max(1);
-    }
-}
-
 fn save_and_load_game_state(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -770,7 +714,7 @@ fn save_and_load_game_state(
         game_state.0 = yinsh::GameState::load_from(filename);
 
         *interaction_state = InteractionState::from_turn_mode(&game_state.0);
-        ai_task.0 = None; // Cancel any ongoing AI computation
+        ai_task.cancel();
 
         // Despawn all board elements
         for entity in q_board_elements.iter() {

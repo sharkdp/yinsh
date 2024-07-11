@@ -97,7 +97,7 @@ fn possible_actions<'a>(state: &'a GameState) -> Box<dyn Iterator<Item = Action>
 pub fn get_ai_player_action(search_depth: usize, state: &GameState) -> Action {
     // Early return if the only thing we can do is wait. Would be great
     // if this could be handled by 'minimax' itself (if there is only one
-    // possible mobe in best_move, return that immediately).
+    // possible mobe in choose_move, return that immediately).
     match state.turn_mode {
         TurnMode::WaitForRunRemoval(_)
         | TurnMode::WaitForRingMovement(_)
