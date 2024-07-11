@@ -1,24 +1,23 @@
 use bevy::prelude::*;
 use yinsh::Player;
 
-use crate::gui::{
-    graphics::{spawn_marker, spawn_ring},
-    state::InteractionState,
-};
+use crate::gui::graphics::{spawn_marker, spawn_ring};
 
 use super::{
-    ai::AiTask, board::BoardElement, graphics::PlayerColors, interaction::CursorElement,
-    state::GameState,
+    ai::AiComputationEvent, board::BoardElement, graphics::PlayerColors,
+    interaction::CursorElement, state_update::GameState,
 };
 
+#[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
+pub struct HistorySet;
+
 pub fn save_and_load_game_state(
+    keyboard: Res<ButtonInput<KeyCode>>,
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     player_colors: Res<PlayerColors>,
-    keyboard: Res<ButtonInput<KeyCode>>,
     mut game_state: ResMut<GameState>,
-    mut interaction_state: ResMut<InteractionState>,
-    mut ai_task: ResMut<AiTask>,
+    mut ai_computation_events: EventWriter<AiComputationEvent>,
     q_board_elements: Query<Entity, (With<BoardElement>, Without<CursorElement>)>,
 ) {
     let filename = "gamestate.yml";
@@ -30,8 +29,7 @@ pub fn save_and_load_game_state(
         println!("Loading game state from {}", filename);
         *game_state.as_deref_mut() = yinsh::GameState::load_from(filename);
 
-        *interaction_state = InteractionState::from_turn_mode(&game_state);
-        ai_task.cancel();
+        ai_computation_events.send(AiComputationEvent::Cancel);
 
         // Despawn all board elements
         for entity in q_board_elements.iter() {
@@ -49,4 +47,8 @@ pub fn save_and_load_game_state(
             }
         }
     }
+}
+
+pub fn plugin(app: &mut App) {
+    app.add_systems(Update, save_and_load_game_state.in_set(HistorySet));
 }

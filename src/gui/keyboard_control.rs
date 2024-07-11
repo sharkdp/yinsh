@@ -1,8 +1,8 @@
 use bevy::prelude::*;
 
-use super::ai::AiPlayerStrength;
+use super::ai::{AiPlayerStrength, AiSet};
 
-pub fn keyboard_control(
+fn keyboard_control(
     keyboard: Res<ButtonInput<KeyCode>>,
     mut exit: EventWriter<AppExit>,
     mut ai_player_strength: ResMut<AiPlayerStrength>,
@@ -14,4 +14,8 @@ pub fn keyboard_control(
     } else if keyboard.just_pressed(KeyCode::KeyJ) {
         ai_player_strength.0 = (ai_player_strength.0 - 1).max(1);
     }
+}
+
+pub fn plugin(app: &mut App) {
+    app.add_systems(Update, keyboard_control.ambiguous_with(AiSet));
 }
