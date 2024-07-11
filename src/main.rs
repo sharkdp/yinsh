@@ -349,8 +349,9 @@ fn update_board_elements(
     mut meshes: ResMut<Assets<Mesh>>,
     mut q_rings: Query<
         (Entity, &mut BoardElement, &mut Appearance),
-        (With<Ring>, Without<CursorElement>),
+        (With<Ring>, (Without<Marker>, Without<CursorElement>)),
     >,
+    mut q_markers: Query<&mut BoardElement, (With<Marker>, Without<CursorElement>)>,
     player_colors: Res<PlayerColors>,
 ) {
     for PlayerActionEvent(player, action) in player_action_events.read() {
@@ -390,6 +391,14 @@ fn update_board_elements(
                     if ring.0 == old_coord {
                         *appearance = Appearance::Default;
                         ring.0 = new_coord;
+
+                        // Flip markers between old and new coord
+                        let coords_between = Coord::between(old_coord, new_coord);
+                        for mut element in q_markers.iter_mut() {
+                            if coords_between.contains(&element.0) {
+                                element.1.flip();
+                            }
+                        }
 
                         let tween = Tween::new(
                             EaseFunction::QuadraticInOut,

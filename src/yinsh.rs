@@ -1,4 +1,7 @@
-use std::{collections::HashMap, ops::Add};
+use std::{
+    collections::HashMap,
+    ops::{Add, Sub},
+};
 
 /// All Yinsh coordinates lie on a hexagonal grid within a circle of radius 4.6.
 const BOARD_RADIUS_SQUARED: f32 = 4.6_f32 * 4.6_f32;
@@ -22,6 +25,24 @@ impl Coord {
     pub fn is_on_same_line_as(&self, other: Coord) -> bool {
         (self.x == other.x) || (self.y == other.y) || ((self.x - self.y) == (other.x - other.y))
     }
+
+    fn shorten(&self) -> Coord {
+        Coord {
+            x: self.x.max(-1).min(1),
+            y: self.y.max(-1).min(1),
+        }
+    }
+
+    pub fn between(a: Coord, b: Coord) -> Vec<Coord> {
+        let mut coords = Vec::new();
+        let delta = (b - a).shorten();
+        let mut current = a + delta;
+        while current != b {
+            coords.push(current);
+            current = current + delta;
+        }
+        coords
+    }
 }
 
 impl Add<Coord> for Coord {
@@ -31,6 +52,17 @@ impl Add<Coord> for Coord {
         Coord {
             x: self.x + other.x,
             y: self.y + other.y,
+        }
+    }
+}
+
+impl Sub<Coord> for Coord {
+    type Output = Coord;
+
+    fn sub(self, rhs: Coord) -> Self::Output {
+        Coord {
+            x: self.x - rhs.x,
+            y: self.y - rhs.y,
         }
     }
 }
@@ -81,6 +113,10 @@ impl Player {
             Player::A => Player::B,
             Player::B => Player::A,
         }
+    }
+
+    pub fn flip(&mut self) {
+        *self = self.next();
     }
 }
 
@@ -242,6 +278,30 @@ impl Board {
     pub fn can_place_marker_at(&self, coord: Coord, player: Player) -> bool {
         self.element_at(coord)
             .map_or(false, |e| e.is_ring() && e.player == player)
+            && !self.ring_moves(coord).is_empty()
+    }
+
+    pub fn has_run(&self, player: Player) -> bool {
+        let markers = match player {
+            Player::A => &self.rings_a,
+            Player::B => &self.rings_b,
+        };
+
+        for &start in markers {
+            for d in DIRECTIONS {
+                let mut current = start + d.delta();
+                let mut count = 0;
+                while current.is_inside_board() && self.is_marker_at(current) {
+                    count += 1;
+                    current = current + d.delta();
+                }
+                if count >= 5 {
+                    return true;
+                }
+            }
+        }
+
+        false
     }
 }
 
@@ -298,7 +358,20 @@ impl GameState {
                 self.board.remove_ring(*start);
                 self.board.add_ring(self.active_player, *end);
 
-                self.turn_mode = TurnMode::MarkerPlacement; //TODO
+                // Flip markers in between
+                for coord in Coord::between(*start, *end) {
+                    self.board.map.get_mut(&coord).map(|e| e.player.flip());
+                }
+
+                // TODO
+                // self.turn_mode = if self.board.has_run(self.active_player) {
+                //     TurnMode::RunRemovalFiller(self.active_player)
+                // } else if self.board.has_run(self.active_player.next()) {
+                //     TurnMode::RunRemoval(self.active_player)
+                // } else {
+                //     TurnMode::MarkerPlacement
+                // };
+                self.turn_mode = TurnMode::MarkerPlacement;
 
                 self.active_player = self.active_player.next();
             }
