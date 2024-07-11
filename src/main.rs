@@ -33,6 +33,9 @@ struct MainCamera;
 #[derive(Component)]
 struct CursorElement;
 
+#[derive(Component)]
+struct GameStateInformation;
+
 #[derive(Resource)]
 pub enum InteractionState {
     RingPlacement,
@@ -53,8 +56,8 @@ impl InteractionState {
                 run_coords: game_state.board.run_coords(PLAYER_HUMAN),
             },
             TurnMode::RingRemoval(_) => Self::RingRemoval,
-            TurnMode::RunRemovalFiller(_) => todo!(),
-            TurnMode::MarkerPlacementFiller => todo!(),
+            TurnMode::RunRemovalFiller(_) => unreachable!(),
+            TurnMode::MarkerPlacementFiller => unreachable!(),
         }
     }
 }
@@ -111,6 +114,7 @@ fn main() {
                 update_game_state,
                 draw_grid,
                 draw_indicators,
+                show_information,
                 keyboard_control,
                 save_and_load_game_state,
                 mouse_cursor_system,
@@ -195,7 +199,7 @@ fn setup(
     let human_transparent = materials.add(Color::srgba(1.5, 1.5, 1.5, 0.1));
     commands.insert_resource(PlayerColors {
         human: materials.add(Color::srgba(1.5, 1.5, 1.5, 1.0)),
-        human_highlighted: materials.add(Color::srgba(5., 5., 5., 1.0)),
+        human_highlighted: materials.add(Color::srgba(4., 4., 4., 1.0)),
         human_transparent: human_transparent.clone(),
         ai: materials.add(Color::srgba(0.0, 0.0, 0.0, 1.0)),
     });
@@ -217,6 +221,25 @@ fn setup(
         Marker,
         CursorElement,
         FOREGROUND_RENDER_LAYER,
+    ));
+
+    commands.spawn((
+        TextBundle::from_section(
+            "",
+            TextStyle {
+                font_size: 20.0,
+                color: Color::hsl(0., 0., 0.1),
+                ..default()
+            },
+        )
+        .with_style(Style {
+            position_type: PositionType::Absolute,
+            top: Val::Px(10.),
+            left: Val::Px(10.),
+            ..default()
+        }),
+        GameStateInformation,
+        BACKGROUND_RENDER_LAYER,
     ));
 }
 
@@ -277,6 +300,18 @@ fn update_game_state(
 
             *interaction_state = InteractionState::WaitForAI;
         } else {
+            // Perform 'filler' moves automatically
+            loop {
+                match game_state.0.turn_mode {
+                    TurnMode::RunRemovalFiller(_) | TurnMode::MarkerPlacementFiller => {
+                        game_state.0.transition(&Action::Wait);
+                    }
+                    _ => {
+                        break;
+                    }
+                }
+            }
+
             *interaction_state = InteractionState::from_turn_mode(&game_state.0);
         }
     }
@@ -344,6 +379,19 @@ fn draw_indicators(
             gizmos.circle(screen_pos, Dir3::Z, SPACING / 8., indicator_color);
         }
     }
+}
+
+fn show_information(
+    game_state: Res<GameState>,
+    mut q_text: Query<&mut Text, With<GameStateInformation>>,
+) {
+    q_text.single_mut().sections[0].value = format!(
+        "Active player: {:?}, Score: {}:{}, Turn mode: {:?}",
+        game_state.0.turn_mode,
+        game_state.0.points_a,
+        game_state.0.points_b,
+        game_state.0.active_player
+    );
 }
 
 fn spawn_ring(

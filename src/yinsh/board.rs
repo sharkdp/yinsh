@@ -205,7 +205,8 @@ impl Board {
         for a in AXES {
             let mut run_coords = vec![start];
 
-            for i in 1i8.. {
+            for i in 1i8..=10i8 {
+                // TODO
                 let coord_left = start + a.direction() * i;
                 let coord_right = start - a.direction() * i;
 

@@ -44,8 +44,8 @@ pub struct GameState {
     pub active_player: Player,
     pub turn_mode: TurnMode,
     pub board: Board,
-    points_a: usize,
-    points_b: usize,
+    pub points_a: usize,
+    pub points_b: usize,
 }
 
 impl GameState {
