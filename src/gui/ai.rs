@@ -97,7 +97,7 @@ fn perform_ai_actions(
 
 pub fn plugin(app: &mut App) {
     app.insert_resource(AiTask::new())
-        .insert_resource(AiPlayerStrength(11))
+        .insert_resource(AiPlayerStrength(9))
         .add_event::<AiComputationEvent>()
         .add_systems(
             Update,

@@ -7,7 +7,6 @@ use super::{
     graphics::BACKGROUND_RENDER_LAYER,
     interaction::CursorCoord,
     state_update::{GameState, InteractionState},
-    PLAYER_HUMAN,
 };
 
 #[derive(Component)]
@@ -18,8 +17,8 @@ fn setup_information_display(mut commands: Commands) {
         TextBundle::from_section(
             "",
             TextStyle {
-                font_size: 20.0,
-                color: Color::hsl(0., 0., 0.1),
+                font_size: 18.0,
+                color: Color::hsl(0., 0., 0.3),
                 ..default()
             },
         )
@@ -43,8 +42,7 @@ fn update_information_display(
 ) {
     q_text.single_mut().sections[0].value =
         format!(
-        "Active player: {player}, Score: {points_a}:{points_b}\nMode: {mode}\nAI strength: {strength} [Weaker: J, Stronger: K]\n{coord}",
-        player=if game_state.active_player == PLAYER_HUMAN { "You" } else { "Floyd" },
+        "Score: {points_a}:{points_b}\nMode: {mode}\nAI strength: {strength} [weaker: J, stronger: K]\n{coord}",
         points_a=game_state.points_a,
         points_b=game_state.points_b,
         mode=match *interaction_state {
@@ -53,7 +51,7 @@ fn update_information_display(
             InteractionState::RingMovement(_, _) => "Move the selected ring",
             InteractionState::RunRemoval { .. } => "Select a run of five markers to remove",
             InteractionState::RingRemoval(_) => "Select one of your rings to remove it",
-            InteractionState::AutoMove | InteractionState::WaitForAI => "AI is thinking...",
+            InteractionState::AutoMove | InteractionState::WaitForAI => "Floyd is thinking...",
             InteractionState::Winner(Player::A) => "Game over. You win!",
             InteractionState::Winner(Player::B) => "Game over. Floyd wins!",
         },
