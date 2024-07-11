@@ -606,6 +606,7 @@ fn mouse_cursor_system(
 
     window.cursor.icon = match *interaction_state {
         InteractionState::WaitForAI => CursorIcon::Progress,
+        InteractionState::Winner(_) => CursorIcon::Default,
         _ => CursorIcon::Pointer,
     };
 
