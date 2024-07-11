@@ -41,6 +41,7 @@ pub enum InteractionState {
     RingRemoval,
     AutoMove,
     WaitForAI,
+    Winner(Player),
 }
 
 impl InteractionState {
@@ -91,6 +92,9 @@ struct GameState(yinsh::GameState);
 
 const ANIMATION_DURATION: Duration = Duration::from_millis(300);
 
+#[derive(Resource)]
+struct AiPlayerStrength(usize);
+
 fn main() {
     App::new()
         .add_plugins((
@@ -130,6 +134,7 @@ fn main() {
         .insert_resource(Msaa::Sample8)
         .insert_resource(InteractionState::RingPlacement)
         .insert_resource(AiTask(None))
+        .insert_resource(AiPlayerStrength(13))
         .insert_resource(CursorCoord(None))
         .insert_resource(GameState(yinsh::GameState::initial()))
         .add_event::<PlayerActionEvent>()
@@ -280,16 +285,23 @@ fn update_game_state(
     mut player_action_events: EventReader<PlayerActionEvent>,
     mut interaction_state: ResMut<InteractionState>,
     mut task: ResMut<AiTask>,
+    ai_player_strength: Res<AiPlayerStrength>,
 ) {
     for PlayerActionEvent(player, action) in player_action_events.read() {
         assert!(player == &game_state.0.active_player);
 
         game_state.0.transition(action);
 
+        if let Some(winner) = game_state.0.winner() {
+            *interaction_state = InteractionState::Winner(winner);
+            return;
+        }
+
         if game_state.0.active_player == PLAYER_AI {
             let task_pool = AsyncComputeTaskPool::get();
 
             let game_state = game_state.0.clone();
+            let search_depth = ai_player_strength.0;
             task.0 = Some(task_pool.spawn(async move {
                 // TODO! This is a hack to make sure the AI takes at least as long as
                 // the animation.
@@ -297,7 +309,7 @@ fn update_game_state(
                     std::thread::sleep(ANIMATION_DURATION);
                 }
 
-                yinsh::get_ai_player_action(&game_state)
+                yinsh::get_ai_player_action(search_depth, &game_state)
             }));
 
             *interaction_state = InteractionState::WaitForAI;
@@ -375,14 +387,26 @@ fn show_information(
     game_state: Res<GameState>,
     mut q_text: Query<&mut Text, With<GameStateInformation>>,
     cursor_coord: Res<CursorCoord>,
+    interaction_state: Res<InteractionState>,
+    ai_player_strength: Res<AiPlayerStrength>,
 ) {
     q_text.single_mut().sections[0].value = format!(
-        "Active player: {:?}, Score: {}:{}, Grid coord: {:?}\nTurn mode: {:?}",
+        "Active player: {:?}, Score: {}:{}, Grid coord: {:?}\nMode: {}\nAI strength: {} [Stronger: J, Weaker: K]",
         game_state.0.active_player,
         game_state.0.points_a,
         game_state.0.points_b,
         cursor_coord.0,
-        game_state.0.turn_mode,
+        match *interaction_state {
+            InteractionState::RingPlacement => "Place a ring on the board",
+            InteractionState::MarkerPlacement => "Place a marker in one of your rings",
+            InteractionState::RingMovement(_) => "Move the selected ring",
+            InteractionState::RunRemoval { .. } => "Select a run of five markers to remove",
+            InteractionState::RingRemoval => "Select one of your rings to remove it",
+            InteractionState::AutoMove | InteractionState::WaitForAI => "AI is thinking...",
+            InteractionState::Winner(Player::A) => "Game over. You win!",
+            InteractionState::Winner(Player::B) => "Game over. Floyd wins!",
+        },
+        ai_player_strength.0,
     );
 }
 
@@ -636,6 +660,7 @@ fn mouse_cursor_system(
                 InteractionState::RingRemoval => {}
                 InteractionState::AutoMove => {}
                 InteractionState::WaitForAI => {}
+                InteractionState::Winner(_) => {}
             }
 
             mouse_cursor_coord.0 = Some(cursor_coord);
@@ -704,14 +729,23 @@ fn mouse_interaction_system(
                     }
                 }
                 InteractionState::AutoMove => {}
+                InteractionState::Winner(_) => {}
             }
         }
     }
 }
 
-fn keyboard_control(keyboard: Res<ButtonInput<KeyCode>>, mut exit: EventWriter<AppExit>) {
+fn keyboard_control(
+    keyboard: Res<ButtonInput<KeyCode>>,
+    mut exit: EventWriter<AppExit>,
+    mut ai_player_strength: ResMut<AiPlayerStrength>,
+) {
     if keyboard.just_pressed(KeyCode::Escape) || keyboard.just_pressed(KeyCode::KeyQ) {
         exit.send(AppExit::Success);
+    } else if keyboard.just_pressed(KeyCode::KeyK) {
+        ai_player_strength.0 = ai_player_strength.0 + 1;
+    } else if keyboard.just_pressed(KeyCode::KeyJ) {
+        ai_player_strength.0 = (ai_player_strength.0 - 1).max(1);
     }
 }
 

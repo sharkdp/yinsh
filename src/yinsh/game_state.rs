@@ -108,6 +108,12 @@ impl GameState {
             (TurnMode::RunRemoval(player_last_ring_move), Action::RemoveRun(coord)) => {
                 self.board.remove_run(*coord);
 
+                if self.active_player == Player::A {
+                    self.points_a += 1;
+                } else {
+                    self.points_b += 1;
+                }
+
                 self.turn_mode = TurnMode::WaitForRingRemoval(*player_last_ring_move);
             }
             (TurnMode::WaitForRingRemoval(player_last_ring_move), Action::Wait) => {
@@ -115,13 +121,6 @@ impl GameState {
             }
             (TurnMode::RingRemoval(player_last_ring_move), Action::RemoveRing(coord)) => {
                 self.board.remove_ring(*coord);
-
-                // TODO: move this to run removal? would allow the AI to see it earlier
-                if self.active_player == Player::A {
-                    self.points_a += 1;
-                } else {
-                    self.points_b += 1;
-                }
 
                 self.turn_mode = if self.board.has_run(self.active_player) {
                     // Active player has a second run, other player needs to wait
@@ -147,6 +146,16 @@ impl GameState {
 
         // println!("New turn mode: {:?}", self.turn_mode);
         // println!("New active player: {:?}", self.active_player);
+    }
+
+    pub fn winner(&self) -> Option<Player> {
+        if self.points_a >= 3 {
+            Some(Player::A)
+        } else if self.points_b >= 3 {
+            Some(Player::B)
+        } else {
+            None
+        }
     }
 
     pub fn save_to<P: AsRef<Path>>(&self, path: P) {
