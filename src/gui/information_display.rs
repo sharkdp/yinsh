@@ -2,11 +2,10 @@ use bevy::prelude::*;
 
 use yinsh::Player;
 
-use crate::CursorCoord;
-
 use super::{
     ai::AiPlayerStrength,
     graphics::BACKGROUND_RENDER_LAYER,
+    interaction::CursorCoord,
     state::{GameState, InteractionState},
     PLAYER_HUMAN,
 };

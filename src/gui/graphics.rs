@@ -1,6 +1,7 @@
 use std::time::Duration;
 
 use bevy::{
+    core_pipeline::bloom::BloomSettings,
     prelude::*,
     render::view::RenderLayers,
     sprite::{MaterialMesh2dBundle, Mesh2dHandle},
@@ -23,6 +24,9 @@ pub const COLOR_RING_MOVEMENT_INDICATOR: Color = Color::hsla(0.0, 0.0, 1.5, 0.1)
 pub const ANIMATION_DURATION: Duration = Duration::from_millis(300);
 
 pub const SPACING: f32 = 90.0;
+
+#[derive(Component)]
+pub struct MainCamera;
 
 pub fn screen_point(coord: Coord) -> Vec3 {
     Vec3::new(
@@ -106,4 +110,53 @@ pub fn spawn_marker(
         Marker,
         FOREGROUND_RENDER_LAYER,
     ));
+}
+
+fn setup_graphics(
+    mut commands: Commands,
+    mut config_store: ResMut<GizmoConfigStore>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+) {
+    // Render layer 1 is for the grid
+    commands.spawn((
+        Camera2dBundle {
+            camera: Camera {
+                hdr: true,
+                order: 1,
+                ..default()
+            },
+            ..default()
+        },
+        BloomSettings::default(),
+        BACKGROUND_RENDER_LAYER,
+    ));
+
+    // Render layer 2 is for the board elements
+    commands.spawn((
+        Camera2dBundle {
+            camera: Camera {
+                hdr: true,
+                order: 2,
+                ..default()
+            },
+            ..default()
+        },
+        BloomSettings::default(),
+        FOREGROUND_RENDER_LAYER,
+        MainCamera,
+    ));
+
+    commands.insert_resource(PlayerColors {
+        human: materials.add(Color::srgba(1.5, 1.5, 1.5, 1.0)),
+        human_highlighted: materials.add(Color::srgba(4., 4., 4., 1.0)),
+        human_transparent: materials.add(Color::srgba(1.5, 1.5, 1.5, 0.1)),
+        ai: materials.add(Color::srgba(0.0, 0.0, 0.0, 1.0)),
+    });
+
+    let (config, _) = config_store.config_mut::<DefaultGizmoConfigGroup>();
+    config.render_layers = BACKGROUND_RENDER_LAYER;
+}
+
+pub fn graphics_plugin(app: &mut App) {
+    app.add_systems(PreStartup, setup_graphics);
 }

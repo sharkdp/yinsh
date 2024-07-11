@@ -1,15 +1,15 @@
 use bevy::prelude::*;
 use yinsh::Player;
 
-use crate::{
-    gui::{
-        graphics::{spawn_marker, spawn_ring},
-        state::InteractionState,
-    },
-    CursorElement,
+use crate::gui::{
+    graphics::{spawn_marker, spawn_ring},
+    state::InteractionState,
 };
 
-use super::{ai::AiTask, board::BoardElement, graphics::PlayerColors, state::GameState};
+use super::{
+    ai::AiTask, board::BoardElement, graphics::PlayerColors, interaction::CursorElement,
+    state::GameState,
+};
 
 pub fn save_and_load_game_state(
     mut commands: Commands,
