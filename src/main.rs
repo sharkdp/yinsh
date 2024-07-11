@@ -36,7 +36,7 @@ pub enum InteractionState {
 }
 
 #[derive(Resource)]
-pub struct MouseCursorCoord(Option<Coord>);
+pub struct CursorCoord(Option<Coord>);
 
 const PLAYER_HUMAN: Player = Player::A;
 const PLAYER_AI: Player = Player::B;
@@ -100,7 +100,7 @@ fn main() {
         .insert_resource(ClearColor(Color::hsl(0.0, 0.0, 0.4)))
         .insert_resource(Msaa::Sample8)
         .insert_resource(InteractionState::PlaceRing)
-        .insert_resource(MouseCursorCoord(None))
+        .insert_resource(CursorCoord(None))
         .insert_resource(AiTask(None))
         .insert_resource(GameState(yinsh::GameState::initial()))
         .add_event::<PlayerActionEvent>()
@@ -316,7 +316,7 @@ fn draw_indicators(mut gizmos: Gizmos, game_state: Res<GameState>) {
     if let TurnMode::RingMovement(start) = game_state.0.turn_mode {
         for coord in game_state.0.board.ring_moves(start) {
             let screen_pos = screen_point(coord);
-            gizmos.circle(screen_pos, Dir3::Z, SPACING / 5., indicator_color);
+            gizmos.circle(screen_pos, Dir3::Z, SPACING / 8., indicator_color);
         }
     }
 }
@@ -415,7 +415,7 @@ fn mouse_cursor_system(
         (With<Marker>, Without<Ring>, With<CursorElement>),
     >,
     interaction_state: Res<InteractionState>,
-    mut mouse_cursor_coord: ResMut<MouseCursorCoord>,
+    mut mouse_cursor_coord: ResMut<CursorCoord>,
 ) {
     let Ok(mut window) = q_window.get_single_mut() else {
         return;
@@ -452,16 +452,16 @@ fn mouse_cursor_system(
 
             match *interaction_state {
                 InteractionState::PlaceRing => {
-                    *cursor_ring_visibility = Visibility::Visible;
-                    cursor_ring_coord.0 = cursor_coord;
+                    if game_state.0.board.is_free(cursor_coord) {
+                        *cursor_ring_visibility = Visibility::Visible;
+                        cursor_ring_coord.0 = cursor_coord;
+                    }
                 }
                 InteractionState::PlaceMarker => {
                     if game_state
                         .0
                         .board
-                        .element_at(cursor_coord)
-                        .map(|e| e.is_ring() && e.player == PLAYER_HUMAN)
-                        .unwrap_or(false)
+                        .can_place_marker_at(cursor_coord, PLAYER_HUMAN)
                     {
                         *cursor_marker_visibility = Visibility::Visible;
                         cursor_marker_coord.0 = cursor_coord;
@@ -482,41 +482,42 @@ fn mouse_cursor_system(
 }
 
 fn mouse_interaction_system(
+    game_state: Res<GameState>,
     buttons: Res<ButtonInput<MouseButton>>,
     interaction_state: Res<InteractionState>,
-    mouse_cursor_coord: Res<MouseCursorCoord>,
-    q_rings: Query<&BoardElement, (With<Ring>, Without<CursorElement>)>,
+    cursor_coord: Res<CursorCoord>,
     mut player_action_events: EventWriter<PlayerActionEvent>,
 ) {
-    if let Some(mouse_cursor_coord) = mouse_cursor_coord.0 {
+    if let Some(cursor_coord) = cursor_coord.0 {
         if buttons.just_pressed(MouseButton::Left) {
             match *interaction_state {
                 InteractionState::PlaceRing => {
-                    player_action_events.send(PlayerActionEvent(
-                        PLAYER_HUMAN,
-                        Action::PlaceRing(mouse_cursor_coord),
-                    ));
-                }
-                InteractionState::PlaceMarker => {
-                    let rings_human = q_rings
-                        .iter()
-                        .filter(|e| e.1 == PLAYER_HUMAN)
-                        .map(|e| e.0)
-                        .collect::<Vec<_>>();
-
-                    if rings_human.contains(&mouse_cursor_coord) {
+                    if game_state.0.board.is_free(cursor_coord) {
                         player_action_events.send(PlayerActionEvent(
                             PLAYER_HUMAN,
-                            Action::PlaceMarker(mouse_cursor_coord),
+                            Action::PlaceRing(cursor_coord),
+                        ));
+                    }
+                }
+                InteractionState::PlaceMarker => {
+                    if game_state
+                        .0
+                        .board
+                        .can_place_marker_at(cursor_coord, PLAYER_HUMAN)
+                    {
+                        player_action_events.send(PlayerActionEvent(
+                            PLAYER_HUMAN,
+                            Action::PlaceMarker(cursor_coord),
                         ));
                     }
                 }
                 InteractionState::MoveRing(start) => {
-                    // TODO
-                    player_action_events.send(PlayerActionEvent(
-                        PLAYER_HUMAN,
-                        Action::MoveRing(start, mouse_cursor_coord),
-                    ));
+                    if game_state.0.board.is_valid_ring_move(start, cursor_coord) {
+                        player_action_events.send(PlayerActionEvent(
+                            PLAYER_HUMAN,
+                            Action::MoveRing(start, cursor_coord),
+                        ));
+                    }
                 }
                 InteractionState::WaitForAI => {}
             }

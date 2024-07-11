@@ -1,6 +1,6 @@
 use crate::yinsh::{Action, GameState};
 
-fn possible_next_gamestates<'a>(state: &'a GameState) -> Box<dyn Iterator<Item = Action> + 'a> {
+fn possible_next_game_states<'a>(state: &'a GameState) -> Box<dyn Iterator<Item = Action> + 'a> {
     match state.turn_mode {
         crate::yinsh::TurnMode::RingPlacement => {
             Box::new(state.board.free_coords().map(Action::PlaceRing))
@@ -11,15 +11,13 @@ fn possible_next_gamestates<'a>(state: &'a GameState) -> Box<dyn Iterator<Item =
                 .ring_coords(state.active_player)
                 .map(Action::PlaceMarker),
         ),
-        crate::yinsh::TurnMode::RingMovement(ref start) => {
-            Box::new(
-                state
-                    .board
-                    .free_coords()
-                    // .filter(|c| c != start)
-                    .map(|end| Action::MoveRing(start.clone(), end)),
-            ) // TODO
-        }
+        crate::yinsh::TurnMode::RingMovement(start) => Box::new(
+            state
+                .board
+                .ring_moves(start)
+                .into_iter()
+                .map(move |end| Action::MoveRing(start, end)),
+        ),
         crate::yinsh::TurnMode::RunRemoval(_) => todo!(),
         crate::yinsh::TurnMode::RingRemoval(_) => todo!(),
         crate::yinsh::TurnMode::RunRemovalFiller(_) => todo!(),
@@ -28,10 +26,10 @@ fn possible_next_gamestates<'a>(state: &'a GameState) -> Box<dyn Iterator<Item =
 }
 
 pub fn get_ai_player_action(state: &GameState) -> Action {
-    let mut gamestates = possible_next_gamestates(&state);
-    let first = gamestates.next();
+    let game_states: Vec<_> = possible_next_game_states(&state).collect();
 
-    assert!(first.is_some());
+    assert!(game_states.len() > 0);
 
-    first.unwrap()
+    let random_index = rand::random::<usize>() % game_states.len();
+    game_states[random_index].clone()
 }
