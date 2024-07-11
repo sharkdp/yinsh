@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, ops::Add};
 
 /// All Yinsh coordinates lie on a hexagonal grid within a circle of radius 4.6.
 const BOARD_RADIUS_SQUARED: f32 = 4.6_f32 * 4.6_f32;
@@ -18,6 +18,21 @@ impl Coord {
         let y = self.y as f32;
         (0.5 * sqrt_3 * x).powi(2) + (0.5 * x - y).powi(2) <= BOARD_RADIUS_SQUARED
     }
+
+    pub fn is_on_same_line_as(&self, other: Coord) -> bool {
+        (self.x == other.x) || (self.y == other.y) || ((self.x - self.y) == (other.x - other.y))
+    }
+}
+
+impl Add<Coord> for Coord {
+    type Output = Coord;
+
+    fn add(self, other: Coord) -> Coord {
+        Coord {
+            x: self.x + other.x,
+            y: self.y + other.y,
+        }
+    }
 }
 
 /// The six hex directions
@@ -30,6 +45,28 @@ pub enum Direction {
     SW,
     NW,
 }
+
+impl Direction {
+    fn delta(&self) -> Coord {
+        match self {
+            Direction::N => Coord { x: -1, y: 0 },
+            Direction::S => Coord { x: 1, y: 0 },
+            Direction::NE => Coord { x: -1, y: -1 },
+            Direction::SW => Coord { x: 1, y: 1 },
+            Direction::NW => Coord { x: 0, y: 1 },
+            Direction::SE => Coord { x: 0, y: -1 },
+        }
+    }
+}
+
+const DIRECTIONS: &'static [Direction; 6] = &[
+    Direction::N,
+    Direction::NE,
+    Direction::SE,
+    Direction::S,
+    Direction::SW,
+    Direction::NW,
+];
 
 /// Player types (white and black)
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -60,11 +97,11 @@ pub struct Element {
 }
 
 impl Element {
-    fn is_marker(&self) -> bool {
+    pub fn is_marker(&self) -> bool {
         self.kind == ElementKind::Marker
     }
 
-    fn is_ring(&self) -> bool {
+    pub fn is_ring(&self) -> bool {
         self.kind == ElementKind::Ring
     }
 }
@@ -72,26 +109,26 @@ impl Element {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TurnMode {
     /// place a ring on a free field
-    PlaceRing,
+    RingPlacement,
 
     /// place a marker in one of your rings
-    PlaceMarker,
+    MarkerPlacement,
 
     /// move the ring at the given position
-    MoveRing(Coord),
+    RingMovement(Coord),
 
     /// Remove (one of your) run(s). The parameter
     /// holds the last player who moved a ring.
-    RemoveRun(Player),
+    RunRemoval(Player),
 
     /// Remove one of your rings
-    RemoveRing(Player),
+    RingRemoval(Player),
 
     /// Do nothing
-    WaitRemoveRun(Player),
+    RunRemovalFiller(Player),
 
     /// Do nothing
-    WaitPlaceMarker,
+    MarkerPlacementFiller,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -179,6 +216,29 @@ impl Board {
             Player::B => self.rings_b.iter().copied(),
         }
     }
+
+    pub fn ring_moves(&self, start: Coord) -> Vec<Coord> {
+        let mut moves = Vec::new();
+        for d in DIRECTIONS {
+            let mut current = start + d.delta();
+            while current.is_inside_board()
+                && self
+                    .element_at(current)
+                    .map(|e| e.is_marker())
+                    .unwrap_or(false)
+            {
+                current = current + d.delta();
+            }
+            if current.is_inside_board() && self.is_free(current) {
+                moves.push(current);
+            }
+        }
+        moves
+    }
+
+    pub fn is_valid_ring_move(&self, start: Coord, end: Coord) -> bool {
+        self.ring_moves(start).contains(&end)
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -204,7 +264,7 @@ impl GameState {
     pub fn initial() -> Self {
         Self {
             active_player: Player::A,
-            turn_mode: TurnMode::PlaceRing,
+            turn_mode: TurnMode::RingPlacement,
             board: Board::empty(),
             points_a: 0,
             points_b: 0,
@@ -212,48 +272,39 @@ impl GameState {
     }
 
     pub fn transition(&mut self, action: &Action) {
-        match self.turn_mode {
-            TurnMode::PlaceRing => {
-                let Action::PlaceRing(coord) = action else {
-                    unreachable!("Invalid action for PlaceRing mode");
-                };
-
+        match (&self.turn_mode, action) {
+            (TurnMode::RingPlacement, Action::PlaceRing(coord)) => {
                 self.board.add_ring(self.active_player, *coord);
 
                 self.turn_mode = if self.board.num_rings() <= 9 {
-                    TurnMode::PlaceRing
+                    TurnMode::RingPlacement
                 } else {
-                    TurnMode::PlaceMarker
+                    TurnMode::MarkerPlacement
                 };
 
                 self.active_player = self.active_player.next();
             }
-            TurnMode::PlaceMarker => {
-                let Action::PlaceMarker(coord) = action else {
-                    unreachable!("Invalid action for PlaceMarker mode");
-                };
-
+            (TurnMode::MarkerPlacement, Action::PlaceMarker(coord)) => {
                 self.board.remove_ring(*coord);
                 self.board.add_marker(self.active_player, *coord);
 
-                self.turn_mode = TurnMode::MoveRing(*coord);
+                self.turn_mode = TurnMode::RingMovement(*coord);
             }
-            TurnMode::MoveRing(_) => {
-                let Action::MoveRing(start, end) = action else {
-                    unreachable!("Invalid action for MoveRing mode");
-                };
-
+            (TurnMode::RingMovement(_), Action::MoveRing(start, end)) => {
                 self.board.remove_ring(*start);
                 self.board.add_ring(self.active_player, *end);
 
-                self.turn_mode = TurnMode::PlaceMarker; //TODO
+                self.turn_mode = TurnMode::MarkerPlacement; //TODO
 
                 self.active_player = self.active_player.next();
             }
-            TurnMode::RemoveRun(_) => todo!(),
-            TurnMode::RemoveRing(_) => todo!(),
-            TurnMode::WaitRemoveRun(_) => todo!(),
-            TurnMode::WaitPlaceMarker => todo!(),
+            (TurnMode::RunRemoval(_), _) => todo!(),
+            (TurnMode::RingRemoval(_), _) => todo!(),
+            (TurnMode::RunRemovalFiller(_), _) => todo!(),
+            (TurnMode::MarkerPlacementFiller, _) => todo!(),
+            (turn_mode, action) => {
+                unreachable!("Received unexpected player action {action:?} in mode {turn_mode:?}")
+            }
         }
     }
 }
