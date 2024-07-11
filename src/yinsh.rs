@@ -31,11 +31,11 @@ pub enum Direction {
     NW,
 }
 
-/// Player types (black and white)
+/// Player types (white and black)
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Player {
+    A,
     B,
-    W,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
