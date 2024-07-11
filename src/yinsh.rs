@@ -151,13 +151,8 @@ impl Board {
     }
 
     /// Returns true if the element at the given point is a marker of any color.
-    pub fn is_marker(&self, coord: Coord) -> bool {
+    fn is_marker_at(&self, coord: Coord) -> bool {
         self.map.get(&coord).map_or(false, Element::is_marker)
-    }
-
-    /// Returns true if the element at the given point is a ring of any color.
-    pub fn is_ring(&self, coord: Coord) -> bool {
-        self.map.get(&coord).map_or(false, Element::is_ring)
     }
 
     /// Returns true if a certain point on the board is free. Does not check for validity.
@@ -229,12 +224,7 @@ impl Board {
             }
 
             // Skip over arbitrary many markers, but stop immediately after
-            while current.is_inside_board()
-                && self
-                    .element_at(current)
-                    .map(|e| e.is_marker())
-                    .unwrap_or(false)
-            {
+            while current.is_inside_board() && self.is_marker_at(current) {
                 current = current + d.delta();
             }
 

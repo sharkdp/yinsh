@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 bevy = { version = "0.14.0" }
 rand = "0.8.5"
+bevy_tweening = { git = "https://github.com/BraymatterOrg/bevy_tweening_0_14", branch = "0.14" }
 
 [profile.dev]
 opt-level = 1
