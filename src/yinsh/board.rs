@@ -91,7 +91,7 @@ impl Board {
     }
 
     /// Returns true if the element at the given point is a marker of any color.
-    fn has_marker_at(&self, coord: Coord) -> bool {
+    pub fn has_marker_at(&self, coord: Coord) -> bool {
         self.check_invariants();
 
         self.element_at(coord).map_or(false, |e| e.is_marker())

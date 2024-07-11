@@ -11,6 +11,7 @@ use yinsh::{Coord, Player};
 
 use super::{
     board::{BoardElement, Marker, Ring},
+    grid::draw_grid,
     PLAYER_HUMAN,
 };
 
@@ -117,6 +118,8 @@ fn setup_graphics(
     mut config_store: ResMut<GizmoConfigStore>,
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
+    commands.insert_resource(ClearColor(COLOR_BACKGROUND));
+
     // Render layer 1 is for the grid
     commands.spawn((
         Camera2dBundle {
@@ -157,6 +160,8 @@ fn setup_graphics(
     config.render_layers = BACKGROUND_RENDER_LAYER;
 }
 
-pub fn graphics_plugin(app: &mut App) {
-    app.add_systems(PreStartup, setup_graphics);
+pub fn plugin(app: &mut App) {
+    app.insert_resource(Msaa::Sample8)
+        .add_systems(PreStartup, setup_graphics)
+        .add_systems(Update, draw_grid);
 }

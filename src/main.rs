@@ -1,19 +1,9 @@
 mod gui;
 
 use bevy::{
+    ecs::schedule::{LogLevel, ScheduleBuildSettings},
     prelude::*,
     window::{PresentMode, WindowMode},
-};
-
-use gui::{
-    ai::{wait_for_ai_move, AiPlayerStrength, AiTask},
-    graphics::{graphics_plugin, COLOR_BACKGROUND},
-    grid::draw_grid,
-    information_display::information_display_plugin,
-    interaction::{interaction_plugin, CursorCoord},
-    io::save_and_load_game_state,
-    keyboard::keyboard_control,
-    state::{update_game_state, GameState, InteractionState, PlayerActionEvent},
 };
 
 fn main() {
@@ -30,28 +20,19 @@ fn main() {
                 }),
                 ..default()
             }),
-            graphics_plugin,
-            information_display_plugin,
-            interaction_plugin,
+            gui::state_update::plugin,
+            gui::ai::plugin,
+            gui::graphics::plugin,
+            gui::interaction::plugin,
+            gui::information_display::plugin,
+            gui::keyboard_control::plugin,
+            // gui::history::plugin,
         ))
-        .add_systems(
-            Update,
-            (
-                save_and_load_game_state,
-                wait_for_ai_move,
-                update_game_state,
-                draw_grid,
-                keyboard_control,
-            )
-                .chain(),
-        )
-        .insert_resource(ClearColor(COLOR_BACKGROUND))
-        .insert_resource(Msaa::Sample8)
-        .insert_resource(InteractionState::RingPlacement)
-        .insert_resource(AiTask::new())
-        .insert_resource(AiPlayerStrength(11))
-        .insert_resource(CursorCoord(None))
-        .insert_resource(GameState::initial())
-        .add_event::<PlayerActionEvent>()
+        .edit_schedule(Update, |schedule| {
+            schedule.set_build_settings(ScheduleBuildSettings {
+                ambiguity_detection: LogLevel::Warn,
+                ..default()
+            });
+        })
         .run();
 }

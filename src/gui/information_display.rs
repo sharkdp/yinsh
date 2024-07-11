@@ -6,7 +6,7 @@ use super::{
     ai::AiPlayerStrength,
     graphics::BACKGROUND_RENDER_LAYER,
     interaction::CursorCoord,
-    state::{GameState, InteractionState},
+    state_update::{GameState, InteractionState},
     PLAYER_HUMAN,
 };
 
@@ -48,11 +48,11 @@ fn update_information_display(
         points_a=game_state.points_a,
         points_b=game_state.points_b,
         mode=match *interaction_state {
-            InteractionState::RingPlacement => "Place a ring on the board",
-            InteractionState::MarkerPlacement => "Place a marker in one of your rings",
+            InteractionState::RingPlacement(_) => "Place a ring on the board",
+            InteractionState::MarkerPlacement(_) => "Place a marker in one of your rings",
             InteractionState::RingMovement(_, _) => "Move the selected ring",
             InteractionState::RunRemoval { .. } => "Select a run of five markers to remove",
-            InteractionState::RingRemoval => "Select one of your rings to remove it",
+            InteractionState::RingRemoval(_) => "Select one of your rings to remove it",
             InteractionState::AutoMove | InteractionState::WaitForAI => "AI is thinking...",
             InteractionState::Winner(Player::A) => "Game over. You win!",
             InteractionState::Winner(Player::B) => "Game over. Floyd wins!",
@@ -62,7 +62,7 @@ fn update_information_display(
     );
 }
 
-pub fn information_display_plugin(app: &mut App) {
+pub fn plugin(app: &mut App) {
     app.add_systems(Startup, setup_information_display)
-        .add_systems(Update, update_information_display);
+        .add_systems(Update, update_information_display.ambiguous_with_all());
 }
