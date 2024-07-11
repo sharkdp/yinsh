@@ -384,13 +384,15 @@ fn draw_indicators(
 fn show_information(
     game_state: Res<GameState>,
     mut q_text: Query<&mut Text, With<GameStateInformation>>,
+    cursor_coord: Res<CursorCoord>,
 ) {
     q_text.single_mut().sections[0].value = format!(
-        "Active player: {:?}, Score: {}:{}, Turn mode: {:?}",
+        "Active player: {:?}, Score: {}:{}, Turn mode: {:?}, Grid coord: {:?}",
         game_state.0.turn_mode,
         game_state.0.points_a,
         game_state.0.points_b,
-        game_state.0.active_player
+        game_state.0.active_player,
+        cursor_coord.0
     );
 }
 
@@ -485,7 +487,7 @@ fn update_board_elements(
                 }
             }
             Action::RemoveRun(seed) => {
-                let run_coords = game_state.0.board.run_coords_from(seed);
+                let run_coords = game_state.0.board.run_coords_from(seed).unwrap();
 
                 for (entity, element) in q_markers.iter_mut() {
                     if run_coords.contains(&element.0) {
@@ -493,7 +495,14 @@ fn update_board_elements(
                     }
                 }
             }
-            Action::RemoveRing(_) => todo!(),
+            Action::RemoveRing(coord) => {
+                for (entity, element) in q_rings.iter_mut() {
+                    if element.0 == coord {
+                        commands.entity(entity).despawn();
+                        break;
+                    }
+                }
+            }
             Action::Wait => {}
         }
     }
@@ -537,7 +546,8 @@ fn colorize_board_elements(
                     }
                     InteractionState::RunRemoval { ref run_coords } => match mouse_cursor_coord.0 {
                         Some(cursor_coord) if run_coords.contains(&cursor_coord) => {
-                            let run_from_cursor = game_state.0.board.run_coords_from(cursor_coord);
+                            let run_from_cursor =
+                                game_state.0.board.run_coords_from(cursor_coord).unwrap();
                             if run_from_cursor.contains(coord) {
                                 player_colors.human_highlighted.clone()
                             } else {
@@ -689,7 +699,14 @@ fn mouse_interaction_system(
                         ));
                     }
                 }
-                InteractionState::RingRemoval => {}
+                InteractionState::RingRemoval => {
+                    if game_state.0.board.is_ring_at(cursor_coord) {
+                        player_action_events.send(PlayerActionEvent(
+                            PLAYER_HUMAN,
+                            Action::RemoveRing(cursor_coord),
+                        ));
+                    }
+                }
             }
         }
     }

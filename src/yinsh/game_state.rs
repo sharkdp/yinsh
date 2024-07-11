@@ -60,6 +60,11 @@ impl GameState {
     }
 
     pub fn transition(&mut self, action: &Action) {
+        println!();
+        println!("Current turn mode: {:?}", self.turn_mode);
+        println!("Current active player: {:?}", self.active_player);
+        println!("Action: {:?}", action);
+
         match (&self.turn_mode, action) {
             (TurnMode::RingPlacement, Action::PlaceRing(coord)) => {
                 self.board.add_ring(self.active_player, *coord);
@@ -94,12 +99,34 @@ impl GameState {
 
                 self.active_player = self.active_player.next();
             }
-            (TurnMode::RunRemoval(player), Action::RemoveRun(coord)) => {
+            (TurnMode::RunRemoval(player_last_ring_move), Action::RemoveRun(coord)) => {
                 self.board.remove_run(*coord);
 
-                self.turn_mode = TurnMode::RingRemoval(*player);
+                self.turn_mode = TurnMode::RingRemoval(*player_last_ring_move);
             }
-            (TurnMode::RingRemoval(_), _) => todo!(),
+            (TurnMode::RingRemoval(player_last_ring_move), Action::RemoveRing(coord)) => {
+                self.board.remove_ring(*coord);
+
+                if self.active_player == Player::A {
+                    self.points_a += 1;
+                } else {
+                    self.points_b += 1;
+                }
+
+                self.turn_mode = if self.board.has_run(self.active_player) {
+                    // Active player has a second run, other player needs to wait
+                    TurnMode::RunRemovalFiller(*player_last_ring_move)
+                } else if self.board.has_run(self.active_player.next()) {
+                    // Other player has a run, active player needs to remove it
+                    TurnMode::RunRemoval(*player_last_ring_move)
+                } else if self.active_player == *player_last_ring_move {
+                    TurnMode::MarkerPlacement
+                } else {
+                    TurnMode::MarkerPlacementFiller
+                };
+
+                self.active_player = self.active_player.next();
+            }
             (TurnMode::RunRemovalFiller(p), Action::Wait) => {
                 self.turn_mode = TurnMode::RunRemoval(*p);
 
@@ -110,6 +137,9 @@ impl GameState {
                 unreachable!("Received unexpected player action {action:?} in mode {turn_mode:?}")
             }
         }
+
+        println!("New turn mode: {:?}", self.turn_mode);
+        println!("New active player: {:?}", self.active_player);
     }
 
     pub fn save_to<P: AsRef<Path>>(&self, path: P) {
