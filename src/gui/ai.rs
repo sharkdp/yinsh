@@ -4,8 +4,7 @@ use bevy::tasks::{block_on, Task};
 
 use yinsh::Action;
 
-use crate::PlayerActionEvent;
-
+use super::state::PlayerActionEvent;
 use super::PLAYER_AI;
 
 #[derive(Resource)]

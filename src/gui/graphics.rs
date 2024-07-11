@@ -1,8 +1,12 @@
+use std::time::Duration;
+
 use bevy::{
     prelude::*,
     sprite::{MaterialMesh2dBundle, Mesh2dHandle},
 };
 use yinsh::{Coord, Player};
+
+pub const ANIMATION_DURATION: Duration = Duration::from_millis(300);
 
 use crate::FOREGROUND_RENDER_LAYER;
 
