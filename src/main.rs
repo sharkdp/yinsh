@@ -309,7 +309,7 @@ fn move_and_colorize_board_elements(
 }
 
 fn mouse_cursor_system(
-    q_window: Query<&Window, With<PrimaryWindow>>,
+    mut q_window: Query<&mut Window, With<PrimaryWindow>>,
     q_camera: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
     mut cursor_ring: Query<
         (&mut BoardElement, &mut Visibility),
@@ -323,7 +323,15 @@ fn mouse_cursor_system(
     game_state: Res<GameState>,
     mut mouse_cursor_coord: ResMut<MouseCursorCoord>,
 ) {
-    if let Some(cursor_position) = q_window.single().cursor_position() {
+    let mut window = q_window.single_mut();
+
+    window.cursor.icon = match *game_state {
+        GameState::PlaceRing => CursorIcon::Pointer,
+        GameState::PlaceMarker => CursorIcon::Pointer,
+        GameState::WaitForAI => CursorIcon::Progress,
+    };
+
+    if let Some(cursor_position) = window.cursor_position() {
         let (camera, camera_transform) = q_camera.single();
 
         if let Some(cursor_position) = camera
