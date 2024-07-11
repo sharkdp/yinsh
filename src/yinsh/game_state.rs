@@ -12,6 +12,9 @@ pub enum TurnMode {
     /// place a marker in one of your rings
     MarkerPlacement,
 
+    /// wait for ring movement
+    WaitForRingMovement(Coord),
+
     /// move the ring at the given position
     RingMovement(Coord),
 
@@ -19,14 +22,16 @@ pub enum TurnMode {
     /// holds the last player who moved a ring.
     RunRemoval(Player),
 
+    /// Wait for run removal
+    WaitForRunRemoval(Player),
+
     /// Remove one of your rings
     RingRemoval(Player),
 
-    /// Do nothing
-    RunRemovalFiller(Player),
+    WaitForRingRemoval(Player),
 
     /// Do nothing
-    MarkerPlacementFiller,
+    WaitForMarkerPlacement,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -74,14 +79,15 @@ impl GameState {
                 } else {
                     TurnMode::MarkerPlacement
                 };
-
-                self.active_player = self.active_player.next();
             }
             (TurnMode::MarkerPlacement, Action::PlaceMarker(coord)) => {
                 self.board.remove_ring(*coord);
                 self.board.add_marker(self.active_player, *coord);
 
-                self.turn_mode = TurnMode::RingMovement(*coord);
+                self.turn_mode = TurnMode::WaitForRingMovement(*coord);
+            }
+            (TurnMode::WaitForRingMovement(start), Action::Wait) => {
+                self.turn_mode = TurnMode::RingMovement(*start);
             }
             (TurnMode::RingMovement(_), Action::MoveRing(start, end)) => {
                 self.board.remove_ring(*start);
@@ -90,19 +96,20 @@ impl GameState {
                 self.board.flip_markers_between(*start, *end);
 
                 self.turn_mode = if self.board.has_run(self.active_player) {
-                    TurnMode::RunRemovalFiller(self.active_player)
+                    TurnMode::WaitForRunRemoval(self.active_player)
                 } else if self.board.has_run(self.active_player.next()) {
                     TurnMode::RunRemoval(self.active_player)
                 } else {
                     TurnMode::MarkerPlacement
                 };
-
-                self.active_player = self.active_player.next();
             }
             (TurnMode::RunRemoval(player_last_ring_move), Action::RemoveRun(coord)) => {
                 self.board.remove_run(*coord);
 
-                self.turn_mode = TurnMode::RingRemoval(*player_last_ring_move);
+                self.turn_mode = TurnMode::WaitForRingRemoval(*player_last_ring_move);
+            }
+            (TurnMode::WaitForRingRemoval(p), Action::Wait) => {
+                self.turn_mode = TurnMode::RingRemoval(*p);
             }
             (TurnMode::RingRemoval(player_last_ring_move), Action::RemoveRing(coord)) => {
                 self.board.remove_ring(*coord);
@@ -115,28 +122,28 @@ impl GameState {
 
                 self.turn_mode = if self.board.has_run(self.active_player) {
                     // Active player has a second run, other player needs to wait
-                    TurnMode::RunRemovalFiller(*player_last_ring_move)
+                    TurnMode::WaitForRunRemoval(*player_last_ring_move)
                 } else if self.board.has_run(self.active_player.next()) {
                     // Other player has a run, active player needs to remove it
                     TurnMode::RunRemoval(*player_last_ring_move)
                 } else if self.active_player == *player_last_ring_move {
                     TurnMode::MarkerPlacement
                 } else {
-                    TurnMode::MarkerPlacementFiller
+                    TurnMode::WaitForMarkerPlacement
                 };
-
-                self.active_player = self.active_player.next();
             }
-            (TurnMode::RunRemovalFiller(p), Action::Wait) => {
+            (TurnMode::WaitForRunRemoval(p), Action::Wait) => {
                 self.turn_mode = TurnMode::RunRemoval(*p);
-
-                self.active_player = self.active_player.next();
             }
-            (TurnMode::MarkerPlacementFiller, _) => todo!(),
+            (TurnMode::WaitForMarkerPlacement, Action::Wait) => {
+                self.turn_mode = TurnMode::MarkerPlacement;
+            }
             (turn_mode, action) => {
                 unreachable!("Received unexpected player action {action:?} in mode {turn_mode:?}")
             }
         }
+
+        self.active_player.flip();
 
         // println!("New turn mode: {:?}", self.turn_mode);
         // println!("New active player: {:?}", self.active_player);
