@@ -1,4 +1,4 @@
-use std::{collections::HashMap, iter};
+use std::iter;
 
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
@@ -35,7 +35,7 @@ impl Element {
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Board {
-    map: HashMap<Coord, Element>,
+    board: [[Option<Element>; 11]; 11],
     rings_a: Vec<Coord>,
     rings_b: Vec<Coord>,
     markers_a: Vec<Coord>,
@@ -49,31 +49,44 @@ impl Board {
 
     /// Returns the element at a certain position or None if the coordinate is free (or invalid)
     fn element_at(&self, coord: Coord) -> Option<Element> {
-        self.check_invariants();
-
-        self.map.get(&coord).copied()
+        if coord.is_inside_board() {
+            self.board[(coord.y + 5) as usize][(coord.x + 5) as usize]
+        } else {
+            None
+        }
     }
 
-    /// Returns the element at a certain position or None if the coordinate is free (or invalid)
-    fn element_at_mut(&mut self, coord: Coord) -> Option<&mut Element> {
-        self.check_invariants();
+    /// Returns the element at a certain position or None if the coordinate is free. Does not
+    /// check for validity.
+    fn element_at_mut_unchecked(&mut self, coord: Coord) -> &mut Option<Element> {
+        &mut self.board[(coord.y + 5) as usize][(coord.x + 5) as usize]
+    }
 
-        self.map.get_mut(&coord)
+    fn insert_board_element_at(&mut self, coord: Coord, kind: ElementKind, player: Player) {
+        self.check_invariants();
+        debug_assert!(coord.is_inside_board());
+
+        self.element_at_mut_unchecked(coord)
+            .replace(Element { kind, player });
+    }
+
+    fn remove_board_element_at(&mut self, coord: &Coord) {
+        self.check_invariants();
+        debug_assert!(coord.is_inside_board());
+
+        self.element_at_mut_unchecked(*coord).take();
     }
 
     /// Returns true if a certain point on the board is free. Does not check for validity.
     pub fn is_free(&self, coord: Coord) -> bool {
-        self.check_invariants();
-
-        self.map.get(&coord).is_none()
+        self.element_at(coord).is_none()
     }
 
     /// Returns true if the element at the given point is a ring of any color.
     pub fn has_ring_at(&self, coord: Coord, player: Player) -> bool {
         self.check_invariants();
 
-        self.map
-            .get(&coord)
+        self.element_at(coord)
             .map_or(false, |e| e.is_ring() && e.player == player)
     }
 
@@ -81,20 +94,14 @@ impl Board {
     fn has_marker_at(&self, coord: Coord) -> bool {
         self.check_invariants();
 
-        self.map.get(&coord).map_or(false, Element::is_marker)
+        self.element_at(coord).map_or(false, |e| e.is_marker())
     }
 
     pub fn add_ring(&mut self, player: Player, coord: Coord) {
         self.check_invariants();
         debug_assert!(self.is_free(coord));
 
-        self.map.insert(
-            coord,
-            Element {
-                kind: ElementKind::Ring,
-                player,
-            },
-        );
+        self.insert_board_element_at(coord, ElementKind::Ring, player);
         match player {
             Player::A => self.rings_a.push(coord),
             Player::B => self.rings_b.push(coord),
@@ -105,7 +112,7 @@ impl Board {
         self.check_invariants();
         debug_assert!(self.element_at(coord).map_or(false, |e| e.is_ring()));
 
-        self.map.remove(&coord);
+        self.remove_board_element_at(&coord);
         self.rings_a.retain(|&x| x != coord);
         self.rings_b.retain(|&x| x != coord);
     }
@@ -116,18 +123,12 @@ impl Board {
         self.rings_a.len() + self.rings_b.len()
     }
 
-    pub fn add_marker(&mut self, active_player: Player, coord: Coord) {
+    pub fn add_marker(&mut self, player: Player, coord: Coord) {
         self.check_invariants();
         debug_assert!(self.is_free(coord));
 
-        self.map.insert(
-            coord,
-            Element {
-                kind: ElementKind::Marker,
-                player: active_player,
-            },
-        );
-        match active_player {
+        self.insert_board_element_at(coord, ElementKind::Marker, player);
+        match player {
             Player::A => self.markers_a.push(coord),
             Player::B => self.markers_b.push(coord),
         }
@@ -137,8 +138,7 @@ impl Board {
         self.check_invariants();
         debug_assert!(self.has_marker_at(coord));
 
-        self.map
-            .retain(|&k, e| k != coord || e.kind != ElementKind::Marker);
+        self.remove_board_element_at(&coord);
         self.markers_a.retain(|&x| x != coord);
         self.markers_b.retain(|&x| x != coord);
     }
@@ -222,8 +222,11 @@ impl Board {
     pub fn flip_markers_between(&mut self, start: Coord, end: Coord) {
         self.check_invariants();
 
+        debug_assert!(start.is_inside_board());
+        debug_assert!(end.is_inside_board());
+
         for coord in Coord::between(start, end) {
-            if let Some(e) = self.element_at_mut(coord) {
+            if let Some(e) = self.element_at_mut_unchecked(coord) {
                 debug_assert!(e.is_marker());
 
                 e.flip_player();
@@ -312,54 +315,50 @@ impl Board {
 
     #[cfg(debug_assertions)]
     fn check_invariants(&self) {
-        for (coord, element) in &self.map {
-            debug_assert!(coord.is_inside_board());
-
-            match (element.kind, element.player) {
-                (ElementKind::Ring, Player::A) => {
-                    debug_assert!(self.rings_a.contains(coord));
-                    debug_assert!(!self.rings_b.contains(coord));
-                }
-                (ElementKind::Ring, Player::B) => {
-                    debug_assert!(self.rings_b.contains(coord));
-                    debug_assert!(!self.rings_a.contains(coord));
-                }
-                (ElementKind::Marker, Player::A) => {
-                    debug_assert!(self.markers_a.contains(coord));
-                    debug_assert!(!self.markers_b.contains(coord));
-                }
-                (ElementKind::Marker, Player::B) => {
-                    debug_assert!(self.markers_b.contains(coord));
-                    debug_assert!(!self.markers_a.contains(coord));
+        for coord in all_coords() {
+            if let Some(element) = self.element_at(coord) {
+                match (element.kind, element.player) {
+                    (ElementKind::Ring, Player::A) => {
+                        debug_assert!(self.rings_a.contains(&coord));
+                        debug_assert!(!self.rings_b.contains(&coord));
+                    }
+                    (ElementKind::Ring, Player::B) => {
+                        debug_assert!(self.rings_b.contains(&coord));
+                        debug_assert!(!self.rings_a.contains(&coord));
+                    }
+                    (ElementKind::Marker, Player::A) => {
+                        debug_assert!(self.markers_a.contains(&coord));
+                        debug_assert!(!self.markers_b.contains(&coord));
+                    }
+                    (ElementKind::Marker, Player::B) => {
+                        debug_assert!(self.markers_b.contains(&coord));
+                        debug_assert!(!self.markers_a.contains(&coord));
+                    }
                 }
             }
         }
 
         for coord in self.rings_a.iter().copied() {
             debug_assert!(self
-                .map
-                .get(&coord)
+                .element_at(coord)
                 .map_or(false, |e| e.is_ring() && e.player == Player::A));
         }
 
         for coord in self.rings_b.iter().copied() {
             debug_assert!(self
-                .map
-                .get(&coord)
+                .element_at(coord)
                 .map_or(false, |e| e.is_ring() && e.player == Player::B));
         }
 
         for coord in self.markers_a.iter().copied() {
             debug_assert!(self
-                .map
-                .get(&coord)
+                .element_at(coord)
                 .map_or(false, |e| e.is_marker() && e.player == Player::A));
         }
 
         for coord in self.markers_b.iter().copied() {
             debug_assert!(self
-                .map
-                .get(&coord)
+                .element_at(coord)
                 .map_or(false, |e| e.is_marker() && e.player == Player::B));
         }
     }
