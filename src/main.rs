@@ -42,11 +42,14 @@ pub enum InteractionState {
     RingMovement(Coord),
     RunRemoval { run_coords: Vec<Coord> },
     RingRemoval,
+    AutoMove,
     WaitForAI,
 }
 
 impl InteractionState {
     fn from_turn_mode(game_state: &yinsh::GameState) -> Self {
+        assert!(game_state.active_player == PLAYER_HUMAN);
+
         match game_state.turn_mode {
             TurnMode::RingPlacement => Self::RingPlacement,
             TurnMode::MarkerPlacement => Self::MarkerPlacement,
@@ -55,8 +58,10 @@ impl InteractionState {
                 run_coords: game_state.board.run_coords(PLAYER_HUMAN),
             },
             TurnMode::RingRemoval(_) => Self::RingRemoval,
-            TurnMode::RunRemovalFiller(_) => unreachable!(),
-            TurnMode::MarkerPlacementFiller => unreachable!(),
+            TurnMode::WaitForRunRemoval(_)
+            | TurnMode::WaitForMarkerPlacement
+            | TurnMode::WaitForRingMovement(_)
+            | TurnMode::WaitForRingRemoval(_) => Self::AutoMove,
         }
     }
 }
@@ -109,16 +114,16 @@ fn main() {
         .add_systems(
             Update,
             (
+                save_and_load_game_state,
                 wait_for_ai_move,
+                update_board_elements,
                 update_game_state,
                 draw_grid,
                 draw_indicators,
                 show_information,
                 keyboard_control,
-                save_and_load_game_state,
                 mouse_cursor_system,
                 mouse_interaction_system,
-                update_board_elements,
                 move_board_elements,
                 colorize_board_elements,
             )
@@ -299,18 +304,6 @@ fn update_game_state(
 
             *interaction_state = InteractionState::WaitForAI;
         } else {
-            // Perform 'filler' moves automatically
-            loop {
-                match game_state.0.turn_mode {
-                    TurnMode::RunRemovalFiller(_) | TurnMode::MarkerPlacementFiller => {
-                        game_state.0.transition(&Action::Wait);
-                    }
-                    _ => {
-                        break;
-                    }
-                }
-            }
-
             *interaction_state = InteractionState::from_turn_mode(&game_state.0);
         }
     }
@@ -390,8 +383,8 @@ fn show_information(
         game_state.0.active_player,
         game_state.0.points_a,
         game_state.0.points_b,
+        cursor_coord.0,
         game_state.0.turn_mode,
-        cursor_coord.0
     );
 }
 
@@ -643,6 +636,7 @@ fn mouse_cursor_system(
                 }
                 InteractionState::RunRemoval { .. } => {}
                 InteractionState::RingRemoval => {}
+                InteractionState::AutoMove => {}
                 InteractionState::WaitForAI => {}
             }
 
@@ -658,6 +652,11 @@ fn mouse_interaction_system(
     cursor_coord: Res<CursorCoord>,
     mut player_action_events: EventWriter<PlayerActionEvent>,
 ) {
+    if matches!(*interaction_state, InteractionState::AutoMove) {
+        // TODO
+        player_action_events.send(PlayerActionEvent(PLAYER_HUMAN, Action::Wait));
+    }
+
     if let Some(cursor_coord) = cursor_coord.0 {
         if buttons.just_pressed(MouseButton::Left) {
             match *interaction_state {
@@ -706,6 +705,7 @@ fn mouse_interaction_system(
                         ));
                     }
                 }
+                InteractionState::AutoMove => {}
             }
         }
     }
@@ -732,7 +732,7 @@ fn save_and_load_game_state(
     if keyboard.just_pressed(KeyCode::KeyS) {
         println!("Saving game state to {}", filename);
         game_state.0.save_to(filename);
-    } else if keyboard.just_pressed(KeyCode::KeyL) {
+    } else if keyboard.just_pressed(KeyCode::KeyL) || keyboard.just_pressed(KeyCode::KeyR) {
         println!("Loading game state from {}", filename);
         game_state.0 = yinsh::GameState::load_from(filename);
 
