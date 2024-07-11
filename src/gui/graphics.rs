@@ -17,6 +17,8 @@ pub const FOREGROUND_RENDER_LAYER: RenderLayers = RenderLayers::layer(2);
 pub const BACKGROUND_RENDER_LAYER: RenderLayers = RenderLayers::layer(1);
 
 pub const COLOR_GRID: Color = Color::hsl(0.0, 0.0, 0.3);
+pub const COLOR_BACKGROUND: Color = Color::hsl(0.0, 0.0, 0.4);
+pub const COLOR_RING_MOVEMENT_INDICATOR: Color = Color::hsla(0.0, 0.0, 1.5, 0.1);
 
 pub const ANIMATION_DURATION: Duration = Duration::from_millis(300);
 

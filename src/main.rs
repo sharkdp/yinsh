@@ -13,10 +13,11 @@ use gui::{
     board::{BoardElement, Marker, Ring},
     graphics::{
         marker_mesh, ring_mesh, screen_point, spawn_marker, spawn_ring, PlayerColors,
-        ANIMATION_DURATION, BACKGROUND_RENDER_LAYER, FOREGROUND_RENDER_LAYER, SPACING,
+        ANIMATION_DURATION, BACKGROUND_RENDER_LAYER, COLOR_BACKGROUND, FOREGROUND_RENDER_LAYER,
     },
     grid::draw_grid,
     information_display::information_display_plugin,
+    interaction::interaction_plugin,
     io::save_and_load_game_state,
     keyboard::keyboard_control,
     state::{update_game_state, GameState, InteractionState, PlayerActionEvent},
@@ -49,6 +50,7 @@ fn main() {
             }),
             TweeningPlugin,
             information_display_plugin,
+            interaction_plugin,
         ))
         .add_systems(Startup, setup)
         .add_systems(
@@ -59,7 +61,6 @@ fn main() {
                 update_board_elements,
                 update_game_state,
                 draw_grid,
-                draw_indicators,
                 keyboard_control,
                 mouse_cursor_system,
                 mouse_interaction_system,
@@ -68,7 +69,7 @@ fn main() {
             )
                 .chain(),
         )
-        .insert_resource(ClearColor(Color::hsl(0.0, 0.0, 0.4)))
+        .insert_resource(ClearColor(COLOR_BACKGROUND))
         .insert_resource(Msaa::Sample8)
         .insert_resource(InteractionState::RingPlacement)
         .insert_resource(AiTask::new())
@@ -140,21 +141,6 @@ fn setup(
         CursorElement,
         FOREGROUND_RENDER_LAYER,
     ));
-}
-
-fn draw_indicators(
-    mut gizmos: Gizmos,
-    interaction_state: Res<InteractionState>,
-    game_state: Res<GameState>,
-) {
-    let indicator_color = Color::hsla(0.0, 0.0, 1.5, 0.1);
-
-    if let InteractionState::RingMovement(start) = *interaction_state {
-        for coord in game_state.board.ring_moves(start) {
-            let screen_pos = screen_point(coord);
-            gizmos.circle(screen_pos, Dir3::Z, SPACING / 8., indicator_color);
-        }
-    }
 }
 
 fn update_board_elements(
@@ -256,7 +242,7 @@ fn colorize_board_elements(
                 player_colors.human_transparent.clone()
             } else {
                 match *interaction_state {
-                    InteractionState::RingMovement(start) => {
+                    InteractionState::RingMovement(start, _) => {
                         if *coord == start && ring.is_some() {
                             player_colors.human_highlighted.clone()
                         } else {
@@ -355,8 +341,8 @@ fn mouse_cursor_system(
                         cursor_marker_coord.0 = cursor_coord;
                     }
                 }
-                InteractionState::RingMovement(start) => {
-                    if game_state.board.is_valid_ring_move(start, cursor_coord) {
+                InteractionState::RingMovement(_, ref possible_ring_moves) => {
+                    if possible_ring_moves.contains(&cursor_coord) {
                         *cursor_ring_visibility = Visibility::Visible;
                         cursor_ring_coord.0 = cursor_coord;
                     }
@@ -407,8 +393,8 @@ fn mouse_interaction_system(
                         ));
                     }
                 }
-                InteractionState::RingMovement(start) => {
-                    if game_state.board.is_valid_ring_move(start, cursor_coord) {
+                InteractionState::RingMovement(start, ref possible_ring_moves) => {
+                    if possible_ring_moves.contains(&cursor_coord) {
                         player_action_events.send(PlayerActionEvent(
                             PLAYER_HUMAN,
                             Action::MoveRing(start, cursor_coord),
