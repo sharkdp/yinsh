@@ -58,8 +58,10 @@ impl Board {
     }
 
     /// Returns true if the element at the given point is a ring of any color.
-    pub fn is_ring_at(&self, coord: Coord) -> bool {
-        self.map.get(&coord).map_or(false, Element::is_ring)
+    pub fn is_ring_at(&self, coord: Coord, player: Player) -> bool {
+        self.map
+            .get(&coord)
+            .map_or(false, |e| e.is_ring() && e.player == player)
     }
 
     /// Returns true if the element at the given point is a marker of any color.
@@ -217,7 +219,6 @@ impl Board {
     pub fn has_run(&self, player: Player) -> bool {
         for coord in self.marker_coords(player) {
             if self.run_coords_from(coord).is_some() {
-                println!("Found run seeded at {:?}", coord);
                 return true;
             }
         }
@@ -241,6 +242,13 @@ impl Board {
             .expect("remove_run called with invalid seed");
         for coord in run_coords {
             self.remove_marker(coord);
+        }
+    }
+
+    pub fn num_markers(&self, player: Player) -> usize {
+        match player {
+            Player::A => self.markers_a.len(),
+            Player::B => self.markers_b.len(),
         }
     }
 }
