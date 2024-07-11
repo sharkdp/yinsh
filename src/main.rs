@@ -1,12 +1,9 @@
 mod gui;
 
-use std::time::Duration;
-
 use bevy::{
     core_pipeline::bloom::BloomSettings,
     prelude::*,
     render::view::RenderLayers,
-    tasks::AsyncComputeTaskPool,
     window::{PresentMode, PrimaryWindow, WindowMode},
 };
 use bevy_tweening::lens::TransformPositionLens;
@@ -16,14 +13,15 @@ use gui::{
     ai::{wait_for_ai_move, AiPlayerStrength, AiTask},
     board::{BoardElement, Marker, Ring},
     graphics::{
-        marker_mesh, ring_mesh, screen_point, spawn_marker, spawn_ring, PlayerColors, SPACING,
+        marker_mesh, ring_mesh, screen_point, spawn_marker, spawn_ring, PlayerColors,
+        ANIMATION_DURATION, SPACING,
     },
     io::save_and_load_game_state,
     keyboard::keyboard_control,
-    resources::InteractionState,
-    PLAYER_AI, PLAYER_HUMAN,
+    state::{update_game_state, GameState, InteractionState, PlayerActionEvent},
+    PLAYER_HUMAN,
 };
-use yinsh::{Action, Coord, Player, TurnMode};
+use yinsh::{Action, Coord, Player};
 
 #[derive(Component)]
 struct MainCamera;
@@ -39,14 +37,6 @@ pub struct CursorCoord(Option<Coord>);
 
 const BACKGROUND_RENDER_LAYER: RenderLayers = RenderLayers::layer(1);
 const FOREGROUND_RENDER_LAYER: RenderLayers = RenderLayers::layer(2);
-
-#[derive(Event)]
-struct PlayerActionEvent(Player, Action);
-
-#[derive(Resource)]
-struct GameState(yinsh::GameState);
-
-const ANIMATION_DURATION: Duration = Duration::from_millis(300);
 
 fn main() {
     App::new()
@@ -89,7 +79,7 @@ fn main() {
         .insert_resource(AiTask::new())
         .insert_resource(AiPlayerStrength(11))
         .insert_resource(CursorCoord(None))
-        .insert_resource(GameState(yinsh::GameState::initial()))
+        .insert_resource(GameState::initial())
         .add_event::<PlayerActionEvent>()
         .run();
 }
@@ -176,45 +166,6 @@ fn setup(
     ));
 }
 
-fn update_game_state(
-    mut game_state: ResMut<GameState>,
-    mut player_action_events: EventReader<PlayerActionEvent>,
-    mut interaction_state: ResMut<InteractionState>,
-    mut task: ResMut<AiTask>,
-    ai_player_strength: Res<AiPlayerStrength>,
-) {
-    for PlayerActionEvent(player, action) in player_action_events.read() {
-        assert!(player == &game_state.0.active_player);
-
-        game_state.0.transition(action);
-
-        if let Some(winner) = game_state.0.winner() {
-            *interaction_state = InteractionState::Winner(winner);
-            return;
-        }
-
-        if game_state.0.active_player == PLAYER_AI {
-            let task_pool = AsyncComputeTaskPool::get();
-
-            let game_state = game_state.0.clone();
-            let search_depth = ai_player_strength.0;
-            task.start(task_pool.spawn(async move {
-                // TODO! This is a hack to make sure the AI takes at least as long as
-                // the animation.
-                if matches!(game_state.turn_mode, TurnMode::MarkerPlacement) {
-                    std::thread::sleep(ANIMATION_DURATION);
-                }
-
-                yinsh::get_ai_player_action(search_depth, &game_state)
-            }));
-
-            *interaction_state = InteractionState::WaitForAI;
-        } else {
-            *interaction_state = InteractionState::from_turn_mode(&game_state.0);
-        }
-    }
-}
-
 fn draw_grid(mut gizmos: Gizmos) {
     let grid_line_color = Color::hsl(0.0, 0.0, 0.3);
 
@@ -272,7 +223,7 @@ fn draw_indicators(
     let indicator_color = Color::hsla(0.0, 0.0, 1.5, 0.1);
 
     if let InteractionState::RingMovement(start) = *interaction_state {
-        for coord in game_state.0.board.ring_moves(start) {
+        for coord in game_state.board.ring_moves(start) {
             let screen_pos = screen_point(coord);
             gizmos.circle(screen_pos, Dir3::Z, SPACING / 8., indicator_color);
         }
@@ -288,9 +239,9 @@ fn show_information(
 ) {
     q_text.single_mut().sections[0].value = format!(
         "Active player: {:?}, Score: {}:{}, Grid coord: {:?}\nMode: {}\nAI strength: {} [Weaker: J, Stronger: K]",
-        game_state.0.active_player,
-        game_state.0.points_a,
-        game_state.0.points_b,
+        game_state.active_player,
+        game_state.points_a,
+        game_state.points_b,
         cursor_coord.0,
         match *interaction_state {
             InteractionState::RingPlacement => "Place a ring on the board",
@@ -355,7 +306,7 @@ fn update_board_elements(
                 }
             }
             Action::RemoveRun(seed) => {
-                let run_coords = game_state.0.board.run_coords_from(seed).unwrap();
+                let run_coords = game_state.board.run_coords_from(seed).unwrap();
 
                 for (entity, element) in q_markers.iter_mut() {
                     if run_coords.contains(&element.0) {
@@ -415,7 +366,7 @@ fn colorize_board_elements(
                     InteractionState::RunRemoval { ref run_coords } => match mouse_cursor_coord.0 {
                         Some(cursor_coord) if run_coords.contains(&cursor_coord) => {
                             let run_from_cursor =
-                                game_state.0.board.run_coords_from(cursor_coord).unwrap();
+                                game_state.board.run_coords_from(cursor_coord).unwrap();
                             if run_from_cursor.contains(coord) {
                                 player_colors.human_highlighted.clone()
                             } else {
@@ -490,14 +441,13 @@ fn mouse_cursor_system(
 
             match *interaction_state {
                 InteractionState::RingPlacement => {
-                    if game_state.0.board.is_free(cursor_coord) {
+                    if game_state.board.is_free(cursor_coord) {
                         *cursor_ring_visibility = Visibility::Visible;
                         cursor_ring_coord.0 = cursor_coord;
                     }
                 }
                 InteractionState::MarkerPlacement => {
                     if game_state
-                        .0
                         .board
                         .can_place_marker_at(cursor_coord, PLAYER_HUMAN)
                     {
@@ -506,7 +456,7 @@ fn mouse_cursor_system(
                     }
                 }
                 InteractionState::RingMovement(start) => {
-                    if game_state.0.board.is_valid_ring_move(start, cursor_coord) {
+                    if game_state.board.is_valid_ring_move(start, cursor_coord) {
                         *cursor_ring_visibility = Visibility::Visible;
                         cursor_ring_coord.0 = cursor_coord;
                     }
@@ -539,7 +489,7 @@ fn mouse_interaction_system(
         if buttons.just_pressed(MouseButton::Left) {
             match *interaction_state {
                 InteractionState::RingPlacement => {
-                    if game_state.0.board.is_free(cursor_coord) {
+                    if game_state.board.is_free(cursor_coord) {
                         player_action_events.send(PlayerActionEvent(
                             PLAYER_HUMAN,
                             Action::PlaceRing(cursor_coord),
@@ -548,7 +498,6 @@ fn mouse_interaction_system(
                 }
                 InteractionState::MarkerPlacement => {
                     if game_state
-                        .0
                         .board
                         .can_place_marker_at(cursor_coord, PLAYER_HUMAN)
                     {
@@ -559,7 +508,7 @@ fn mouse_interaction_system(
                     }
                 }
                 InteractionState::RingMovement(start) => {
-                    if game_state.0.board.is_valid_ring_move(start, cursor_coord) {
+                    if game_state.board.is_valid_ring_move(start, cursor_coord) {
                         player_action_events.send(PlayerActionEvent(
                             PLAYER_HUMAN,
                             Action::MoveRing(start, cursor_coord),
@@ -576,7 +525,7 @@ fn mouse_interaction_system(
                     }
                 }
                 InteractionState::RingRemoval => {
-                    if game_state.0.board.has_ring_at(cursor_coord, PLAYER_HUMAN) {
+                    if game_state.board.has_ring_at(cursor_coord, PLAYER_HUMAN) {
                         player_action_events.send(PlayerActionEvent(
                             PLAYER_HUMAN,
                             Action::RemoveRing(cursor_coord),
