@@ -1,3 +1,5 @@
+use std::iter;
+
 use crate::yinsh::{Action, GameState, TurnMode};
 
 fn possible_next_game_states<'a>(state: &'a GameState) -> Box<dyn Iterator<Item = Action> + 'a> {
@@ -18,7 +20,7 @@ fn possible_next_game_states<'a>(state: &'a GameState) -> Box<dyn Iterator<Item 
         ),
         TurnMode::RunRemoval(_) => todo!(),
         TurnMode::RingRemoval(_) => todo!(),
-        TurnMode::RunRemovalFiller(_) => todo!(),
+        TurnMode::RunRemovalFiller(_) => Box::new(iter::once(Action::Wait)),
         TurnMode::MarkerPlacementFiller => todo!(),
     }
 }
