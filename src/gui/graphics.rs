@@ -24,17 +24,17 @@ pub const COLOR_BACKGROUND: Color = Color::hsl(0.0, 0.0, 0.4);
 
 pub const COLOR_RING_MOVEMENT_INDICATOR: Color = Color::hsla(0.0, 0.0, 1.5, 0.1);
 
-pub const COLOR_WHITE: Color = Color::srgba(1.5, 1.5, 1.5, 1.0);
-pub const COLOR_WHITE_HIGHLIGHTED: Color = Color::srgba(4., 4., 4., 1.0);
-pub const COLOR_WHITE_TRANSPARENT: Color = Color::srgba(1.5, 1.5, 1.5, 0.1);
+pub const COLOR_HUMAN: Color = Color::srgba(1.5, 1.5, 1.5, 1.0);
+pub const COLOR_HUMAN_HIGHLIGHTED: Color = Color::srgba(4., 4., 4., 1.0);
+pub const COLOR_HUMAN_TRANSPARENT: Color = Color::srgba(1.5, 1.5, 1.5, 0.1);
 
-pub const COLOR_BLACK: Color = Color::srgba(0.0, 0.0, 0.0, 1.0);
+pub const COLOR_AI: Color = Color::srgba(0.0, 0.0, 0.0, 1.0);
 
 pub fn color_for_player(player: Player) -> Color {
     if player == PLAYER_HUMAN {
-        COLOR_WHITE
+        COLOR_HUMAN
     } else {
-        COLOR_BLACK
+        COLOR_AI
     }
 }
 
@@ -167,19 +167,19 @@ fn setup_graphics(
     ));
 
     commands.insert_resource(PlayerColors {
-        human: materials.add(COLOR_WHITE),
-        human_highlighted: materials.add(COLOR_WHITE_HIGHLIGHTED),
-        human_transparent: materials.add(COLOR_WHITE_TRANSPARENT),
-        ai: materials.add(COLOR_BLACK),
+        human: materials.add(COLOR_HUMAN),
+        human_highlighted: materials.add(COLOR_HUMAN_HIGHLIGHTED),
+        human_transparent: materials.add(COLOR_HUMAN_TRANSPARENT),
+        ai: materials.add(COLOR_AI),
         animated_markers: [
-            materials.add(COLOR_BLACK),
-            materials.add(COLOR_BLACK),
-            materials.add(COLOR_BLACK),
-            materials.add(COLOR_BLACK),
-            materials.add(COLOR_BLACK),
-            materials.add(COLOR_BLACK),
-            materials.add(COLOR_BLACK),
-            materials.add(COLOR_BLACK),
+            materials.add(COLOR_AI),
+            materials.add(COLOR_AI),
+            materials.add(COLOR_AI),
+            materials.add(COLOR_AI),
+            materials.add(COLOR_AI),
+            materials.add(COLOR_AI),
+            materials.add(COLOR_AI),
+            materials.add(COLOR_AI),
         ],
     });
 
