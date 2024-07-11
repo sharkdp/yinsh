@@ -6,7 +6,6 @@ use bevy::{
     core_pipeline::bloom::BloomSettings,
     prelude::*,
     render::view::RenderLayers,
-    sprite::{MaterialMesh2dBundle, Mesh2dHandle},
     tasks::AsyncComputeTaskPool,
     window::{PresentMode, PrimaryWindow, WindowMode},
 };
@@ -14,8 +13,12 @@ use bevy_tweening::lens::TransformPositionLens;
 use bevy_tweening::{Animator, EaseFunction, Tween, TweeningPlugin};
 
 use gui::{
-    ai::{AiPlayerStrength, AiTask},
+    ai::{wait_for_ai_move, AiPlayerStrength, AiTask},
     board::{BoardElement, Marker, Ring},
+    graphics::{
+        marker_mesh, ring_mesh, screen_point, spawn_marker, spawn_ring, PlayerColors, SPACING,
+    },
+    io::save_and_load_game_state,
     keyboard::keyboard_control,
     resources::InteractionState,
     PLAYER_AI, PLAYER_HUMAN,
@@ -33,14 +36,6 @@ struct GameStateInformation;
 
 #[derive(Resource)]
 pub struct CursorCoord(Option<Coord>);
-
-#[derive(Resource)]
-struct PlayerColors {
-    human: Handle<ColorMaterial>,
-    human_highlighted: Handle<ColorMaterial>,
-    human_transparent: Handle<ColorMaterial>,
-    ai: Handle<ColorMaterial>,
-}
 
 const BACKGROUND_RENDER_LAYER: RenderLayers = RenderLayers::layer(1);
 const FOREGROUND_RENDER_LAYER: RenderLayers = RenderLayers::layer(2);
@@ -97,32 +92,6 @@ fn main() {
         .insert_resource(GameState(yinsh::GameState::initial()))
         .add_event::<PlayerActionEvent>()
         .run();
-}
-
-fn ring_mesh(
-    meshes: &mut Assets<Mesh>,
-    color_material: Handle<ColorMaterial>,
-    visibility: Visibility,
-) -> MaterialMesh2dBundle<ColorMaterial> {
-    MaterialMesh2dBundle {
-        mesh: Mesh2dHandle(meshes.add(Annulus::new(SPACING / 4., SPACING / 3.))),
-        material: color_material,
-        visibility,
-        ..default()
-    }
-}
-
-fn marker_mesh(
-    meshes: &mut Assets<Mesh>,
-    color_material: Handle<ColorMaterial>,
-    visibility: Visibility,
-) -> MaterialMesh2dBundle<ColorMaterial> {
-    MaterialMesh2dBundle {
-        mesh: Mesh2dHandle(meshes.add(Circle::new(SPACING / 5.))),
-        material: color_material,
-        visibility,
-        ..default()
-    }
 }
 
 fn setup(
@@ -205,37 +174,6 @@ fn setup(
         GameStateInformation,
         BACKGROUND_RENDER_LAYER,
     ));
-}
-
-const SPACING: f32 = 90.0;
-
-fn screen_point(coord: Coord) -> Vec3 {
-    Vec3::new(
-        SPACING * (0.5 * 3_f32.sqrt() * coord.x as f32),
-        SPACING * (-coord.y as f32 + 0.5 * coord.x as f32),
-        0.,
-    )
-}
-
-fn wait_for_ai_move(
-    mut task: ResMut<AiTask>,
-    mut player_action_events: EventWriter<PlayerActionEvent>,
-) {
-    if !task.is_running() {
-        return;
-    }
-
-    let status = task.get_status();
-
-    if status.is_none() {
-        return;
-    }
-
-    task.cancel();
-
-    let action = status.unwrap();
-
-    player_action_events.send(PlayerActionEvent(PLAYER_AI, action));
 }
 
 fn update_game_state(
@@ -366,48 +304,6 @@ fn show_information(
         },
         ai_player_strength.0,
     );
-}
-
-fn spawn_ring(
-    commands: &mut Commands,
-    meshes: &mut Assets<Mesh>,
-    player_colors: &PlayerColors,
-    coord: Coord,
-    player: Player,
-) {
-    let color = if player == PLAYER_HUMAN {
-        player_colors.human.clone()
-    } else {
-        player_colors.ai.clone()
-    };
-
-    commands.spawn((
-        ring_mesh(meshes, color, Visibility::Visible),
-        BoardElement(coord, player),
-        Ring,
-        FOREGROUND_RENDER_LAYER,
-    ));
-}
-
-fn spawn_marker(
-    commands: &mut Commands,
-    meshes: &mut Assets<Mesh>,
-    player_colors: &PlayerColors,
-    coord: Coord,
-    player: Player,
-) {
-    let color = if player == PLAYER_HUMAN {
-        player_colors.human.clone()
-    } else {
-        player_colors.ai.clone()
-    };
-
-    commands.spawn((
-        marker_mesh(meshes, color, Visibility::Visible),
-        BoardElement(coord, player),
-        Marker,
-        FOREGROUND_RENDER_LAYER,
-    ));
 }
 
 fn update_board_elements(
@@ -689,46 +585,6 @@ fn mouse_interaction_system(
                 }
                 InteractionState::AutoMove => {}
                 InteractionState::Winner(_) => {}
-            }
-        }
-    }
-}
-
-fn save_and_load_game_state(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    player_colors: Res<PlayerColors>,
-    keyboard: Res<ButtonInput<KeyCode>>,
-    mut game_state: ResMut<GameState>,
-    mut interaction_state: ResMut<InteractionState>,
-    mut ai_task: ResMut<AiTask>,
-    q_board_elements: Query<Entity, (With<BoardElement>, Without<CursorElement>)>,
-) {
-    let filename = "gamestate.yml";
-
-    if keyboard.just_pressed(KeyCode::KeyS) {
-        println!("Saving game state to {}", filename);
-        game_state.0.save_to(filename);
-    } else if keyboard.just_pressed(KeyCode::KeyL) || keyboard.just_pressed(KeyCode::KeyR) {
-        println!("Loading game state from {}", filename);
-        game_state.0 = yinsh::GameState::load_from(filename);
-
-        *interaction_state = InteractionState::from_turn_mode(&game_state.0);
-        ai_task.cancel();
-
-        // Despawn all board elements
-        for entity in q_board_elements.iter() {
-            commands.entity(entity).despawn();
-        }
-
-        // Respawn board elements
-        for p in [Player::A, Player::B] {
-            for coord in game_state.0.board.ring_coords(p) {
-                spawn_ring(&mut commands, &mut meshes, &player_colors, coord, p);
-            }
-
-            for coord in game_state.0.board.marker_coords(p) {
-                spawn_marker(&mut commands, &mut meshes, &player_colors, coord, p);
             }
         }
     }

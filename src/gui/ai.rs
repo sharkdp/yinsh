@@ -4,6 +4,10 @@ use bevy::tasks::{block_on, Task};
 
 use yinsh::Action;
 
+use crate::PlayerActionEvent;
+
+use super::PLAYER_AI;
+
 #[derive(Resource)]
 pub struct AiTask(Option<Task<Action>>);
 
@@ -31,3 +35,24 @@ impl AiTask {
 
 #[derive(Resource)]
 pub struct AiPlayerStrength(pub usize);
+
+pub fn wait_for_ai_move(
+    mut task: ResMut<AiTask>,
+    mut player_action_events: EventWriter<PlayerActionEvent>,
+) {
+    if !task.is_running() {
+        return;
+    }
+
+    let status = task.get_status();
+
+    if status.is_none() {
+        return;
+    }
+
+    task.cancel();
+
+    let action = status.unwrap();
+
+    player_action_events.send(PlayerActionEvent(PLAYER_AI, action));
+}
