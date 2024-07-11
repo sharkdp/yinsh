@@ -171,7 +171,6 @@ fn update_board_elements(
 fn clear_animators(mut q: Query<(Entity, &AssetAnimator<ColorMaterial>)>, mut commands: Commands) {
     for (entity, animator) in q.iter_mut() {
         if animator.tweenable().times_completed() == 1 {
-            dbg!("Removing animator");
             commands
                 .entity(entity)
                 .remove::<AssetAnimator<ColorMaterial>>();

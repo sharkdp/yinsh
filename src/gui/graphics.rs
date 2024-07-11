@@ -18,17 +18,49 @@ use super::{
 pub const FOREGROUND_RENDER_LAYER: RenderLayers = RenderLayers::layer(2);
 pub const BACKGROUND_RENDER_LAYER: RenderLayers = RenderLayers::layer(1);
 
-pub const COLOR_GRID: Color = Color::hsl(0.0, 0.0, 0.3);
+pub const COLOR_GRID: Color = Color::hsl(0.0, 0.0, 0.2);
 
-pub const COLOR_BACKGROUND: Color = Color::hsl(0.0, 0.0, 0.4);
+pub const COLOR_BACKGROUND: Color = Color::hsl(0.0, 0.0, 0.05);
 
 pub const COLOR_RING_MOVEMENT_INDICATOR: Color = Color::hsla(0.0, 0.0, 1.5, 0.1);
 
-pub const COLOR_HUMAN: Color = Color::srgba(1.5, 1.5, 1.5, 1.0);
-pub const COLOR_HUMAN_HIGHLIGHTED: Color = Color::srgba(4., 4., 4., 1.0);
-pub const COLOR_HUMAN_TRANSPARENT: Color = Color::srgba(1.5, 1.5, 1.5, 0.1);
+pub const COLOR_HUMAN_R: f32 = 255.;
+pub const COLOR_HUMAN_G: f32 = 226.;
+pub const COLOR_HUMAN_B: f32 = 55.;
 
-pub const COLOR_AI: Color = Color::srgba(0.0, 0.0, 0.0, 1.0);
+pub const COLOR_HUMAN_BLOOM: f32 = 1.5;
+
+pub const COLOR_HUMAN: Color = Color::srgba(
+    COLOR_HUMAN_BLOOM * COLOR_HUMAN_R / 255.,
+    COLOR_HUMAN_BLOOM * COLOR_HUMAN_G / 255.,
+    COLOR_HUMAN_BLOOM * COLOR_HUMAN_B / 255.,
+    1.0,
+);
+pub const COLOR_HUMAN_HIGHLIGHTED: Color = Color::srgba(
+    4.0 * COLOR_HUMAN_R / 255.,
+    4.0 * COLOR_HUMAN_G / 255.,
+    4.0 * COLOR_HUMAN_B / 255.,
+    1.0,
+);
+pub const COLOR_HUMAN_TRANSPARENT: Color = Color::srgba(
+    COLOR_HUMAN_BLOOM * COLOR_HUMAN_R / 255.,
+    COLOR_HUMAN_BLOOM * COLOR_HUMAN_G / 255.,
+    COLOR_HUMAN_BLOOM * COLOR_HUMAN_B / 255.,
+    0.2,
+);
+
+pub const COLOR_AI_R: f32 = 11.;
+pub const COLOR_AI_G: f32 = 74.;
+pub const COLOR_AI_B: f32 = 99.;
+
+pub const COLOR_AI_BLOOM: f32 = 2.0;
+
+pub const COLOR_AI: Color = Color::srgba(
+    COLOR_AI_BLOOM * COLOR_AI_R / 255.,
+    COLOR_AI_BLOOM * COLOR_AI_G / 255.,
+    COLOR_AI_BLOOM * COLOR_AI_B / 255.,
+    1.0,
+);
 
 pub fn color_for_player(player: Player) -> Color {
     if player == PLAYER_HUMAN {
