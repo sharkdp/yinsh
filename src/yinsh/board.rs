@@ -1,5 +1,6 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, iter};
 
+use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 
 use crate::yinsh::core::AXES;
@@ -54,6 +55,11 @@ impl Board {
     /// Returns the element at a certain position or None if the coordinate is free (or invalid)
     fn element_at_mut(&mut self, coord: Coord) -> Option<&mut Element> {
         self.map.get_mut(&coord)
+    }
+
+    /// Returns true if the element at the given point is a ring of any color.
+    pub fn is_ring_at(&self, coord: Coord) -> bool {
+        self.map.get(&coord).map_or(false, Element::is_ring)
     }
 
     /// Returns true if the element at the given point is a marker of any color.
@@ -165,29 +171,6 @@ impl Board {
             && !self.ring_moves(coord).is_empty()
     }
 
-    pub fn has_run(&self, player: Player) -> bool {
-        let markers = match player {
-            Player::A => &self.markers_a,
-            Player::B => &self.markers_b,
-        };
-
-        for &start in markers {
-            for d in DIRECTIONS {
-                let mut current = start + d.direction();
-                let mut count = 1;
-                while current.is_inside_board() && self.is_marker_at(current) {
-                    count += 1;
-                    current = current + d.direction();
-                }
-                if count >= 5 {
-                    return true;
-                }
-            }
-        }
-
-        false
-    }
-
     pub fn flip_markers_between(&mut self, start: Coord, end: Coord) {
         for coord in Coord::between(start, end) {
             self.element_at_mut(coord).map(|e| {
@@ -197,68 +180,65 @@ impl Board {
         }
     }
 
-    pub fn run_coords_from(&self, start: Coord) -> Vec<Coord> {
+    /// Returns the coordinates of a run (if one exists), starting at the given seed.
+    pub fn run_coords_from(&self, start: Coord) -> Option<Vec<Coord>> {
         let seed = self.element_at(start).unwrap();
 
         debug_assert!(seed.is_marker());
 
         for a in AXES {
-            let mut run_coords = vec![start];
-
-            for i in 1i8..=10i8 {
-                // TODO
-                let coord_left = start + a.direction() * i;
-                let coord_right = start - a.direction() * i;
-
-                for &coord in &[coord_left, coord_right] {
-                    if self
-                        .element_at(coord)
+            let markers_positive = (1i8..=4i8)
+                .map(|i| start + a.direction() * i)
+                .take_while(|c| {
+                    self.element_at(*c)
                         .map_or(false, |e| e.is_marker() && e.player == seed.player)
-                    {
-                        run_coords.push(coord);
-                        if run_coords.len() == 5 {
-                            return run_coords;
-                        }
-                    }
-                }
+                });
+            let markers_negative = (1i8..=4i8)
+                .map(|i| start - a.direction() * i)
+                .take_while(|c| {
+                    self.element_at(*c)
+                        .map_or(false, |e| e.is_marker() && e.player == seed.player)
+                });
+
+            let run_coords: Vec<_> = iter::once(start)
+                .chain(markers_positive.interleave(markers_negative))
+                .take(5)
+                .collect();
+
+            if run_coords.len() == 5 {
+                return Some(run_coords);
             }
         }
 
-        unreachable!();
+        None
     }
 
-    /// Return all coordinates that belong to a run
-    pub fn run_coords(&self, player: Player) -> Vec<Coord> {
-        let markers = match player {
-            Player::A => &self.markers_a,
-            Player::B => &self.markers_b,
-        };
-
-        let mut run_coords = Vec::new();
-
-        for &start in markers {
-            for d in DIRECTIONS {
-                let mut current = start + d.direction();
-                let mut count = 1;
-                while current.is_inside_board() && self.is_marker_at(current) {
-                    count += 1;
-                    current = current + d.direction();
-                }
-                if count >= 5 {
-                    let mut current = start;
-                    for _ in 0..5 {
-                        run_coords.push(current);
-                        current = current + d.direction();
-                    }
-                }
+    /// Returns true if the player has a run
+    pub fn has_run(&self, player: Player) -> bool {
+        for coord in self.marker_coords(player) {
+            if self.run_coords_from(coord).is_some() {
+                println!("Found run seeded at {:?}", coord);
+                return true;
             }
         }
+        false
+    }
 
+    /// Return coordinates that belong to a run. Multiple runs can exist at the same time.
+    pub fn run_coords(&self, player: Player) -> Vec<Coord> {
+        let mut run_coords = Vec::new();
+        for coord in self.marker_coords(player) {
+            if let Some(coords) = self.run_coords_from(coord) {
+                run_coords.extend(coords);
+            }
+        }
         run_coords
     }
 
     pub fn remove_run(&mut self, seed: Coord) {
-        let run_coords = self.run_coords_from(seed);
+        let run_coords = self
+            .run_coords_from(seed)
+            .expect("remove_run called with invalid seed");
         for coord in run_coords {
             self.remove_marker(coord);
         }
