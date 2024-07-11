@@ -6,7 +6,7 @@ use bevy::window::PrimaryWindow;
 
 use bevy_tweening::lens::ColorMaterialColorLens;
 use bevy_tweening::{lens::TransformPositionLens, Animator, EaseFunction, Tween, TweeningPlugin};
-use bevy_tweening::{AnimationSystem, AnimatorState, AssetAnimator, Delay, EaseMethod};
+use bevy_tweening::{AnimationSystem, AssetAnimator, Delay, EaseMethod};
 use yinsh::{all_coords, Action, Coord};
 
 use super::ai::AiSet;

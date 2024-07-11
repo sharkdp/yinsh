@@ -49,11 +49,11 @@ pub const COLOR_HUMAN_TRANSPARENT: Color = Color::srgba(
     0.2,
 );
 
-pub const COLOR_AI_R: f32 = 11.;
-pub const COLOR_AI_G: f32 = 74.;
-pub const COLOR_AI_B: f32 = 99.;
+pub const COLOR_AI_R: f32 = 81.;
+pub const COLOR_AI_G: f32 = 151.;
+pub const COLOR_AI_B: f32 = 242.;
 
-pub const COLOR_AI_BLOOM: f32 = 2.0;
+pub const COLOR_AI_BLOOM: f32 = 1.3;
 
 pub const COLOR_AI: Color = Color::srgba(
     COLOR_AI_BLOOM * COLOR_AI_R / 255.,
