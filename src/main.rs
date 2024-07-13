@@ -1,7 +1,6 @@
 mod gui;
 
 use bevy::{
-    ecs::schedule::{LogLevel, ScheduleBuildSettings},
     prelude::*,
     window::{WindowMode, WindowResolution},
 };
@@ -27,11 +26,11 @@ fn main() {
             gui::keyboard_control::plugin,
             gui::history::plugin,
         ))
-        .edit_schedule(Update, |schedule| {
-            schedule.set_build_settings(ScheduleBuildSettings {
-                ambiguity_detection: LogLevel::Warn,
-                ..default()
-            });
-        })
+        // .edit_schedule(Update, |schedule| {
+        //     schedule.set_build_settings(ScheduleBuildSettings {
+        //         ambiguity_detection: LogLevel::Warn,
+        //         ..default()
+        //     });
+        // })
         .run();
 }
