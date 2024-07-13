@@ -24,8 +24,8 @@
      inkscape:deskcolor="#d1d1d1"
      inkscape:document-units="mm"
      inkscape:zoom="4.1941358"
-     inkscape:cx="490.08904"
-     inkscape:cy="428.33615"
+     inkscape:cx="452.17897"
+     inkscape:cy="459.80867"
      inkscape:window-width="2560"
      inkscape:window-height="1417"
      inkscape:window-x="1920"
@@ -65,36 +65,36 @@
        width="11.774014"
        height="2.2366197"
        x="124.70657"
-       y="133.12267" />
+       y="141.17241" />
     <text
        xml:space="preserve"
        style="font-size:0.998687px;line-height:1.25;font-family:Barlow;-inkscape-font-specification:Barlow;letter-spacing:0.0254665px;word-spacing:0px;stroke-width:0.0249672"
        x="125.27958"
-       y="134.52138"
+       y="142.57112"
        id="text1"><tspan
          sodipodi:role="line"
          id="tspan1"
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'Fira Code';-inkscape-font-specification:'Fira Code';stroke-width:0.0249672"
          x="125.27958"
-         y="134.52138">PlayerActionEvent</tspan></text>
+         y="142.57112">PlayerActionEvent</tspan></text>
     <rect
        style="fill:#fc98d7;fill-opacity:1;stroke:#000000;stroke-width:0.0904614;stroke-linecap:round;stroke-linejoin:round"
        id="rect2"
        width="12.51082"
        height="2.236618"
        x="137.18658"
-       y="114.18982" />
+       y="122.23956" />
     <text
        xml:space="preserve"
        style="font-size:0.998687px;line-height:1.25;font-family:Barlow;-inkscape-font-specification:Barlow;letter-spacing:0.0254665px;word-spacing:0px;stroke-width:0.0249672"
        x="137.7596"
-       y="115.58851"
+       y="123.63824"
        id="text2"><tspan
          sodipodi:role="line"
          id="tspan2"
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'Fira Code';-inkscape-font-specification:'Fira Code';stroke-width:0.0249672"
          x="137.7596"
-         y="115.58851">AiComputationEvent</tspan></text>
+         y="123.63824">AiComputationEvent</tspan></text>
     <rect
        style="fill:#fc98d7;fill-opacity:1;stroke:#000000;stroke-width:0.0904614;stroke-linecap:round;stroke-linejoin:round"
        id="rect3"
@@ -137,36 +137,36 @@
        width="12.51082"
        height="2.236618"
        x="80.552139"
-       y="110.28064" />
+       y="118.33038" />
     <text
        xml:space="preserve"
        style="font-size:0.998687px;line-height:1.25;font-family:Barlow;-inkscape-font-specification:Barlow;letter-spacing:0.0254665px;word-spacing:0px;stroke-width:0.0249672"
        x="81.125153"
-       y="111.67933"
+       y="119.72906"
        id="text5"><tspan
          sodipodi:role="line"
          id="tspan5"
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'Fira Code';-inkscape-font-specification:'Fira Code';stroke-width:0.0249672"
          x="81.125153"
-         y="111.67933">GameState</tspan></text>
+         y="119.72906">GameState</tspan></text>
     <rect
        style="fill:#80e5ff;fill-opacity:1;stroke:#000000;stroke-width:0.0904614;stroke-linecap:round;stroke-linejoin:round"
        id="rect6"
        width="12.51082"
        height="2.236618"
        x="80.552139"
-       y="114.18979" />
+       y="122.23952" />
     <text
        xml:space="preserve"
        style="font-size:0.998687px;line-height:1.25;font-family:Barlow;-inkscape-font-specification:Barlow;letter-spacing:0.0254665px;word-spacing:0px;stroke-width:0.0249672"
        x="81.125153"
-       y="115.58851"
+       y="123.63824"
        id="text6"><tspan
          sodipodi:role="line"
          id="tspan6"
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'Fira Code';-inkscape-font-specification:'Fira Code';stroke-width:0.0249672"
          x="81.125153"
-         y="115.58851">InteractionState</tspan></text>
+         y="123.63824">InteractionState</tspan></text>
     <rect
        style="fill:#dbdbdb;fill-opacity:1;stroke:#000000;stroke-width:0.0904614;stroke-linecap:round;stroke-linejoin:round"
        id="rect7"
@@ -191,57 +191,57 @@
        width="16.1441"
        height="2.236618"
        x="108.81322"
-       y="110.41001" />
+       y="118.45975" />
     <text
        xml:space="preserve"
        style="font-size:0.998687px;line-height:1.25;font-family:Barlow;-inkscape-font-specification:Barlow;letter-spacing:0.0254665px;word-spacing:0px;stroke-width:0.0249672"
        x="109.38623"
-       y="111.8087"
+       y="119.85844"
        id="text9"><tspan
          sodipodi:role="line"
          id="tspan9"
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'Fira Code';-inkscape-font-specification:'Fira Code';stroke-width:0.0249672"
          x="109.38623"
-         y="111.8087">update state</tspan></text>
+         y="119.85844">update state</tspan></text>
     <rect
        style="fill:#dbdbdb;fill-opacity:1;stroke:#000000;stroke-width:0.0904614;stroke-linecap:round;stroke-linejoin:round"
        id="rect10"
        width="16.1441"
        height="2.236618"
-       x="162.45175"
-       y="157.8414" />
+       x="108.85845"
+       y="108.20486" />
     <text
        xml:space="preserve"
        style="font-size:0.998687px;line-height:1.25;font-family:Barlow;-inkscape-font-specification:Barlow;letter-spacing:0.0254665px;word-spacing:0px;stroke-width:0.0249672"
-       x="163.02477"
-       y="159.32932"
+       x="109.43147"
+       y="109.69278"
        id="text10"><tspan
          sodipodi:role="line"
          id="tspan10"
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'Fira Code';-inkscape-font-specification:'Fira Code';stroke-width:0.0249672"
-         x="163.02477"
-         y="159.32932">history (undo, load)</tspan></text>
+         x="109.43147"
+         y="109.69278">history (undo, load)</tspan></text>
     <rect
        style="fill:#dbdbdb;fill-opacity:1;stroke:#000000;stroke-width:0.0904614;stroke-linecap:round;stroke-linejoin:round"
        id="rect11"
        width="16.1441"
        height="2.236618"
        x="136.28851"
-       y="127.24901" />
+       y="135.29875" />
     <text
        xml:space="preserve"
        style="font-size:0.998687px;line-height:1.25;font-family:Barlow;-inkscape-font-specification:Barlow;letter-spacing:0.0254665px;word-spacing:0px;stroke-width:0.0249672"
        x="136.86153"
-       y="128.64769"
+       y="136.69743"
        id="text11"><tspan
          sodipodi:role="line"
          id="tspan11"
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'Fira Code';-inkscape-font-specification:'Fira Code';stroke-width:0.0249672"
          x="136.86153"
-         y="128.64769">perform AI actions</tspan></text>
+         y="136.69743">perform AI actions</tspan></text>
     <path
        style="fill:none;stroke:#000000;stroke-width:0.165;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#ArrowWideRounded)"
-       d="m 124.95732,129.67008 1.86591,3.29072"
+       d="m 124.95732,137.71982 1.86591,3.29072"
        id="path12"
        sodipodi:nodetypes="cc" />
     <rect
@@ -250,21 +250,21 @@
        width="16.1441"
        height="2.236618"
        x="108.81322"
-       y="127.43346" />
+       y="135.4832" />
     <text
        xml:space="preserve"
        style="font-size:0.998687px;line-height:1.25;font-family:Barlow;-inkscape-font-specification:Barlow;letter-spacing:0.0254665px;word-spacing:0px;stroke-width:0.0249672"
        x="109.38623"
-       y="128.83215"
+       y="136.8819"
        id="text14"><tspan
          sodipodi:role="line"
          id="tspan14"
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'Fira Code';-inkscape-font-specification:'Fira Code';stroke-width:0.0249672"
          x="109.38623"
-         y="128.83215">mouse interaction</tspan></text>
+         y="136.8819">mouse interaction</tspan></text>
     <path
        style="fill:none;stroke:#000000;stroke-width:0.165;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#ArrowWideRounded)"
-       d="m 125.01265,111.6102 c 0,0 18.28804,-0.61597 18.42934,2.57962"
+       d="m 125.01265,119.65994 c 0,0 18.28804,-0.61597 18.42934,2.57962"
        id="path16"
        sodipodi:nodetypes="cc" />
     <rect
@@ -273,31 +273,31 @@
        width="16.1441"
        height="2.236618"
        x="136.28851"
-       y="122.77191" />
+       y="130.82166" />
     <text
        xml:space="preserve"
        style="font-size:0.998687px;line-height:1.25;font-family:Barlow;-inkscape-font-specification:Barlow;letter-spacing:0.0254665px;word-spacing:0px;stroke-width:0.0249672"
        x="136.86153"
-       y="124.18559"
+       y="132.23534"
        id="text16"><tspan
          sodipodi:role="line"
          id="tspan16"
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'Fira Code';-inkscape-font-specification:'Fira Code';stroke-width:0.0249672"
          x="136.86153"
-         y="124.18559">start/cancel AI comp.</tspan></text>
+         y="132.23534">start/cancel AI comp.</tspan></text>
     <path
        style="fill:none;stroke:#000000;stroke-width:0.165;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#ArrowWideRounded)"
-       d="m 143.44199,116.47167 0,6.11041"
+       d="m 143.44199,124.52141 v 6.11041"
        id="path17"
        sodipodi:nodetypes="cc" />
     <path
        style="fill:none;stroke:#000000;stroke-width:0.165;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#ArrowWideRounded)"
-       d="M 108.81322,110.99905 H 93.185628"
+       d="M 108.81322,119.04879 H 93.185628"
        id="path18"
        sodipodi:nodetypes="cc" />
     <path
        style="fill:none;stroke:#000000;stroke-width:0.165;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#ArrowWideRounded)"
-       d="m 108.81322,112.64663 -15.58236,2.16989"
+       d="m 108.81322,120.69637 -15.58236,2.16989"
        id="path20"
        sodipodi:nodetypes="cc" />
     <rect
@@ -306,32 +306,32 @@
        width="16.144104"
        height="7.2202983"
        x="108.81322"
-       y="117.78823" />
+       y="125.83797" />
     <text
        xml:space="preserve"
        style="font-size:0.998687px;line-height:1.25;font-family:Barlow;-inkscape-font-specification:Barlow;letter-spacing:0.0254665px;word-spacing:0px;stroke-width:0.0249672"
        x="109.38623"
-       y="119.23357"
+       y="127.2833"
        id="text25"><tspan
          sodipodi:role="line"
          id="tspan25"
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'Fira Code';-inkscape-font-specification:'Fira Code';stroke-width:0.0249672"
          x="109.38623"
-         y="119.23357">grid cursor</tspan><tspan
+         y="127.2833">grid cursor</tspan><tspan
          sodipodi:role="line"
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'Fira Code';-inkscape-font-specification:'Fira Code';stroke-width:0.0249672"
          x="109.38623"
-         y="120.56059"
+         y="128.61032"
          id="tspan35">update board</tspan><tspan
          sodipodi:role="line"
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'Fira Code';-inkscape-font-specification:'Fira Code';stroke-width:0.0249672"
          x="109.38623"
-         y="121.8876"
+         y="129.93733"
          id="tspan34">move board elements</tspan><tspan
          sodipodi:role="line"
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'Fira Code';-inkscape-font-specification:'Fira Code';stroke-width:0.0249672"
          x="109.38623"
-         y="123.21461"
+         y="131.26436"
          id="tspan36">colorize board elements</tspan></text>
     <rect
        style="fill:#fc98d7;fill-opacity:1;stroke:#000000;stroke-width:0.0904614;stroke-linecap:round;stroke-linejoin:round"
@@ -339,36 +339,36 @@
        width="11.774014"
        height="2.2366197"
        x="112.91181"
-       y="114.16584" />
+       y="122.21558" />
     <text
        xml:space="preserve"
        style="font-size:0.998687px;line-height:1.25;font-family:Barlow;-inkscape-font-specification:Barlow;letter-spacing:0.0254665px;word-spacing:0px;stroke-width:0.0249672"
        x="113.48483"
-       y="115.56454"
+       y="123.61427"
        id="text26"><tspan
          sodipodi:role="line"
          id="tspan26"
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'Fira Code';-inkscape-font-specification:'Fira Code';stroke-width:0.0249672"
          x="113.48483"
-         y="115.56454">BoardUpdateEvent</tspan></text>
+         y="123.61427">BoardUpdateEvent</tspan></text>
     <path
        style="fill:none;stroke:#000000;stroke-width:0.165;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#ArrowWideRounded)"
-       d="m 118.79882,112.62141 0,1.54443"
+       d="m 118.79882,120.67115 v 1.54443"
        id="path26"
        sodipodi:nodetypes="cc" />
     <path
        style="fill:none;stroke:#000000;stroke-width:0.165;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#ArrowWideRounded)"
-       d="M 93.072312,111.96481 H 108.82258"
+       d="M 93.072312,120.01455 H 108.82258"
        id="path28"
        sodipodi:nodetypes="cc" />
     <path
        style="fill:none;stroke:#000000;stroke-width:0.165;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:0.165, 0.33;stroke-dashoffset:0;stroke-opacity:1;marker-end:url(#ArrowWideRounded)"
-       d="m 144.36057,125.00853 v 2.12896"
+       d="m 144.36057,133.05827 v 2.12896"
        id="path29"
        sodipodi:nodetypes="cc" />
     <path
        style="fill:none;stroke:#000000;stroke-width:0.165;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:0.165, 0.33;stroke-dashoffset:0;stroke-opacity:1;marker-end:url(#ArrowWideRounded)"
-       d="m 110.35661,112.64663 v 5.1416"
+       d="m 110.35661,120.69637 v 5.1416"
        id="path31"
        sodipodi:nodetypes="cc" />
     <path
@@ -389,104 +389,169 @@
          y="97.941452">System ordering</tspan></text>
     <path
        style="fill:none;stroke:#000000;stroke-width:0.165;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#ArrowWideRounded)"
-       d="m 93.10819,115.94104 15.70503,5.45734"
+       d="m 93.10819,123.99078 15.70503,5.45734"
        id="path21"
        sodipodi:nodetypes="cc" />
     <path
        style="fill:none;stroke:#000000;stroke-width:0.165;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:0.165, 0.33;stroke-dashoffset:0;stroke-opacity:1;marker-end:url(#ArrowWideRounded)"
-       d="m 110.37142,125.00853 -0.0183,2.3797"
+       d="m 110.37142,133.05827 -0.0183,2.3797"
        id="path36"
        sodipodi:nodetypes="cc" />
     <path
        style="fill:none;stroke:#000000;stroke-width:0.165;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#ArrowWideRounded)"
-       d="m 118.79882,116.40246 0,1.38577"
+       d="m 118.79882,124.4522 v 1.38577"
        id="path37"
        sodipodi:nodetypes="cc" />
     <path
        style="fill:none;stroke:#000000;stroke-width:0.165;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#ArrowWideRounded)"
-       d="m 136.34972,129.50821 -1.86591,3.45259"
+       d="m 136.34972,137.55795 -1.86591,3.45259"
        id="path38"
        sodipodi:nodetypes="cc" />
     <path
        style="fill:none;stroke:#000000;stroke-width:0.165;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:0.165, 0.33;stroke-dashoffset:0;stroke-opacity:1;marker-end:url(#ArrowWideRounded)"
-       d="m 124.12734,112.56475 c 0.34639,0.97703 13.25511,5.77606 13.68281,10.05104"
+       d="m 124.12734,120.61449 c 0.34639,0.97703 13.25511,5.77606 13.68281,10.05104"
        id="path39"
        sodipodi:nodetypes="cc" />
-    <g
-       id="g39"
-       style="opacity:0.37802114">
-      <rect
-         style="fill:#dbdbdb;fill-opacity:1;stroke:#000000;stroke-width:0.0904614;stroke-linecap:round;stroke-linejoin:round"
-         id="rect39"
-         width="16.1441"
-         height="2.236618"
-         x="108.81322"
-         y="139.85191" />
-      <text
-         xml:space="preserve"
-         style="font-size:0.998687px;line-height:1.25;font-family:Barlow;-inkscape-font-specification:Barlow;letter-spacing:0.0254665px;word-spacing:0px;stroke-width:0.0249672"
-         x="109.38623"
-         y="141.25061"
-         id="text39"><tspan
-           sodipodi:role="line"
-           id="tspan39"
-           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'Fira Code';-inkscape-font-specification:'Fira Code';stroke-width:0.0249672"
-           x="109.38623"
-           y="141.25061">update state</tspan></text>
-    </g>
     <path
        style="fill:none;stroke:#000000;stroke-width:0.165;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#ArrowWideRounded)"
-       d="m 126.44271,135.42304 -2.99673,4.42887"
+       d="m 126.44271,143.47278 -2.99673,4.42887"
        id="path40"
        sodipodi:nodetypes="cc" />
     <text
        xml:space="preserve"
        style="font-size:0.998687px;line-height:1.25;font-family:Barlow;-inkscape-font-specification:Barlow;letter-spacing:0.0254665px;word-spacing:0px;stroke-width:0.0249672"
-       x="109.75462"
-       y="139.46057"
+       x="119.16471"
+       y="149.67101"
        id="text40"><tspan
          sodipodi:role="line"
          id="tspan40"
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'Fira Code';-inkscape-font-specification:'Fira Code';stroke-width:0.0249672"
-         x="109.75462"
-         y="139.46057">(next cycle)</tspan></text>
+         x="119.16471"
+         y="149.67101">(next cycle)</tspan></text>
     <rect
        style="fill:#80e5ff;fill-opacity:1;stroke:#000000;stroke-width:0.0904614;stroke-linecap:round;stroke-linejoin:round"
        id="rect40"
        width="16.144104"
        height="6.6470485"
        x="160.60228"
-       y="122.77191" />
+       y="130.82166" />
     <text
        xml:space="preserve"
        style="font-size:0.998687px;line-height:1.25;font-family:Barlow;-inkscape-font-specification:Barlow;letter-spacing:0.0254665px;word-spacing:0px;stroke-width:0.0249672"
        x="161.60103"
-       y="124.18559"
+       y="132.23534"
        id="text41"><tspan
          sodipodi:role="line"
          id="tspan41"
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'Fira Code';-inkscape-font-specification:'Fira Code';stroke-width:0.0249672"
          x="161.60103"
-         y="124.18559">AI task</tspan></text>
+         y="132.23534">AI task</tspan></text>
     <path
        style="fill:none;stroke:#000000;stroke-width:0.165;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#ArrowWideRounded)"
-       d="m 160.60228,123.50196 -8.01112,0"
+       d="m 160.60228,131.5517 h -8.01112"
        id="path41"
        sodipodi:nodetypes="cc" />
     <path
        style="fill:none;stroke:#000000;stroke-width:0.165;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#ArrowWideRounded)"
-       d="m 152.47784,124.46772 8.1338,0"
+       d="m 152.47784,132.51746 h 8.1338"
        id="path42"
        sodipodi:nodetypes="cc" />
     <path
        style="fill:none;stroke:#000000;stroke-width:0.165;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#ArrowWideRounded)"
-       d="m 160.60228,127.8757 h -8.01112"
+       d="m 160.60228,135.92544 h -8.01112"
        id="path43"
        sodipodi:nodetypes="cc" />
     <path
        style="fill:none;stroke:#000000;stroke-width:0.165;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#ArrowWideRounded)"
-       d="m 152.47784,128.84146 h 8.1338"
+       d="m 152.47784,136.8912 h 8.1338"
        id="path44"
        sodipodi:nodetypes="cc" />
+    <path
+       style="fill:none;stroke:#000000;stroke-width:0.165;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:0.165, 0.33;stroke-dashoffset:0;stroke-opacity:1;marker-end:url(#ArrowWideRounded)"
+       d="m 110.37142,110.44147 -0.0183,7.88482"
+       id="path45"
+       sodipodi:nodetypes="cc" />
+    <g
+       id="g46"
+       style="opacity:0.39041568">
+      <rect
+         style="fill:#fc98d7;fill-opacity:1;stroke:#000000;stroke-width:0.0904614;stroke-linecap:round;stroke-linejoin:round"
+         id="rect45"
+         width="11.774014"
+         height="2.2366197"
+         x="124.70657"
+         y="111.55448" />
+      <text
+         xml:space="preserve"
+         style="font-size:0.998687px;line-height:1.25;font-family:Barlow;-inkscape-font-specification:Barlow;letter-spacing:0.0254665px;word-spacing:0px;stroke-width:0.0249672"
+         x="125.27958"
+         y="112.95319"
+         id="text45"><tspan
+           sodipodi:role="line"
+           id="tspan45"
+           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'Fira Code';-inkscape-font-specification:'Fira Code';stroke-width:0.0249672"
+           x="125.27958"
+           y="112.95319">PlayerActionEvent</tspan></text>
+      <path
+         style="fill:none;stroke:#000000;stroke-width:0.165;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#ArrowWideRounded)"
+         d="m 126.44271,113.85485 -2.99673,4.42887"
+         id="path46"
+         sodipodi:nodetypes="cc" />
+    </g>
+    <text
+       xml:space="preserve"
+       style="font-size:0.998687px;line-height:1.25;font-family:Barlow;-inkscape-font-specification:Barlow;letter-spacing:0.0254665px;word-spacing:0px;stroke-width:0.0249672"
+       x="126.98818"
+       y="110.80054"
+       id="text46"><tspan
+         sodipodi:role="line"
+         id="tspan46"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'Fira Code';-inkscape-font-specification:'Fira Code';stroke-width:0.0249672"
+         x="126.98818"
+         y="110.80054">(previous cycle)</tspan></text>
+    <rect
+       style="fill:#fc98d7;fill-opacity:1;stroke:#000000;stroke-width:0.0904614;stroke-linecap:round;stroke-linejoin:round"
+       id="rect46"
+       width="11.774014"
+       height="2.2366197"
+       x="93.914322"
+       y="112.22644" />
+    <text
+       xml:space="preserve"
+       style="font-size:0.998687px;line-height:1.25;font-family:Barlow;-inkscape-font-specification:Barlow;letter-spacing:0.0254665px;word-spacing:0px;stroke-width:0.0249672"
+       x="94.487343"
+       y="113.62513"
+       id="text47"><tspan
+         sodipodi:role="line"
+         id="tspan47"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'Fira Code';-inkscape-font-specification:'Fira Code';stroke-width:0.0249672"
+         x="94.487343"
+         y="113.62513">ForcedUpdateEvent</tspan></text>
+    <path
+       style="fill:none;stroke:#000000;stroke-width:0.165;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#ArrowWideRounded)"
+       d="m 108.81322,109.96814 -3.12488,2.2583"
+       id="path47"
+       sodipodi:nodetypes="cc" />
+    <path
+       style="fill:none;stroke:#000000;stroke-width:0.165;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#ArrowWideRounded)"
+       d="m 105.60867,114.22476 3.20455,4.23499"
+       id="path48"
+       sodipodi:nodetypes="cc" />
+    <text
+       xml:space="preserve"
+       style="font-size:0.998687px;line-height:1.25;font-family:Barlow;-inkscape-font-specification:Barlow;letter-spacing:0.0254665px;word-spacing:0px;stroke-width:0.0249672"
+       x="89.64975"
+       y="110.21784"
+       id="text48"><tspan
+         sodipodi:role="line"
+         id="tspan48"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'Fira Code';-inkscape-font-specification:'Fira Code';stroke-width:0.0249672"
+         x="89.64975"
+         y="110.21784">(discard player action</tspan><tspan
+         sodipodi:role="line"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'Fira Code';-inkscape-font-specification:'Fira Code';stroke-width:0.0249672"
+         x="89.64975"
+         y="111.54486"
+         id="tspan49"> events, if this happens)</tspan></text>
   </g>
 </svg>
