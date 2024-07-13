@@ -26,11 +26,12 @@ opt-level = 1
 [profile.dev.package."*"]
 opt-level = 3
 
-#[profile.release]
-#codegen-units = 1
-#lto = "thin"
-#
-#[profile.wasm-release]
-#inherits = "release"
-#opt-level = "z"
-#strip = "debuginfo"
+[profile.release]
+codegen-units = 1
+lto = "thin"
+strip = "debuginfo"
+
+[profile.wasm-release]
+inherits = "release"
+opt-level = "z"
+strip = "debuginfo"
