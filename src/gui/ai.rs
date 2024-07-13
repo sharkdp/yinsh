@@ -1,9 +1,8 @@
 use bevy::prelude::*;
 
 use bevy_async_task::{AsyncTaskRunner, AsyncTaskStatus};
-use yinsh::{Action, GameState, TurnMode};
+use yinsh::{Action, GameState};
 
-use super::graphics::ANIMATION_DURATION;
 use super::state_update::{PlayerActionEvent, StateUpdateSet};
 use super::PLAYER_AI;
 
@@ -16,6 +15,8 @@ pub struct AiPlayerStrength(pub usize);
 #[derive(Event)]
 pub enum AiComputationEvent {
     Start(GameState),
+
+    #[allow(unused)]
     Cancel,
 }
 
@@ -33,8 +34,14 @@ fn perform_ai_actions(
                 task_runner.start(async move {
                     // TODO! This is a hack to make sure the AI takes at least as long as
                     // the animation.
-                    if matches!(game_state.turn_mode, TurnMode::MarkerPlacement) {
-                        std::thread::sleep(ANIMATION_DURATION);
+                    #[cfg(not(target_arch = "wasm32"))]
+                    {
+                        use super::graphics::ANIMATION_DURATION;
+                        use yinsh::TurnMode;
+
+                        if matches!(game_state.turn_mode, TurnMode::MarkerPlacement) {
+                            std::thread::sleep(ANIMATION_DURATION);
+                        }
                     }
 
                     Some(yinsh::get_ai_player_action(search_depth, &game_state))
