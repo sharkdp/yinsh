@@ -3,7 +3,7 @@ mod gui;
 use bevy::{
     ecs::schedule::{LogLevel, ScheduleBuildSettings},
     prelude::*,
-    window::WindowMode,
+    window::{WindowMode, WindowResolution},
 };
 
 fn main() {
@@ -13,7 +13,7 @@ fn main() {
                 primary_window: Some(Window {
                     title: "Yinsh".into(),
                     name: Some("yinsh".into()),
-                    resolution: (960., 960.).into(),
+                    resolution: WindowResolution::new(760., 760.),
                     mode: WindowMode::Windowed,
                     ..default()
                 }),

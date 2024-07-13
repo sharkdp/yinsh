@@ -5,6 +5,7 @@ use bevy::{
     prelude::*,
     render::view::RenderLayers,
     sprite::{MaterialMesh2dBundle, Mesh2dHandle},
+    window::PrimaryWindow,
 };
 
 use yinsh::{Coord, Player};
@@ -72,18 +73,36 @@ pub fn color_for_player(player: Player) -> Color {
 
 pub const ANIMATION_DURATION: Duration = Duration::from_millis(500);
 
-pub const SPACING: f32 = 90.0;
-
 #[derive(Component)]
 pub struct MainCamera;
 
-pub fn screen_point(coord: Coord) -> Vec3 {
-    Vec3::new(
-        SPACING * (0.5 * 3_f32.sqrt() * coord.x as f32),
-        SPACING * (-coord.y as f32 + 0.5 * coord.x as f32),
-        0.,
-    )
+#[derive(Resource, Debug, Clone, Copy)]
+pub struct ScaleFactor {
+    pub spacing: f32,
+    pub factor: f32,
 }
+
+impl ScaleFactor {
+    pub fn screen_point(&self, coord: Coord) -> Vec3 {
+        Vec3::new(
+            self.spacing * (0.5 * 3_f32.sqrt() * coord.x as f32),
+            self.spacing * (-coord.y as f32 + 0.5 * coord.x as f32),
+            0.,
+        )
+    }
+}
+
+impl Default for ScaleFactor {
+    fn default() -> Self {
+        Self {
+            spacing: 80.0,
+            factor: 1.0,
+        }
+    }
+}
+
+#[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
+pub struct ScaleFactorSet;
 
 #[derive(Resource)]
 pub struct PlayerColors {
@@ -100,7 +119,7 @@ pub fn ring_mesh(
     visibility: Visibility,
 ) -> MaterialMesh2dBundle<ColorMaterial> {
     MaterialMesh2dBundle {
-        mesh: Mesh2dHandle(meshes.add(Annulus::new(SPACING / 4., SPACING / 3.))),
+        mesh: Mesh2dHandle(meshes.add(Annulus::new(20., 25.))),
         material: color_material,
         visibility,
         ..default()
@@ -113,7 +132,7 @@ pub fn marker_mesh(
     visibility: Visibility,
 ) -> MaterialMesh2dBundle<ColorMaterial> {
     MaterialMesh2dBundle {
-        mesh: Mesh2dHandle(meshes.add(Circle::new(SPACING / 5.))),
+        mesh: Mesh2dHandle(meshes.add(Circle::new(16.))),
         material: color_material,
         visibility,
         ..default()
@@ -219,8 +238,29 @@ fn setup_graphics(
     config.render_layers = BACKGROUND_RENDER_LAYER;
 }
 
+pub fn set_scale_factor(
+    mut scale_factor: ResMut<ScaleFactor>,
+    window: Query<&Window, With<PrimaryWindow>>,
+) {
+    const BASE_SPACING_AT_800_PIXELS: f32 = 80.0;
+
+    let window = window.single();
+    let height = (window.physical_height() as f32) / (window.scale_factor() as f32);
+    let width = (window.physical_width() as f32) / (window.scale_factor() as f32);
+    let factor = ((height.min(width)) / 800.0).min(1.5);
+    scale_factor.factor = factor;
+    scale_factor.spacing = BASE_SPACING_AT_800_PIXELS * factor;
+}
+
 pub fn plugin(app: &mut App) {
     app.insert_resource(Msaa::Sample8)
-        .add_systems(PreStartup, setup_graphics)
-        .add_systems(Update, draw_grid);
+        .insert_resource(ScaleFactor::default())
+        .add_systems(PreStartup, (setup_graphics, set_scale_factor))
+        .add_systems(
+            Update,
+            (
+                set_scale_factor.in_set(ScaleFactorSet),
+                draw_grid.after(ScaleFactorSet),
+            ),
+        );
 }

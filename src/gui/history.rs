@@ -6,7 +6,7 @@ use crate::gui::graphics::{spawn_marker, spawn_ring};
 use super::{
     ai::AiComputationEvent,
     board::BoardElement,
-    graphics::PlayerColors,
+    graphics::{PlayerColors, ScaleFactorSet},
     interaction::CursorElement,
     state_update::{GameState, StateUpdateSet},
 };
@@ -50,5 +50,10 @@ pub fn save_and_load_game_state(
 }
 
 pub fn plugin(app: &mut App) {
-    app.add_systems(Update, save_and_load_game_state.before(StateUpdateSet));
+    app.add_systems(
+        Update,
+        save_and_load_game_state
+            .before(StateUpdateSet)
+            .after(ScaleFactorSet),
+    );
 }

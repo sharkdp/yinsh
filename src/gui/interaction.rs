@@ -14,14 +14,11 @@ use super::board::{BoardElement, Marker, Ring};
 use super::board_update_event::BoardUpdateEvent;
 use super::graphics::{
     color_for_player, marker_mesh, ring_mesh, spawn_marker, spawn_ring, MainCamera, PlayerColors,
-    ANIMATION_DURATION, FOREGROUND_RENDER_LAYER,
+    ScaleFactor, ScaleFactorSet, ANIMATION_DURATION, FOREGROUND_RENDER_LAYER,
 };
 use super::state_update::{GameState, PlayerActionEvent, StateUpdateSet};
 use super::PLAYER_HUMAN;
-use super::{
-    graphics::{screen_point, COLOR_RING_MOVEMENT_INDICATOR, SPACING},
-    state_update::InteractionState,
-};
+use super::{graphics::COLOR_RING_MOVEMENT_INDICATOR, state_update::InteractionState};
 
 #[derive(Component)]
 pub struct CursorElement;
@@ -59,13 +56,22 @@ fn setup_interaction_cursors(
     ));
 }
 
-fn draw_ring_move_indicators(mut gizmos: Gizmos, interaction_state: Res<InteractionState>) {
+fn draw_ring_move_indicators(
+    scale_factor: Res<ScaleFactor>,
+    mut gizmos: Gizmos,
+    interaction_state: Res<InteractionState>,
+) {
     let indicator_color = COLOR_RING_MOVEMENT_INDICATOR;
 
     if let InteractionState::RingMovement(_, ref possible_moves) = *interaction_state {
         for coord in possible_moves {
-            let screen_pos = screen_point(*coord);
-            gizmos.circle(screen_pos, Dir3::Z, SPACING / 8., indicator_color);
+            let screen_pos = scale_factor.screen_point(*coord);
+            gizmos.circle(
+                screen_pos,
+                Dir3::Z,
+                scale_factor.spacing / 8.,
+                indicator_color,
+            );
         }
     }
 }
@@ -73,6 +79,7 @@ fn draw_ring_move_indicators(mut gizmos: Gizmos, interaction_state: Res<Interact
 fn update_board_elements(
     mut board_update_events: EventReader<BoardUpdateEvent>,
     mut commands: Commands,
+    scale_factor: Res<ScaleFactor>,
     mut meshes: ResMut<Assets<Mesh>>,
     player_colors: Res<PlayerColors>,
     mut q_rings: Query<
@@ -99,8 +106,8 @@ fn update_board_elements(
                             EaseFunction::QuadraticInOut,
                             ANIMATION_DURATION,
                             TransformPositionLens {
-                                start: screen_point(old_coord),
-                                end: screen_point(new_coord),
+                                start: scale_factor.screen_point(old_coord),
+                                end: scale_factor.screen_point(new_coord),
                             },
                         );
 
@@ -168,7 +175,18 @@ fn update_board_elements(
     }
 }
 
-fn clear_animators(mut q: Query<(Entity, &AssetAnimator<ColorMaterial>)>, mut commands: Commands) {
+fn clear_animators(mut q: Query<(Entity, &Animator<Transform>)>, mut commands: Commands) {
+    for (entity, animator) in q.iter_mut() {
+        if animator.tweenable().times_completed() == 1 {
+            commands.entity(entity).remove::<Animator<Transform>>();
+        }
+    }
+}
+
+fn clear_asset_animators(
+    mut q: Query<(Entity, &AssetAnimator<ColorMaterial>)>,
+    mut commands: Commands,
+) {
     for (entity, animator) in q.iter_mut() {
         if animator.tweenable().times_completed() == 1 {
             commands
@@ -179,10 +197,20 @@ fn clear_animators(mut q: Query<(Entity, &AssetAnimator<ColorMaterial>)>, mut co
 }
 
 fn move_board_elements(
+    scale_factor: Res<ScaleFactor>,
     mut query: Query<(&BoardElement, &mut Transform), Without<Animator<Transform>>>,
 ) {
     for (BoardElement(coord, _), mut transform) in query.iter_mut() {
-        transform.translation = screen_point(*coord);
+        transform.translation = scale_factor.screen_point(*coord);
+    }
+}
+
+fn scale_board_elements(
+    scale_factor: Res<ScaleFactor>,
+    mut query: Query<&mut Transform, With<BoardElement>>,
+) {
+    for mut transform in query.iter_mut() {
+        transform.scale = Vec3::splat(scale_factor.factor);
     }
 }
 
@@ -248,6 +276,7 @@ fn colorize_board_elements(
 }
 
 fn grid_cursor_system(
+    scale_factor: Res<ScaleFactor>,
     mut q_window: Query<&mut Window, With<PrimaryWindow>>,
     q_camera: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
     mut cursor_ring: Query<
@@ -281,7 +310,7 @@ fn grid_cursor_system(
             let cursor_coord = yinsh::all_coords()
                 .into_iter()
                 .min_by_key(|c| {
-                    let screen_pos = screen_point(*c);
+                    let screen_pos = scale_factor.screen_point(*c);
                     let cursor_pos = Vec3::new(cursor_position.x, cursor_position.y, 0.0);
                     let diff = screen_pos - cursor_pos;
                     diff.length_squared() as i32
@@ -402,14 +431,17 @@ pub fn plugin(app: &mut App) {
                 draw_ring_move_indicators,
                 (
                     clear_animators,
+                    clear_asset_animators,
                     grid_cursor_system,
                     update_board_elements,
                     move_board_elements.ambiguous_with(AnimationSystem::AnimationUpdate),
+                    scale_board_elements.ambiguous_with(AnimationSystem::AnimationUpdate),
                     colorize_board_elements.ambiguous_with(AnimationSystem::AnimationUpdate),
                     mouse_interaction_system.ambiguous_with(AiSet),
                 )
                     .chain(),
             )
-                .after(StateUpdateSet),
+                .after(StateUpdateSet)
+                .after(ScaleFactorSet),
         );
 }

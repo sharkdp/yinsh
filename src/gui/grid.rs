@@ -2,9 +2,9 @@ use bevy::prelude::*;
 
 use yinsh::Coord;
 
-use super::graphics::{screen_point, COLOR_GRID};
+use super::graphics::{ScaleFactor, COLOR_GRID};
 
-pub fn draw_grid(mut gizmos: Gizmos) {
+pub fn draw_grid(mut gizmos: Gizmos, scale_factor: Res<ScaleFactor>) {
     let grid_line_color = COLOR_GRID;
 
     // Draw lines parallel to y-axis
@@ -17,8 +17,8 @@ pub fn draw_grid(mut gizmos: Gizmos) {
         let min_y = coords.iter().map(|c| c.y).min().unwrap();
         let max_y = coords.iter().map(|c| c.y).max().unwrap();
 
-        let start = screen_point(Coord { x, y: min_y });
-        let end = screen_point(Coord { x, y: max_y });
+        let start = scale_factor.screen_point(Coord { x, y: min_y });
+        let end = scale_factor.screen_point(Coord { x, y: max_y });
         gizmos.line(start, end, grid_line_color);
     }
 
@@ -32,8 +32,8 @@ pub fn draw_grid(mut gizmos: Gizmos) {
         let min_x = coords.iter().map(|c| c.x).min().unwrap();
         let max_x = coords.iter().map(|c| c.x).max().unwrap();
 
-        let start = screen_point(Coord { x: min_x, y });
-        let end = screen_point(Coord { x: max_x, y });
+        let start = scale_factor.screen_point(Coord { x: min_x, y });
+        let end = scale_factor.screen_point(Coord { x: max_x, y });
         gizmos.line(start, end, grid_line_color);
     }
 
@@ -47,8 +47,8 @@ pub fn draw_grid(mut gizmos: Gizmos) {
         let min = coords.iter().map(|c| c.x).min().unwrap();
         let max = coords.iter().map(|c| c.x).max().unwrap();
 
-        let start = screen_point(Coord { x: min, y: min + d });
-        let end = screen_point(Coord { x: max, y: max + d });
+        let start = scale_factor.screen_point(Coord { x: min, y: min + d });
+        let end = scale_factor.screen_point(Coord { x: max, y: max + d });
         gizmos.line(start, end, grid_line_color);
     }
 }
