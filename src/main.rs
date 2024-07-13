@@ -14,6 +14,7 @@ fn main() {
                     name: Some("yinsh".into()),
                     resolution: WindowResolution::new(760., 760.),
                     mode: WindowMode::Windowed,
+                    canvas: Some("#yinsh-canvas".into()),
                     ..default()
                 }),
                 ..default()
@@ -24,6 +25,7 @@ fn main() {
             gui::interaction::plugin,
             gui::information_display::plugin,
             gui::keyboard_control::plugin,
+            #[cfg(not(target_arch = "wasm32"))]
             gui::history::plugin,
         ))
         // .edit_schedule(Update, |schedule| {

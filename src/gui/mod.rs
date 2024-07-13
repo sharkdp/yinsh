@@ -5,6 +5,7 @@ pub mod board;
 pub mod board_update_event;
 pub mod graphics;
 pub mod grid;
+#[cfg(not(target_arch = "wasm32"))]
 pub mod history;
 pub mod information_display;
 pub mod interaction;
