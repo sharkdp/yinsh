@@ -80,8 +80,8 @@ impl InteractionState {
                             .collect(),
                     }
                 }
-                TurnMode::RingRemoval(player) => {
-                    Self::RingRemoval(game_state.board.ring_coords(player).collect())
+                TurnMode::RingRemoval(_) => {
+                    Self::RingRemoval(game_state.board.ring_coords(PLAYER_HUMAN).collect())
                 }
                 TurnMode::WaitForRunRemoval(_)
                 | TurnMode::WaitForMarkerPlacement
