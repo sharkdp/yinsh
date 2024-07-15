@@ -66,10 +66,14 @@ fn perform_ai_actions(
 }
 
 pub fn plugin(app: &mut App) {
-    app.insert_resource(AiPlayerStrength(9))
-        .add_event::<AiComputationEvent>()
-        .add_systems(
-            Update,
-            (perform_ai_actions).in_set(AiSet).after(StateUpdateSet),
-        );
+    app.insert_resource(AiPlayerStrength(if cfg!(debug_assertions) {
+        9
+    } else {
+        15
+    }))
+    .add_event::<AiComputationEvent>()
+    .add_systems(
+        Update,
+        (perform_ai_actions).in_set(AiSet).after(StateUpdateSet),
+    );
 }
