@@ -289,11 +289,66 @@ impl Board {
     pub fn has_run(&self, player: Player) -> bool {
         self.check_invariants();
 
-        for coord in self.marker_coords(player) {
-            if self.run_coords_from(coord).is_some() {
-                return true;
+        // x direction
+        for y in -5..=5 {
+            let mut num_consecutive = 0;
+            for x in -5..=5 {
+                let coord = Coord::new(x, y);
+                if self
+                    .element_at(coord)
+                    .map(|e| e.is_marker() && e.player == player)
+                    .unwrap_or(false)
+                {
+                    num_consecutive += 1;
+                    if num_consecutive == 5 {
+                        return true;
+                    }
+                } else {
+                    num_consecutive = 0;
+                }
             }
         }
+
+        // y direction
+        for x in -5..=5 {
+            let mut num_consecutive = 0;
+            for y in -5..=5 {
+                let coord = Coord::new(x, y);
+                if self
+                    .element_at(coord)
+                    .map(|e| e.kind == ElementKind::Marker && e.player == player)
+                    .unwrap_or(false)
+                {
+                    num_consecutive += 1;
+                    if num_consecutive == 5 {
+                        return true;
+                    }
+                } else {
+                    num_consecutive = 0;
+                }
+            }
+        }
+
+        // diagonal direction
+        for a in -5..=5 {
+            let mut num_consecutive = 0;
+            for i in -5..=5 {
+                let coord = Coord::new(i, i + a);
+                if self
+                    .element_at(coord)
+                    .map(|e| e.kind == ElementKind::Marker && e.player == player)
+                    .unwrap_or(false)
+                {
+                    num_consecutive += 1;
+                    if num_consecutive == 5 {
+                        return true;
+                    }
+                } else {
+                    num_consecutive = 0;
+                }
+            }
+        }
+
         false
     }
 
