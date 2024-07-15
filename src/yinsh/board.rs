@@ -186,7 +186,7 @@ impl Board {
         for d in DIRECTIONS {
             let mut current = start + d.direction();
 
-            // Skip over arbirary many free fields
+            // Skip over arbitrarily many free spaces
             while current.is_inside_board() && self.is_free(current) {
                 moves.push(current);
                 current = current + d.direction();
@@ -201,6 +201,7 @@ impl Board {
                 moves.push(current);
             }
         }
+
         moves
     }
 
@@ -210,13 +211,20 @@ impl Board {
         self.ring_moves(start).contains(&end)
     }
 
-    pub fn can_place_marker_at(&self, coord: Coord, player: Player) -> bool {
+    fn can_place_marker_at(&self, coord: Coord, player: Player) -> bool {
         self.check_invariants();
 
         // TODO: is this logic correct?
         self.element_at(coord)
             .map_or(false, |e| e.is_ring() && e.player == player)
             && !self.ring_moves(coord).is_empty()
+    }
+
+    pub fn marker_moves(&self, player: Player) -> impl Iterator<Item = Coord> + '_ {
+        self.check_invariants();
+
+        self.ring_coords(player)
+            .filter(move |c| self.can_place_marker_at(*c, player))
     }
 
     pub fn flip_markers_between(&mut self, start: Coord, end: Coord) {
