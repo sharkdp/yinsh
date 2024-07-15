@@ -1,12 +1,11 @@
 use bevy::prelude::*;
-use yinsh::Player;
-
-use crate::gui::graphics::{spawn_marker, spawn_ring};
+use yinsh::{Player, TurnMode};
 
 use super::{
     ai::AiComputationEvent,
     board::BoardElement,
-    graphics::{PlayerColors, ScaleFactorSet},
+    board_update_event::BoardUpdateEvent,
+    graphics::ScaleFactorSet,
     interaction::CursorElement,
     state_update::{GameState, StateUpdateSet},
 };
@@ -14,10 +13,9 @@ use super::{
 pub fn save_and_load_game_state(
     keyboard: Res<ButtonInput<KeyCode>>,
     mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    player_colors: Res<PlayerColors>,
     mut game_state: ResMut<GameState>,
     mut ai_computation_events: EventWriter<AiComputationEvent>,
+    mut board_update_events: EventWriter<BoardUpdateEvent>,
     q_board_elements: Query<Entity, (With<BoardElement>, Without<CursorElement>)>,
 ) {
     let filename = "gamestate.yml";
@@ -54,11 +52,11 @@ pub fn save_and_load_game_state(
         // Respawn board elements
         for p in [Player::A, Player::B] {
             for coord in game_state.board.ring_coords(p) {
-                spawn_ring(&mut commands, &mut meshes, &player_colors, coord, p);
+                board_update_events.send(BoardUpdateEvent::AddRing(coord, p));
             }
 
             for coord in game_state.board.marker_coords(p) {
-                spawn_marker(&mut commands, &mut meshes, &player_colors, coord, p);
+                board_update_events.send(BoardUpdateEvent::AddMarker(coord, p));
             }
         }
     }
