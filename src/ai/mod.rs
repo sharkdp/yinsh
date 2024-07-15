@@ -7,7 +7,7 @@ use crate::{
     Player,
 };
 
-struct Yinsh;
+pub struct Yinsh;
 
 impl Game for Yinsh {
     type S = GameState;
@@ -33,12 +33,14 @@ impl Game for Yinsh {
     }
 }
 
-struct MarkerCountHeuristic;
+pub struct MarkerCountHeuristic;
 
 impl Evaluator for MarkerCountHeuristic {
     type G = Yinsh;
 
     fn evaluate(&self, state: &GameState) -> Evaluation {
+        // TODO: here we could match on the turn mode and potentially skip ahead if we are in a waiting state.
+
         type Score = Evaluation;
 
         // Evaluate position from perspective of player A. If the active
@@ -58,13 +60,13 @@ impl Evaluator for MarkerCountHeuristic {
     }
 }
 
-fn possible_actions<'a>(state: &'a GameState) -> Box<dyn Iterator<Item = Action> + 'a> {
+pub fn possible_actions<'a>(state: &'a GameState) -> Box<dyn Iterator<Item = Action> + 'a> {
     match state.turn_mode {
         TurnMode::RingPlacement => Box::new(state.board.free_coords().map(Action::PlaceRing)),
         TurnMode::MarkerPlacement => Box::new(
             state
                 .board
-                .ring_coords(state.active_player)
+                .marker_moves(state.active_player)
                 .map(Action::PlaceMarker),
         ),
         TurnMode::RingMovement(start) => Box::new(

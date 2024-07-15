@@ -60,13 +60,9 @@ impl InteractionState {
                 TurnMode::RingPlacement => {
                     Self::RingPlacement(game_state.board.free_coords().collect())
                 }
-                TurnMode::MarkerPlacement => Self::MarkerPlacement(
-                    game_state
-                        .board
-                        .ring_coords(PLAYER_HUMAN)
-                        .filter(|c| game_state.board.can_place_marker_at(*c, PLAYER_HUMAN))
-                        .collect(),
-                ),
+                TurnMode::MarkerPlacement => {
+                    Self::MarkerPlacement(game_state.board.marker_moves(PLAYER_HUMAN).collect())
+                }
                 TurnMode::RingMovement(start) => {
                     Self::RingMovement(start, game_state.board.ring_moves(start))
                 }
