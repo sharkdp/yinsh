@@ -1,4 +1,4 @@
-use yinsh::{Board, Coord, Player};
+use yinsh::{Board, Coord, Player, DIRECTIONS};
 
 #[test]
 fn basic_marker_placement() {
@@ -41,49 +41,50 @@ fn basic_ring_placement() {
 }
 
 #[test]
-fn has_run() {
-    {
-        let mut board = Board::empty();
+fn check_run_basic() {
+    let mut board = Board::empty();
 
-        board.add_marker(Player::A, Coord::new(0, -2));
-        board.add_marker(Player::A, Coord::new(0, -1));
-        board.add_marker(Player::A, Coord::new(0, 0));
-        board.add_marker(Player::A, Coord::new(0, 1));
+    assert!(board.check_run().no_runs());
 
-        assert!(!board.has_run(Player::A));
+    board.add_marker(Player::A, Coord::new(0, -2));
+    board.add_marker(Player::A, Coord::new(0, -1));
+    board.add_marker(Player::A, Coord::new(0, 0));
+    board.add_marker(Player::A, Coord::new(0, 1));
 
-        board.add_marker(Player::A, Coord::new(0, 2));
+    assert!(board.check_run().no_runs());
 
-        assert!(board.has_run(Player::A));
-    }
+    board.add_marker(Player::A, Coord::new(0, 2));
 
-    {
-        let mut board = Board::empty();
+    assert!(board.check_run().has_run(Player::A));
+    assert!(!board.check_run().has_run(Player::B));
 
-        board.add_marker(Player::A, Coord::new(-2, 0));
-        board.add_marker(Player::A, Coord::new(-1, 0));
-        board.add_marker(Player::A, Coord::new(0, 0));
-        board.add_marker(Player::A, Coord::new(1, 0));
+    board.add_marker(Player::B, Coord::new(-1, -1));
+    board.add_marker(Player::B, Coord::new(-1, 0));
+    board.add_marker(Player::B, Coord::new(-1, 1));
+    board.add_marker(Player::B, Coord::new(-1, 2));
 
-        assert!(!board.has_run(Player::A));
+    assert!(!board.check_run().has_run(Player::B));
 
-        board.add_marker(Player::A, Coord::new(2, 0));
+    board.add_marker(Player::B, Coord::new(-1, -2));
 
-        assert!(board.has_run(Player::A));
-    }
+    assert!(board.check_run().has_run(Player::A));
+    assert!(board.check_run().has_run(Player::B));
+}
 
-    {
-        let mut board = Board::empty();
+#[test]
+fn check_run_exhaustive() {
+    for c in yinsh::all_coords() {
+        for d in DIRECTIONS {
+            if (c + d.direction() * 4).is_inside_board() {
+                dbg!(c, d.direction());
+                let mut board = Board::empty();
 
-        board.add_marker(Player::A, Coord::new(-2, -2));
-        board.add_marker(Player::A, Coord::new(-1, -1));
-        board.add_marker(Player::A, Coord::new(0, 0));
-        board.add_marker(Player::A, Coord::new(1, 1));
+                for i in 0..=4i8 {
+                    board.add_marker(Player::A, c + d.direction() * i);
+                }
 
-        assert!(!board.has_run(Player::A));
-
-        board.add_marker(Player::A, Coord::new(2, 2));
-
-        assert!(board.has_run(Player::A));
+                assert!(board.check_run().has_run(Player::A));
+            }
+        }
     }
 }

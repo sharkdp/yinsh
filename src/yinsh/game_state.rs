@@ -94,13 +94,15 @@ impl GameState {
 
                 self.board.flip_markers_between(*start, *end);
 
-                self.turn_mode = if self.board.has_run(self.active_player) {
-                    TurnMode::WaitForRunRemoval(self.active_player)
-                } else if self.board.has_run(self.active_player.next()) {
-                    TurnMode::RunRemoval(self.active_player)
+                let result = self.board.check_run();
+
+                if result.has_run(self.active_player) {
+                    self.turn_mode = TurnMode::WaitForRunRemoval(self.active_player);
+                } else if result.has_run(self.active_player.next()) {
+                    self.turn_mode = TurnMode::RunRemoval(self.active_player);
                 } else {
-                    TurnMode::MarkerPlacement
-                };
+                    self.turn_mode = TurnMode::MarkerPlacement;
+                }
             }
             (TurnMode::WaitForRunRemoval(player_last_ring_move), Action::Wait) => {
                 self.turn_mode = TurnMode::RunRemoval(*player_last_ring_move);
@@ -122,10 +124,12 @@ impl GameState {
             (TurnMode::RingRemoval(player_last_ring_move), Action::RemoveRing(coord)) => {
                 self.board.remove_ring(*coord);
 
-                self.turn_mode = if self.board.has_run(self.active_player) {
+                let result = self.board.check_run();
+
+                self.turn_mode = if result.has_run(self.active_player) {
                     // Active player has a second run, other player needs to wait
                     TurnMode::WaitForRunRemoval(*player_last_ring_move)
-                } else if self.board.has_run(self.active_player.next()) {
+                } else if result.has_run(self.active_player.next()) {
                     // Other player has a run, active player needs to remove it
                     TurnMode::RunRemoval(*player_last_ring_move)
                 } else if self.active_player == *player_last_ring_move {

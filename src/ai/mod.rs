@@ -117,6 +117,5 @@ pub fn get_ai_player_action(search_depth: usize, state: &GameState) -> Action {
     };
 
     let mut strategy = Negamax::new(MarkerCountHeuristic {}, depth);
-    assert!(state.active_player == Player::B);
     strategy.choose_move(&state).unwrap()
 }

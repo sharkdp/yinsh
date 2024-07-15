@@ -42,6 +42,30 @@ impl Default for Element {
     }
 }
 
+#[derive(Debug, Clone, Default)]
+pub struct CheckRunResult {
+    a_has_run: bool,
+    b_has_run: bool,
+}
+
+impl CheckRunResult {
+    fn or(&mut self, other: &Self) {
+        self.a_has_run |= other.a_has_run;
+        self.b_has_run |= other.b_has_run;
+    }
+
+    pub fn has_run(&self, player: Player) -> bool {
+        match player {
+            Player::A => self.a_has_run,
+            Player::B => self.b_has_run,
+        }
+    }
+
+    pub fn no_runs(&self) -> bool {
+        !self.a_has_run && !self.b_has_run
+    }
+}
+
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Board {
     #[serde(skip)]
@@ -56,6 +80,12 @@ pub struct Board {
 impl Board {
     pub fn empty() -> Self {
         Self::default()
+    }
+
+    /// Returns the element at a certain position or None if the coordinate is free (or invalid).
+    /// Does not check for validity.
+    fn element_at_unchecked(&self, coord: Coord) -> Element {
+        self.board[(coord.y + 5) as usize][(coord.x + 5) as usize]
     }
 
     /// Returns the element at a certain position or None if the coordinate is free (or invalid)
@@ -283,59 +313,95 @@ impl Board {
         None
     }
 
+    fn check_run_along_line(&self, start: Coord, direction: Coord, steps: i8) -> CheckRunResult {
+        let mut num_consecutive = 0;
+        let mut player = None;
+
+        let mut a_has_run = false;
+        let mut b_has_run = false;
+
+        for n in 0..steps {
+            let coord = start + direction * n;
+
+            match self.element_at_unchecked(coord) {
+                Element::Marker(p) => {
+                    if Some(p) == player {
+                        num_consecutive += 1;
+
+                        if num_consecutive == 5 {
+                            if p == Player::A {
+                                a_has_run = true;
+                            } else {
+                                b_has_run = true;
+                            }
+                        }
+                    } else {
+                        player = Some(p);
+                        num_consecutive = 1;
+                    }
+                }
+                _ => {
+                    player = None;
+                    num_consecutive = 0;
+                }
+            }
+        }
+
+        CheckRunResult {
+            a_has_run,
+            b_has_run,
+        }
+    }
+
     /// Returns true if the player has a run
-    pub fn has_run(&self, player: Player) -> bool {
+    pub fn check_run(&self) -> CheckRunResult {
         self.check_invariants();
 
+        let mut result = CheckRunResult {
+            a_has_run: false,
+            b_has_run: false,
+        };
+
+        // This is not pretty, but it's 10x faster than the naive implementation using run_coords_from
+        // and 5x faster than running across the [-5..5] x [-5..5] grid and checking for valid coordinates.
+
         // x direction
-        for y in -5..=5 {
-            let mut num_consecutive = 0;
-            for x in -5..=5 {
-                let coord = Coord::new(x, y);
-                if self.element_at(coord) == Element::Marker(player) {
-                    num_consecutive += 1;
-                    if num_consecutive == 5 {
-                        return true;
-                    }
-                } else {
-                    num_consecutive = 0;
-                }
-            }
-        }
+        let x = Coord::new(1, 0);
+        result.or(&self.check_run_along_line(Coord::new(-1, 4), x, 7));
+        result.or(&self.check_run_along_line(Coord::new(-2, 3), x, 8));
+        result.or(&self.check_run_along_line(Coord::new(-3, 2), x, 9));
+        result.or(&self.check_run_along_line(Coord::new(-4, 1), x, 10));
+        result.or(&self.check_run_along_line(Coord::new(-4, 0), x, 9));
+        result.or(&self.check_run_along_line(Coord::new(-5, -1), x, 10));
+        result.or(&self.check_run_along_line(Coord::new(-5, -2), x, 9));
+        result.or(&self.check_run_along_line(Coord::new(-5, -3), x, 8));
+        result.or(&self.check_run_along_line(Coord::new(-5, -4), x, 7));
 
         // y direction
-        for x in -5..=5 {
-            let mut num_consecutive = 0;
-            for y in -5..=5 {
-                let coord = Coord::new(x, y);
-                if self.element_at(coord) == Element::Marker(player) {
-                    num_consecutive += 1;
-                    if num_consecutive == 5 {
-                        return true;
-                    }
-                } else {
-                    num_consecutive = 0;
-                }
-            }
-        }
+        let y = Coord::new(0, 1);
+        result.or(&self.check_run_along_line(Coord::new(-4, -5), y, 7));
+        result.or(&self.check_run_along_line(Coord::new(-3, -5), y, 8));
+        result.or(&self.check_run_along_line(Coord::new(-2, -5), y, 9));
+        result.or(&self.check_run_along_line(Coord::new(-1, -5), y, 10));
+        result.or(&self.check_run_along_line(Coord::new(0, -4), y, 9));
+        result.or(&self.check_run_along_line(Coord::new(1, -4), y, 10));
+        result.or(&self.check_run_along_line(Coord::new(2, -3), y, 9));
+        result.or(&self.check_run_along_line(Coord::new(3, -2), y, 8));
+        result.or(&self.check_run_along_line(Coord::new(4, -1), y, 7));
 
         // diagonal direction
-        for a in -5..=5 {
-            let mut num_consecutive = 0;
-            for i in -5..=5 {
-                let coord = Coord::new(i, i + a);
-                if self.element_at(coord) == Element::Marker(player) {
-                    num_consecutive += 1;
-                    if num_consecutive == 5 {
-                        return true;
-                    }
-                } else {
-                    num_consecutive = 0;
-                }
-            }
-        }
+        let d = Coord::new(1, 1);
+        result.or(&self.check_run_along_line(Coord::new(-5, -1), d, 7));
+        result.or(&self.check_run_along_line(Coord::new(-5, -2), d, 8));
+        result.or(&self.check_run_along_line(Coord::new(-5, -3), d, 9));
+        result.or(&self.check_run_along_line(Coord::new(-5, -4), d, 10));
+        result.or(&self.check_run_along_line(Coord::new(-4, -4), d, 9));
+        result.or(&self.check_run_along_line(Coord::new(-4, -5), d, 10));
+        result.or(&self.check_run_along_line(Coord::new(-3, -5), d, 9));
+        result.or(&self.check_run_along_line(Coord::new(-2, -5), d, 8));
+        result.or(&self.check_run_along_line(Coord::new(-1, -5), d, 7));
 
-        false
+        result
     }
 
     /// Return coordinates that belong to a run. Multiple runs can exist at the same time.
