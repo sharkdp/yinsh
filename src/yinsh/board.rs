@@ -8,35 +8,44 @@ use crate::yinsh::core::AXES;
 use super::{core::all_coords, Coord, Player, DIRECTIONS};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ElementKind {
-    Ring,
-    Marker,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct Element {
-    kind: ElementKind,
-    player: Player,
+pub enum Element {
+    Ring(Player),
+    Marker(Player),
+    Empty,
 }
 
 impl Element {
     pub fn is_marker(&self) -> bool {
-        self.kind == ElementKind::Marker
+        matches!(self, Element::Marker(_))
     }
 
     fn is_ring(&self) -> bool {
-        self.kind == ElementKind::Ring
+        matches!(self, Element::Ring(_))
     }
 
-    pub fn flip_player(&mut self) {
-        self.player.flip();
+    fn is_empty(&self) -> bool {
+        matches!(self, Element::Empty)
+    }
+
+    fn player(&self) -> Option<Player> {
+        match self {
+            Element::Ring(player) => Some(*player),
+            Element::Marker(player) => Some(*player),
+            Element::Empty => None,
+        }
+    }
+}
+
+impl Default for Element {
+    fn default() -> Self {
+        Element::Empty
     }
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Board {
     #[serde(skip)]
-    board: [[Option<Element>; 11]; 11],
+    board: [[Element; 11]; 11],
 
     rings_a: Vec<Coord>,
     rings_b: Vec<Coord>,
@@ -50,58 +59,56 @@ impl Board {
     }
 
     /// Returns the element at a certain position or None if the coordinate is free (or invalid)
-    fn element_at(&self, coord: Coord) -> Option<Element> {
+    fn element_at(&self, coord: Coord) -> Element {
         if coord.is_inside_board() {
             self.board[(coord.y + 5) as usize][(coord.x + 5) as usize]
         } else {
-            None
+            Element::Empty
         }
     }
 
     /// Returns the element at a certain position or None if the coordinate is free. Does not
     /// check for validity.
-    fn element_at_mut_unchecked(&mut self, coord: Coord) -> &mut Option<Element> {
+    fn element_at_mut_unchecked(&mut self, coord: Coord) -> &mut Element {
         &mut self.board[(coord.y + 5) as usize][(coord.x + 5) as usize]
     }
 
-    fn insert_board_element_at(&mut self, coord: Coord, kind: ElementKind, player: Player) {
+    fn insert_board_element_at(&mut self, coord: Coord, element: Element) {
         debug_assert!(coord.is_inside_board());
 
-        self.element_at_mut_unchecked(coord)
-            .replace(Element { kind, player });
+        *self.element_at_mut_unchecked(coord) = element;
     }
 
     fn remove_board_element_at(&mut self, coord: &Coord) {
         debug_assert!(coord.is_inside_board());
 
-        self.element_at_mut_unchecked(*coord).take();
+        *self.element_at_mut_unchecked(*coord) = Element::Empty;
     }
 
     /// Returns true if a certain point on the board is free. Does not check for validity.
     pub fn is_free(&self, coord: Coord) -> bool {
-        self.element_at(coord).is_none()
+        self.element_at(coord).is_empty()
     }
 
     /// Returns true if the element at the given point is a ring of any color.
     pub fn has_ring_at(&self, coord: Coord, player: Player) -> bool {
         self.check_invariants();
 
-        self.element_at(coord)
-            .map_or(false, |e| e.is_ring() && e.player == player)
+        self.element_at(coord) == Element::Ring(player)
     }
 
     /// Returns true if the element at the given point is a marker of any color.
     pub fn has_marker_at(&self, coord: Coord) -> bool {
         self.check_invariants();
 
-        self.element_at(coord).map_or(false, |e| e.is_marker())
+        self.element_at(coord).is_marker()
     }
 
     pub fn add_ring(&mut self, player: Player, coord: Coord) {
         self.check_invariants();
         debug_assert!(self.is_free(coord));
 
-        self.insert_board_element_at(coord, ElementKind::Ring, player);
+        self.insert_board_element_at(coord, Element::Ring(player));
         match player {
             Player::A => self.rings_a.push(coord),
             Player::B => self.rings_b.push(coord),
@@ -110,7 +117,7 @@ impl Board {
 
     pub fn remove_ring(&mut self, coord: Coord) {
         self.check_invariants();
-        debug_assert!(self.element_at(coord).map_or(false, |e| e.is_ring()));
+        debug_assert!(self.element_at(coord).is_ring());
 
         self.remove_board_element_at(&coord);
         self.rings_a.retain(|&x| x != coord);
@@ -127,7 +134,7 @@ impl Board {
         self.check_invariants();
         debug_assert!(self.is_free(coord));
 
-        self.insert_board_element_at(coord, ElementKind::Marker, player);
+        self.insert_board_element_at(coord, Element::Marker(player));
         match player {
             Player::A => self.markers_a.push(coord),
             Player::B => self.markers_b.push(coord),
@@ -215,9 +222,7 @@ impl Board {
         self.check_invariants();
 
         // TODO: is this logic correct?
-        self.element_at(coord)
-            .map_or(false, |e| e.is_ring() && e.player == player)
-            && !self.ring_moves(coord).is_empty()
+        (self.element_at(coord) == Element::Ring(player)) && !self.ring_moves(coord).is_empty()
     }
 
     pub fn marker_moves(&self, player: Player) -> impl Iterator<Item = Coord> + '_ {
@@ -234,12 +239,10 @@ impl Board {
         debug_assert!(end.is_inside_board());
 
         for coord in Coord::between(start, end) {
-            if let Some(e) = self.element_at_mut_unchecked(coord) {
-                debug_assert!(e.is_marker());
+            if let Element::Marker(player) = self.element_at_mut_unchecked(coord) {
+                player.flip();
 
-                e.flip_player();
-
-                if e.player == Player::A {
+                if *player == Player::A {
                     self.markers_a.push(coord);
                     self.markers_b.retain(|&x| x != coord);
                 } else {
@@ -254,23 +257,18 @@ impl Board {
     pub fn run_coords_from(&self, start: Coord) -> Option<Vec<Coord>> {
         self.check_invariants();
 
-        let seed = self.element_at(start).unwrap();
+        let seed = self.element_at(start);
+        let player = seed.player().unwrap();
 
         debug_assert!(seed.is_marker());
 
         for a in AXES {
             let markers_positive = (1i8..=4i8)
                 .map(|i| start + a.direction() * i)
-                .take_while(|c| {
-                    self.element_at(*c)
-                        .map_or(false, |e| e.is_marker() && e.player == seed.player)
-                });
+                .take_while(|c| self.element_at(*c) == Element::Marker(player));
             let markers_negative = (1i8..=4i8)
                 .map(|i| start - a.direction() * i)
-                .take_while(|c| {
-                    self.element_at(*c)
-                        .map_or(false, |e| e.is_marker() && e.player == seed.player)
-                });
+                .take_while(|c| self.element_at(*c) == Element::Marker(player));
 
             let run_coords: Vec<_> = iter::once(start)
                 .chain(markers_positive.interleave(markers_negative))
@@ -294,11 +292,7 @@ impl Board {
             let mut num_consecutive = 0;
             for x in -5..=5 {
                 let coord = Coord::new(x, y);
-                if self
-                    .element_at(coord)
-                    .map(|e| e.is_marker() && e.player == player)
-                    .unwrap_or(false)
-                {
+                if self.element_at(coord) == Element::Marker(player) {
                     num_consecutive += 1;
                     if num_consecutive == 5 {
                         return true;
@@ -314,11 +308,7 @@ impl Board {
             let mut num_consecutive = 0;
             for y in -5..=5 {
                 let coord = Coord::new(x, y);
-                if self
-                    .element_at(coord)
-                    .map(|e| e.kind == ElementKind::Marker && e.player == player)
-                    .unwrap_or(false)
-                {
+                if self.element_at(coord) == Element::Marker(player) {
                     num_consecutive += 1;
                     if num_consecutive == 5 {
                         return true;
@@ -334,11 +324,7 @@ impl Board {
             let mut num_consecutive = 0;
             for i in -5..=5 {
                 let coord = Coord::new(i, i + a);
-                if self
-                    .element_at(coord)
-                    .map(|e| e.kind == ElementKind::Marker && e.player == player)
-                    .unwrap_or(false)
-                {
+                if self.element_at(coord) == Element::Marker(player) {
                     num_consecutive += 1;
                     if num_consecutive == 5 {
                         return true;
@@ -379,50 +365,46 @@ impl Board {
     #[cfg(debug_assertions)]
     fn check_invariants(&self) {
         for coord in all_coords() {
-            if let Some(element) = self.element_at(coord) {
-                match (element.kind, element.player) {
-                    (ElementKind::Ring, Player::A) => {
-                        debug_assert!(self.rings_a.contains(&coord));
-                        debug_assert!(!self.rings_b.contains(&coord));
-                    }
-                    (ElementKind::Ring, Player::B) => {
-                        debug_assert!(self.rings_b.contains(&coord));
-                        debug_assert!(!self.rings_a.contains(&coord));
-                    }
-                    (ElementKind::Marker, Player::A) => {
-                        debug_assert!(self.markers_a.contains(&coord));
-                        debug_assert!(!self.markers_b.contains(&coord));
-                    }
-                    (ElementKind::Marker, Player::B) => {
-                        debug_assert!(self.markers_b.contains(&coord));
-                        debug_assert!(!self.markers_a.contains(&coord));
-                    }
+            match self.element_at(coord) {
+                Element::Ring(Player::A) => {
+                    debug_assert!(self.rings_a.contains(&coord));
+                    debug_assert!(!self.rings_b.contains(&coord));
+                }
+                Element::Ring(Player::B) => {
+                    debug_assert!(self.rings_b.contains(&coord));
+                    debug_assert!(!self.rings_a.contains(&coord));
+                }
+                Element::Marker(Player::A) => {
+                    debug_assert!(self.markers_a.contains(&coord));
+                    debug_assert!(!self.markers_b.contains(&coord));
+                }
+                Element::Marker(Player::B) => {
+                    debug_assert!(self.markers_b.contains(&coord));
+                    debug_assert!(!self.markers_a.contains(&coord));
+                }
+                Element::Empty => {
+                    debug_assert!(!self.rings_a.contains(&coord));
+                    debug_assert!(!self.rings_b.contains(&coord));
+                    debug_assert!(!self.markers_a.contains(&coord));
+                    debug_assert!(!self.markers_b.contains(&coord));
                 }
             }
         }
 
         for coord in self.rings_a.iter().copied() {
-            debug_assert!(self
-                .element_at(coord)
-                .map_or(false, |e| e.is_ring() && e.player == Player::A));
+            debug_assert!(self.element_at(coord) == Element::Ring(Player::A));
         }
 
         for coord in self.rings_b.iter().copied() {
-            debug_assert!(self
-                .element_at(coord)
-                .map_or(false, |e| e.is_ring() && e.player == Player::B));
+            debug_assert!(self.element_at(coord) == Element::Ring(Player::B));
         }
 
         for coord in self.markers_a.iter().copied() {
-            debug_assert!(self
-                .element_at(coord)
-                .map_or(false, |e| e.is_marker() && e.player == Player::A));
+            debug_assert!(self.element_at(coord) == Element::Marker(Player::A));
         }
 
         for coord in self.markers_b.iter().copied() {
-            debug_assert!(self
-                .element_at(coord)
-                .map_or(false, |e| e.is_marker() && e.player == Player::B));
+            debug_assert!(self.element_at(coord) == Element::Marker(Player::B));
         }
     }
 
@@ -433,19 +415,19 @@ impl Board {
         let markers_b = self.markers_b.clone();
 
         for coord in rings_a {
-            self.insert_board_element_at(coord, ElementKind::Ring, Player::A);
+            self.insert_board_element_at(coord, Element::Ring(Player::A));
         }
 
         for coord in rings_b {
-            self.insert_board_element_at(coord, ElementKind::Ring, Player::B);
+            self.insert_board_element_at(coord, Element::Ring(Player::B));
         }
 
         for coord in markers_a {
-            self.insert_board_element_at(coord, ElementKind::Marker, Player::A);
+            self.insert_board_element_at(coord, Element::Marker(Player::A));
         }
 
         for coord in markers_b {
-            self.insert_board_element_at(coord, ElementKind::Marker, Player::B);
+            self.insert_board_element_at(coord, Element::Marker(Player::B));
         }
 
         self.check_invariants();
