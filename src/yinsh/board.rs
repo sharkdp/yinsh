@@ -7,13 +7,13 @@ use crate::yinsh::core::AXES;
 
 use super::{core::all_coords, Coord, Player, DIRECTIONS};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ElementKind {
     Ring,
     Marker,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct Element {
     kind: ElementKind,
     player: Player,
@@ -35,7 +35,9 @@ impl Element {
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Board {
+    #[serde(skip)]
     board: [[Option<Element>; 11]; 11],
+
     rings_a: Vec<Coord>,
     rings_b: Vec<Coord>,
     markers_a: Vec<Coord>,
@@ -63,7 +65,6 @@ impl Board {
     }
 
     fn insert_board_element_at(&mut self, coord: Coord, kind: ElementKind, player: Player) {
-        self.check_invariants();
         debug_assert!(coord.is_inside_board());
 
         self.element_at_mut_unchecked(coord)
@@ -71,7 +72,6 @@ impl Board {
     }
 
     fn remove_board_element_at(&mut self, coord: &Coord) {
-        self.check_invariants();
         debug_assert!(coord.is_inside_board());
 
         self.element_at_mut_unchecked(*coord).take();
@@ -361,6 +361,31 @@ impl Board {
                 .element_at(coord)
                 .map_or(false, |e| e.is_marker() && e.player == Player::B));
         }
+    }
+
+    pub fn fill_board_from_lists(&mut self) {
+        let rings_a = self.rings_a.clone();
+        let rings_b = self.rings_b.clone();
+        let markers_a = self.markers_a.clone();
+        let markers_b = self.markers_b.clone();
+
+        for coord in rings_a {
+            self.insert_board_element_at(coord, ElementKind::Ring, Player::A);
+        }
+
+        for coord in rings_b {
+            self.insert_board_element_at(coord, ElementKind::Ring, Player::B);
+        }
+
+        for coord in markers_a {
+            self.insert_board_element_at(coord, ElementKind::Marker, Player::A);
+        }
+
+        for coord in markers_b {
+            self.insert_board_element_at(coord, ElementKind::Marker, Player::B);
+        }
+
+        self.check_invariants();
     }
 
     #[cfg(not(debug_assertions))]

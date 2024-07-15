@@ -165,6 +165,11 @@ impl GameState {
 
     pub fn load_from<P: AsRef<Path>>(path: P) -> Self {
         let file = std::fs::File::open(path).unwrap();
-        serde_yaml::from_reader(file).unwrap()
+        let mut game_state: GameState = serde_yaml::from_reader(file).unwrap();
+
+        // Patch up the 2D board, which is not serialized/deserialized
+        game_state.board.fill_board_from_lists();
+
+        game_state
     }
 }
