@@ -1,10 +1,9 @@
 use bevy::prelude::*;
 
 use bevy_async_task::{AsyncTaskRunner, AsyncTaskStatus};
-use yinsh::{Action, GameState};
+use yinsh::{Action, GameState, Player};
 
 use super::state_update::{PlayerActionEvent, StateUpdateSet};
-use super::PLAYER_AI;
 
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct AiSet;
@@ -14,21 +13,22 @@ pub struct AiPlayerStrength(pub usize);
 
 #[derive(Event)]
 pub enum AiComputationEvent {
-    Start(GameState),
+    Start(Player, GameState),
 
     #[allow(unused)]
     Cancel,
 }
 
 fn perform_ai_actions(
-    mut task_runner: AsyncTaskRunner<Option<Action>>,
+    mut task_runner: AsyncTaskRunner<Option<(Player, Action)>>,
     mut events: EventReader<AiComputationEvent>,
     strength: Res<AiPlayerStrength>,
     mut player_action_events: EventWriter<PlayerActionEvent>,
 ) {
     for event in events.read() {
         match event {
-            AiComputationEvent::Start(ref game_state) => {
+            AiComputationEvent::Start(player, ref game_state) => {
+                let player = *player;
                 let game_state = game_state.clone();
                 let search_depth = strength.0;
                 task_runner.start(async move {
@@ -44,7 +44,10 @@ fn perform_ai_actions(
                         }
                     }
 
-                    Some(yinsh::get_ai_player_action(search_depth, &game_state))
+                    Some((
+                        player,
+                        yinsh::get_ai_player_action(search_depth, &game_state),
+                    ))
                 });
             }
             AiComputationEvent::Cancel => {
@@ -56,8 +59,8 @@ fn perform_ai_actions(
 
     match task_runner.poll() {
         AsyncTaskStatus::Idle | AsyncTaskStatus::Pending | AsyncTaskStatus::Finished(None) => {}
-        AsyncTaskStatus::Finished(Some(action)) => {
-            player_action_events.send(PlayerActionEvent(PLAYER_AI, action));
+        AsyncTaskStatus::Finished(Some((player, action))) => {
+            player_action_events.send(PlayerActionEvent(player, action));
         }
     }
 }
