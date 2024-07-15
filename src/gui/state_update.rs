@@ -133,7 +133,7 @@ fn state_update(
         game_state.transition(action);
 
         if game_state.active_player == PLAYER_AI && game_state.winner().is_none() {
-            ai_computation_events.send(AiComputationEvent::Start(game_state.clone()));
+            ai_computation_events.send(AiComputationEvent::Start(PLAYER_AI, game_state.clone()));
         }
     }
 
