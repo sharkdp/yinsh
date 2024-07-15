@@ -38,3 +38,10 @@ strip = "debuginfo"
 inherits = "release"
 opt-level = "z"
 strip = "debuginfo"
+
+[dev-dependencies]
+criterion = "0.3"
+
+[[bench]]
+name = "board"
+harness = false
