@@ -24,10 +24,25 @@ pub fn save_and_load_game_state(
 
     if keyboard.just_pressed(KeyCode::KeyS) {
         println!("Saving game state to {}", filename);
-        game_state.save_to(filename);
+        if matches!(
+            game_state.turn_mode,
+            TurnMode::RingPlacement | TurnMode::MarkerPlacement
+        ) {
+            game_state.save_to(filename);
+        } else {
+            println!(
+                "Cannot save game state in turn mode {:?}",
+                game_state.turn_mode
+            );
+        }
     } else if keyboard.just_pressed(KeyCode::KeyL) || keyboard.just_pressed(KeyCode::KeyR) {
         println!("Loading game state from {}", filename);
         *game_state.as_deref_mut() = yinsh::GameState::load_from(filename);
+
+        assert!(matches!(
+            game_state.turn_mode,
+            TurnMode::RingPlacement | TurnMode::MarkerPlacement
+        ));
 
         ai_computation_events.send(AiComputationEvent::Cancel);
 
