@@ -19,7 +19,7 @@ impl Game for Yinsh {
     }
 
     fn apply(state: &mut Self::S, m: Self::M) -> Option<Self::S> {
-        let mut new_state = state.clone();
+        let mut new_state = state.clone(); // TODO: is this necessary?
         new_state.transition(&m);
         Some(new_state) // TODO: we can avoid cloning here by returning None and implementing undo
     }
