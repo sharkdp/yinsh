@@ -1,9 +1,9 @@
 use minimax::Evaluator;
-use yinsh::{Action, Coord, GameState, MarkerCountHeuristic, Player};
+use yinsh::{Action, Coord, GameState, Player, SimpleHeuristic};
 
 #[test]
 fn midgame_1() {
-    let heuristic = MarkerCountHeuristic {};
+    let heuristic = SimpleHeuristic {};
 
     let mut game_state = GameState::load_from("tests/midgame_1.yml");
 
