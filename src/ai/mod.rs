@@ -33,6 +33,7 @@ impl Game for Yinsh {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
 pub struct MarkerCountHeuristic;
 
 impl Evaluator for MarkerCountHeuristic {
@@ -96,6 +97,62 @@ pub fn possible_actions<'a>(state: &'a GameState) -> Box<dyn Iterator<Item = Act
     }
 }
 
+trait IsYinshGameState {
+    fn from_gamestate(s: &GameState) -> &Self;
+}
+
+impl IsYinshGameState for GameState {
+    fn from_gamestate(s: &GameState) -> &Self {
+        s
+    }
+}
+
+trait IsYinshAction {
+    fn to_action(s: Self) -> Action;
+}
+
+impl IsYinshAction for Action {
+    fn to_action(s: Self) -> Action {
+        s
+    }
+}
+
+struct YinshAi<Heuristic: Evaluator + Copy> {
+    search_depth: usize,
+    heuristic: Heuristic,
+}
+
+impl<Heuristic: Evaluator + Copy> YinshAi<Heuristic>
+where
+    <Heuristic::G as Game>::S: Clone,
+    <Heuristic::G as Game>::S: IsYinshGameState,
+    <Heuristic::G as Game>::M: IsYinshAction,
+{
+    pub fn new(search_depth: usize, heuristic: Heuristic) -> Self {
+        Self {
+            search_depth,
+            heuristic,
+        }
+    }
+
+    pub fn choose_action(&mut self, state: &GameState) -> Option<Action> {
+        let depth: u8 = if matches!(state.turn_mode, TurnMode::RingPlacement) {
+            4
+        } else {
+            self.search_depth.try_into().unwrap()
+        };
+
+        let mut strategy = Negamax::new(self.heuristic, depth);
+        let action = strategy
+            .choose_move(&<<Heuristic::G as Game>::S as IsYinshGameState>::from_gamestate(state))
+            .unwrap();
+
+        dbg!(strategy.root_value());
+
+        Some(<<Heuristic as Evaluator>::G as Game>::M::to_action(action))
+    }
+}
+
 pub fn get_ai_player_action(search_depth: usize, state: &GameState) -> Action {
     // Early return if the only thing we can do is wait. Would be great
     // if this could be handled by 'minimax' itself (if there is only one
@@ -110,12 +167,6 @@ pub fn get_ai_player_action(search_depth: usize, state: &GameState) -> Action {
         _ => {}
     }
 
-    let depth: u8 = if matches!(state.turn_mode, TurnMode::RingPlacement) {
-        3
-    } else {
-        search_depth.try_into().unwrap()
-    };
-
-    let mut strategy = Negamax::new(MarkerCountHeuristic {}, depth);
-    strategy.choose_move(&state).unwrap()
+    let mut ai = YinshAi::new(search_depth, MarkerCountHeuristic {});
+    ai.choose_action(state).unwrap()
 }
