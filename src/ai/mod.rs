@@ -34,9 +34,9 @@ impl Game for Yinsh {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct MarkerCountHeuristic;
+pub struct SimpleHeuristic;
 
-impl Evaluator for MarkerCountHeuristic {
+impl Evaluator for SimpleHeuristic {
     type G = Yinsh;
 
     fn evaluate(&self, state: &GameState) -> Evaluation {
@@ -167,6 +167,6 @@ pub fn get_ai_player_action(search_depth: usize, state: &GameState) -> Action {
         _ => {}
     }
 
-    let mut ai = YinshAi::new(search_depth, MarkerCountHeuristic {});
+    let mut ai = YinshAi::new(search_depth, SimpleHeuristic {});
     ai.choose_action(state).unwrap()
 }
