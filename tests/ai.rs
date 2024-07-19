@@ -1,4 +1,4 @@
-use yinsh::{Action, Coord, GameState, Heuristic, Player, SimpleHeuristic};
+use yinsh::{Coord, GameState, Heuristic, Move, Player, SimpleHeuristic};
 
 #[test]
 fn midgame_1() {
@@ -14,40 +14,40 @@ fn midgame_1() {
 
     assert_eq!(game_state.active_player, Player::A);
 
-    game_state.transition(&Action::PlaceMarker(Coord::new(2, 1)));
-    game_state.transition(&Action::Wait);
-    game_state.transition(&Action::MoveRing(Coord::new(2, 1), Coord::new(2, 2)));
+    game_state.perform_move(&Move::PlaceMarker(Coord::new(2, 1)));
+    game_state.perform_move(&Move::Wait);
+    game_state.perform_move(&Move::MoveRing(Coord::new(2, 1), Coord::new(2, 2)));
 
     assert_eq!(game_state.active_player, Player::B);
 
-    game_state.transition(&Action::PlaceMarker(Coord::new(-3, -4)));
-    game_state.transition(&Action::Wait);
-    game_state.transition(&Action::MoveRing(Coord::new(-3, -4), Coord::new(-4, -4)));
+    game_state.perform_move(&Move::PlaceMarker(Coord::new(-3, -4)));
+    game_state.perform_move(&Move::Wait);
+    game_state.perform_move(&Move::MoveRing(Coord::new(-3, -4), Coord::new(-4, -4)));
 
     assert_eq!(game_state.active_player, Player::A);
 
-    game_state.transition(&Action::PlaceMarker(Coord::new(2, 2)));
-    game_state.transition(&Action::Wait);
-    game_state.transition(&Action::MoveRing(Coord::new(2, 2), Coord::new(2, 3)));
+    game_state.perform_move(&Move::PlaceMarker(Coord::new(2, 2)));
+    game_state.perform_move(&Move::Wait);
+    game_state.perform_move(&Move::MoveRing(Coord::new(2, 2), Coord::new(2, 3)));
 
     assert_eq!(game_state.active_player, Player::B);
 
-    game_state.transition(&Action::Wait);
+    game_state.perform_move(&Move::Wait);
 
     assert_eq!(heuristic.evaluate_for_player_a(&game_state), -1080);
 
-    game_state.transition(&Action::RemoveRun(Coord::new(2, 2)));
-    game_state.transition(&Action::Wait);
+    game_state.perform_move(&Move::RemoveRun(Coord::new(2, 2)));
+    game_state.perform_move(&Move::Wait);
 
     assert_eq!(
         heuristic.evaluate_for_player_a(&game_state),
         -1080 + 1000 - 5 * 10
     );
 
-    game_state.transition(&Action::RemoveRing(Coord::new(0, -3)));
-    game_state.transition(&Action::PlaceMarker(Coord::new(-1, 1)));
-    game_state.transition(&Action::Wait);
-    game_state.transition(&Action::MoveRing(Coord::new(-1, 1), Coord::new(-1, 2)));
+    game_state.perform_move(&Move::RemoveRing(Coord::new(0, -3)));
+    game_state.perform_move(&Move::PlaceMarker(Coord::new(-1, 1)));
+    game_state.perform_move(&Move::Wait);
+    game_state.perform_move(&Move::MoveRing(Coord::new(-1, 1), Coord::new(-1, 2)));
 
     assert_eq!(
         heuristic.evaluate_for_player_a(&game_state),

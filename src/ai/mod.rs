@@ -3,13 +3,13 @@ mod game;
 mod heuristics;
 
 pub use evaluator::Heuristic;
-pub use game::possible_actions;
+pub use game::possible_moves;
 pub use heuristics::SimpleHeuristic;
 
 use evaluator::YinshEvaluator;
 use minimax::{Negamax, Strategy};
 
-use crate::yinsh::{Action, GameState, TurnMode};
+use crate::yinsh::{GameState, Move, TurnMode};
 
 pub struct YinshAi<H: Heuristic> {
     heuristic: H,
@@ -28,7 +28,7 @@ impl<H: Heuristic> YinshAi<H> {
 pub trait YinshAiPlayer {
     fn identifier(&self) -> String;
 
-    fn choose_action(&self, state: &GameState) -> Action;
+    fn choose_move(&self, state: &GameState) -> Move;
 }
 
 impl<H: Heuristic> YinshAiPlayer for YinshAi<H> {
@@ -36,7 +36,7 @@ impl<H: Heuristic> YinshAiPlayer for YinshAi<H> {
         self.heuristic.identifier()
     }
 
-    fn choose_action(&self, state: &GameState) -> Action {
+    fn choose_move(&self, state: &GameState) -> Move {
         // Early return if the only thing we can do is wait. Would be great
         // if this could be handled by 'minimax' itself (if there is only one
         // possible move in choose_move, return that immediately).
@@ -45,7 +45,7 @@ impl<H: Heuristic> YinshAiPlayer for YinshAi<H> {
             | TurnMode::WaitForRingMovement(_)
             | TurnMode::WaitForRingRemoval(_)
             | TurnMode::WaitForMarkerPlacement => {
-                return Action::Wait;
+                return Move::Wait;
             }
             _ => {}
         }
@@ -57,14 +57,14 @@ impl<H: Heuristic> YinshAiPlayer for YinshAi<H> {
         };
 
         let mut strategy = Negamax::new(YinshEvaluator::new(&self.heuristic), depth);
-        let action = strategy.choose_move(&state).unwrap();
+        let player_move = strategy.choose_move(&state).unwrap();
 
         // dbg!(strategy.root_value());
 
-        action
+        player_move
     }
 }
 
-pub fn get_ai_player_action(search_depth: usize, state: &GameState) -> Action {
-    YinshAi::new(SimpleHeuristic::default(), search_depth).choose_action(state)
+pub fn get_ai_move(search_depth: usize, state: &GameState) -> Move {
+    YinshAi::new(SimpleHeuristic::default(), search_depth).choose_move(state)
 }
