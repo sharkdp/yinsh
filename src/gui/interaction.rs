@@ -7,7 +7,7 @@ use bevy::window::PrimaryWindow;
 use bevy_tweening::lens::ColorMaterialColorLens;
 use bevy_tweening::{lens::TransformPositionLens, Animator, EaseFunction, Tween, TweeningPlugin};
 use bevy_tweening::{AnimationSystem, AssetAnimator, Delay, EaseMethod};
-use yinsh::{all_coords, Action, Coord};
+use yinsh::{all_coords, Coord, Move};
 
 use super::ai::AiSet;
 use super::board::{BoardElement, Marker, Ring};
@@ -16,7 +16,7 @@ use super::graphics::{
     color_for_player, marker_mesh, ring_mesh, spawn_marker, spawn_ring, MainCamera, PlayerColors,
     ScaleFactor, ScaleFactorSet, ANIMATION_DURATION, FOREGROUND_RENDER_LAYER,
 };
-use super::state_update::{GameState, PlayerActionEvent, StateUpdateSet};
+use super::state_update::{GameState, PlayerMoveEvent, StateUpdateSet};
 use super::PLAYER_HUMAN;
 use super::{graphics::COLOR_RING_MOVEMENT_INDICATOR, state_update::InteractionState};
 
@@ -359,11 +359,11 @@ fn mouse_interaction_system(
     buttons: Res<ButtonInput<MouseButton>>,
     interaction_state: Res<InteractionState>,
     cursor_coord: Res<CursorCoord>,
-    mut player_action_events: EventWriter<PlayerActionEvent>,
+    mut player_move_events: EventWriter<PlayerMoveEvent>,
 ) {
     if matches!(*interaction_state, InteractionState::AutoMove) {
         // TODO
-        player_action_events.send(PlayerActionEvent(PLAYER_HUMAN, Action::Wait));
+        player_move_events.send(PlayerMoveEvent(PLAYER_HUMAN, Move::Wait));
     }
 
     if let Some(cursor_coord) = cursor_coord.0 {
@@ -371,25 +371,23 @@ fn mouse_interaction_system(
             match *interaction_state {
                 InteractionState::RingPlacement(ref free_coords) => {
                     if free_coords.contains(&cursor_coord) {
-                        player_action_events.send(PlayerActionEvent(
-                            PLAYER_HUMAN,
-                            Action::PlaceRing(cursor_coord),
-                        ));
+                        player_move_events
+                            .send(PlayerMoveEvent(PLAYER_HUMAN, Move::PlaceRing(cursor_coord)));
                     }
                 }
                 InteractionState::MarkerPlacement(ref ring_coords) => {
                     if ring_coords.contains(&cursor_coord) {
-                        player_action_events.send(PlayerActionEvent(
+                        player_move_events.send(PlayerMoveEvent(
                             PLAYER_HUMAN,
-                            Action::PlaceMarker(cursor_coord),
+                            Move::PlaceMarker(cursor_coord),
                         ));
                     }
                 }
                 InteractionState::RingMovement(start, ref possible_ring_moves) => {
                     if possible_ring_moves.contains(&cursor_coord) {
-                        player_action_events.send(PlayerActionEvent(
+                        player_move_events.send(PlayerMoveEvent(
                             PLAYER_HUMAN,
-                            Action::MoveRing(start, cursor_coord),
+                            Move::MoveRing(start, cursor_coord),
                         ));
                     }
                 }
@@ -398,17 +396,15 @@ fn mouse_interaction_system(
                     ref all_run_coords, ..
                 } => {
                     if all_run_coords.contains(&cursor_coord) {
-                        player_action_events.send(PlayerActionEvent(
-                            PLAYER_HUMAN,
-                            Action::RemoveRun(cursor_coord),
-                        ));
+                        player_move_events
+                            .send(PlayerMoveEvent(PLAYER_HUMAN, Move::RemoveRun(cursor_coord)));
                     }
                 }
                 InteractionState::RingRemoval(ref ring_coords) => {
                     if ring_coords.contains(&cursor_coord) {
-                        player_action_events.send(PlayerActionEvent(
+                        player_move_events.send(PlayerMoveEvent(
                             PLAYER_HUMAN,
-                            Action::RemoveRing(cursor_coord),
+                            Move::RemoveRing(cursor_coord),
                         ));
                     }
                 }

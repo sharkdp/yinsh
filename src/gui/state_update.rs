@@ -1,6 +1,6 @@
 use std::ops::{Deref, DerefMut};
 
-use yinsh::{Action, Coord, Player, TurnMode};
+use yinsh::{Coord, Move, Player, TurnMode};
 
 use bevy::{prelude::*, utils::HashMap};
 
@@ -89,26 +89,26 @@ impl InteractionState {
 }
 
 #[derive(Event)]
-pub struct PlayerActionEvent(pub Player, pub Action);
+pub struct PlayerMoveEvent(pub Player, pub Move);
 
 fn state_update(
-    mut player_action_events: EventReader<PlayerActionEvent>,
+    mut player_move_events: EventReader<PlayerMoveEvent>,
     mut game_state: ResMut<GameState>,
     mut interaction_state: ResMut<InteractionState>,
     mut ai_computation_events: EventWriter<AiComputationEvent>,
     mut board_update_events: EventWriter<BoardUpdateEvent>,
 ) {
-    for PlayerActionEvent(player, action) in player_action_events.read() {
+    for PlayerMoveEvent(player, player_move) in player_move_events.read() {
         assert!(player == &game_state.active_player);
 
-        match action {
-            Action::PlaceRing(coord) => {
+        match player_move {
+            Move::PlaceRing(coord) => {
                 board_update_events.send(BoardUpdateEvent::AddRing(*coord, *player));
             }
-            Action::PlaceMarker(coord) => {
+            Move::PlaceMarker(coord) => {
                 board_update_events.send(BoardUpdateEvent::AddMarker(*coord, *player));
             }
-            Action::MoveRing(start, end) => {
+            Move::MoveRing(start, end) => {
                 board_update_events.send(BoardUpdateEvent::MoveRing(*start, *end));
                 board_update_events.send(BoardUpdateEvent::FlipMarkers(
                     *start,
@@ -119,18 +119,18 @@ fn state_update(
                         .collect(),
                 ));
             }
-            Action::RemoveRun(seed) => {
+            Move::RemoveRun(seed) => {
                 board_update_events.send(BoardUpdateEvent::RemoveRun(
                     game_state.board.run_coords_from(*seed).unwrap(),
                 ));
             }
-            Action::RemoveRing(coord) => {
+            Move::RemoveRing(coord) => {
                 board_update_events.send(BoardUpdateEvent::RemoveRing(*coord));
             }
-            Action::Wait => {}
+            Move::Wait => {}
         }
 
-        game_state.transition(action);
+        game_state.perform_move(player_move);
 
         if game_state.active_player == PLAYER_AI && game_state.winner().is_none() {
             ai_computation_events.send(AiComputationEvent::Start(PLAYER_AI, game_state.clone()));
@@ -144,7 +144,7 @@ pub fn plugin(app: &mut App) {
     let initial_game_state = GameState::initial();
     app.insert_resource(InteractionState::from_game_state(&initial_game_state))
         .insert_resource(initial_game_state)
-        .add_event::<PlayerActionEvent>()
+        .add_event::<PlayerMoveEvent>()
         .add_event::<BoardUpdateEvent>()
         .add_systems(Update, state_update.in_set(StateUpdateSet));
 }

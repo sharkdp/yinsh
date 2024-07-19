@@ -1,6 +1,6 @@
 use minimax::{Evaluation, Evaluator};
 
-use crate::{Action, GameState, Player, TurnMode};
+use crate::{GameState, Move, Player, TurnMode};
 
 use super::game::Yinsh;
 
@@ -33,7 +33,7 @@ impl<'a, H: Heuristic> Evaluator for YinshEvaluator<'a, H> {
             | TurnMode::WaitForMarkerPlacement => {
                 // Look one move ahead if we are in a waiting state.
                 let mut state_copy = state.clone();
-                state_copy.transition(&Action::Wait);
+                state_copy.perform_move(&Move::Wait);
                 return -self.evaluate(&state_copy);
             }
             TurnMode::RingPlacement

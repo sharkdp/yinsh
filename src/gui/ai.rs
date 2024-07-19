@@ -1,9 +1,9 @@
 use bevy::prelude::*;
 
 use bevy_async_task::{AsyncTaskRunner, AsyncTaskStatus};
-use yinsh::{Action, GameState, Player};
+use yinsh::{GameState, Move, Player};
 
-use super::state_update::{PlayerActionEvent, StateUpdateSet};
+use super::state_update::{PlayerMoveEvent, StateUpdateSet};
 
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct AiSet;
@@ -19,11 +19,11 @@ pub enum AiComputationEvent {
     Cancel,
 }
 
-fn perform_ai_actions(
-    mut task_runner: AsyncTaskRunner<Option<(Player, Action)>>,
+fn perform_ai_moves(
+    mut task_runner: AsyncTaskRunner<Option<(Player, Move)>>,
     mut events: EventReader<AiComputationEvent>,
     strength: Res<AiPlayerStrength>,
-    mut player_action_events: EventWriter<PlayerActionEvent>,
+    mut player_move_events: EventWriter<PlayerMoveEvent>,
 ) {
     for event in events.read() {
         match event {
@@ -44,10 +44,7 @@ fn perform_ai_actions(
                         }
                     }
 
-                    Some((
-                        player,
-                        yinsh::get_ai_player_action(search_depth, &game_state),
-                    ))
+                    Some((player, yinsh::get_ai_move(search_depth, &game_state)))
                 });
             }
             AiComputationEvent::Cancel => {
@@ -59,8 +56,8 @@ fn perform_ai_actions(
 
     match task_runner.poll() {
         AsyncTaskStatus::Idle | AsyncTaskStatus::Pending | AsyncTaskStatus::Finished(None) => {}
-        AsyncTaskStatus::Finished(Some((player, action))) => {
-            player_action_events.send(PlayerActionEvent(player, action));
+        AsyncTaskStatus::Finished(Some((player, player_move))) => {
+            player_move_events.send(PlayerMoveEvent(player, player_move));
         }
     }
 }
@@ -74,6 +71,6 @@ pub fn plugin(app: &mut App) {
     .add_event::<AiComputationEvent>()
     .add_systems(
         Update,
-        (perform_ai_actions).in_set(AiSet).after(StateUpdateSet),
+        (perform_ai_moves).in_set(AiSet).after(StateUpdateSet),
     );
 }

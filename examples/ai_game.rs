@@ -1,4 +1,4 @@
-use yinsh::{possible_actions, GameState, Player, SimpleHeuristic, YinshAi, YinshAiPlayer};
+use yinsh::{possible_moves, GameState, Player, SimpleHeuristic, YinshAi, YinshAiPlayer};
 
 enum Outcome {
     Draw,
@@ -11,19 +11,19 @@ fn play_match(a: &impl YinshAiPlayer, b: &impl YinshAiPlayer) -> Outcome {
     // println!("Players:\nA={}\nB={}", a.identifier(), b.identifier());
 
     while game_state.winner().is_none() {
-        if possible_actions(&game_state).count() == 0 {
+        if possible_moves(&game_state).count() == 0 {
             println!("The game ends in a draw!");
             game_state.save_to("draw.yml");
             return Outcome::Draw;
         }
-        let action = if game_state.active_player == Player::A {
-            a.choose_action(&game_state)
+        let player_move = if game_state.active_player == Player::A {
+            a.choose_move(&game_state)
         } else {
-            b.choose_action(&game_state)
+            b.choose_move(&game_state)
         };
-        game_state.transition(&action);
+        game_state.perform_move(&player_move);
 
-        // println!("Action: {:?}", action);
+        // println!("Move: {:?}", player_move);
     }
 
     println!("Game over! Winner: {:?}", game_state.winner());
