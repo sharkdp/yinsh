@@ -1,9 +1,14 @@
-use minimax::Evaluator;
-use yinsh::{Action, Coord, GameState, Player, SimpleHeuristic};
+use yinsh::{Action, Coord, GameState, Heuristic, Player, SimpleHeuristic};
 
 #[test]
 fn midgame_1() {
-    let heuristic = SimpleHeuristic {};
+    let heuristic = SimpleHeuristic {
+        f_points: 1_000,
+        f_markers: 10,
+        f_controlled_markers_own: 0,
+        f_controlled_markers_opponent: 0,
+        f_accessible_fields: 0,
+    };
 
     let mut game_state = GameState::load_from("tests/midgame_1.yml");
 
@@ -29,17 +34,23 @@ fn midgame_1() {
 
     game_state.transition(&Action::Wait);
 
-    assert_eq!(heuristic.evaluate(&game_state), -1080);
+    assert_eq!(heuristic.evaluate_for_player_a(&game_state), -1080);
 
     game_state.transition(&Action::RemoveRun(Coord::new(2, 2)));
     game_state.transition(&Action::Wait);
 
-    assert_eq!(heuristic.evaluate(&game_state), -1080 + 1000 - 5 * 10);
+    assert_eq!(
+        heuristic.evaluate_for_player_a(&game_state),
+        -1080 + 1000 - 5 * 10
+    );
 
     game_state.transition(&Action::RemoveRing(Coord::new(0, -3)));
     game_state.transition(&Action::PlaceMarker(Coord::new(-1, 1)));
     game_state.transition(&Action::Wait);
     game_state.transition(&Action::MoveRing(Coord::new(-1, 1), Coord::new(-1, 2)));
 
-    assert_eq!(heuristic.evaluate(&game_state), -1080 + 1000 - 5 * 10 - 10);
+    assert_eq!(
+        heuristic.evaluate_for_player_a(&game_state),
+        -1080 + 1000 - 5 * 10 - 10
+    );
 }

@@ -8,7 +8,7 @@ use crate::yinsh::core::AXES;
 use super::{core::all_coords, Coord, Player, DIRECTIONS};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Element {
+enum Element {
     Ring(Player),
     Marker(Player),
     Empty,
@@ -132,6 +132,13 @@ impl Board {
         self.check_invariants();
 
         self.element_at(coord).is_marker()
+    }
+
+    /// Returns the color/player of the board element at the given coordinate.
+    pub fn element_color_at(&self, coord: Coord) -> Option<Player> {
+        self.check_invariants();
+
+        self.element_at(coord).player()
     }
 
     pub fn add_ring(&mut self, player: Player, coord: Coord) {
