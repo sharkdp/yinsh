@@ -5,9 +5,7 @@ use crate::{GameState, Move, Player, TurnMode};
 use super::game::Yinsh;
 
 pub trait Heuristic {
-    fn identifier(&self) -> String {
-        "Unknown Heuristic".to_string()
-    }
+    fn identifier(&self) -> String;
 
     fn evaluate_for_player_a(&self, state: &GameState) -> Evaluation;
 }
