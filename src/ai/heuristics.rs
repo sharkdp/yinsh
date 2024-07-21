@@ -19,8 +19,9 @@ fn ring_position_statistics(board: &Board, player: Player) -> RingPositionStatis
             statistics.accessible_fields += 1;
 
             Coord::between(ring, move_end).iter().for_each(|coord| {
+                // TODO: We double-count here, but maybe that's not a problem (since it's good to control a marker with multiple rings?)
                 match board.element_color_at(*coord) {
-                    Some(p) if p == player => statistics.controlled_markers_own += 1, // TODO: We double-count here, but maybe that's not a problem (since it's good to control a marker with multiple rings?)
+                    Some(p) if p == player => statistics.controlled_markers_own += 1,
                     Some(_) => statistics.controlled_markers_opponent += 1,
                     None => {}
                 }
@@ -45,9 +46,9 @@ impl Default for SimpleHeuristic {
         Self {
             f_points: 10_000,
             f_markers: 100,
-            f_controlled_markers_own: 0,
+            f_controlled_markers_own: 5,
             f_controlled_markers_opponent: 10,
-            f_accessible_fields: 0,
+            f_accessible_fields: 1,
             // f_controlled_markers_own: 3,
             // f_controlled_markers_opponent: 10,
             // f_accessible_fields: 1,
@@ -64,14 +65,26 @@ impl Heuristic for SimpleHeuristic {
         let score_markers = (state.board.num_markers(Player::A) as Score)
             - (state.board.num_markers(Player::B) as Score);
 
-        let rps = ring_position_statistics(&state.board, Player::A);
+        let rps_a = ring_position_statistics(&state.board, Player::A);
+        let rps_b = ring_position_statistics(&state.board, Player::B);
 
-        let score_rings = self.f_controlled_markers_own * rps.controlled_markers_own as Score
-            + self.f_controlled_markers_opponent * rps.controlled_markers_opponent as Score
-            + self.f_accessible_fields * rps.accessible_fields as Score;
+        let score_rings = self.f_controlled_markers_own
+            * (Score::try_from(rps_a.controlled_markers_own).unwrap()
+                - Score::try_from(rps_b.controlled_markers_own).unwrap())
+            + self.f_controlled_markers_opponent
+                * (Score::try_from(rps_a.controlled_markers_opponent).unwrap()
+                    - Score::try_from(rps_b.controlled_markers_opponent).unwrap())
+            + self.f_accessible_fields
+                * (Score::try_from(rps_a.accessible_fields).unwrap()
+                    - Score::try_from(rps_b.accessible_fields).unwrap());
 
         let score = self.f_points * score_points + self.f_markers * score_markers + score_rings;
 
         score
+    }
+
+    fn identifier(&self) -> String {
+        format!("SimpleHeuristic {{ f_points: {}, f_markers: {}, f_controlled_markers_own: {}, f_controlled_markers_opponent: {}, f_accessible_fields: {} }}",
+            self.f_points, self.f_markers, self.f_controlled_markers_own, self.f_controlled_markers_opponent, self.f_accessible_fields)
     }
 }

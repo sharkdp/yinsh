@@ -25,15 +25,21 @@ impl<H: Heuristic> YinshAi<H> {
     }
 }
 
-pub trait YinshAiPlayer {
+pub trait YinshAiPlayer: Sync {
     fn identifier(&self) -> String;
+
+    fn search_depth(&self) -> usize;
 
     fn choose_move(&self, state: &GameState) -> Move;
 }
 
-impl<H: Heuristic> YinshAiPlayer for YinshAi<H> {
+impl<H: Heuristic + Sync> YinshAiPlayer for YinshAi<H> {
     fn identifier(&self) -> String {
         self.heuristic.identifier()
+    }
+
+    fn search_depth(&self) -> usize {
+        self.search_depth
     }
 
     fn choose_move(&self, state: &GameState) -> Move {

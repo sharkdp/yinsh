@@ -13,7 +13,6 @@ bevy_async_task = "0.2.0"
 minimax = "0.5.3"
 
 itertools = "0.13.0"
-rand = "0.8.5"
 serde = "1.0.204"
 serde_yaml = "0.9.34"
 
@@ -41,6 +40,8 @@ strip = "debuginfo"
 
 [dev-dependencies]
 criterion = "0.3"
+rayon = "1.10.0"
+rand = "0.8.5"
 
 [[bench]]
 name = "board"
