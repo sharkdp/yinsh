@@ -14,20 +14,18 @@ struct GameStateInformation;
 
 fn setup_information_display(mut commands: Commands) {
     commands.spawn((
-        TextBundle::from_section(
-            "",
-            TextStyle {
-                font_size: 18.0,
-                color: Color::hsl(0., 0., 0.3),
-                ..default()
-            },
-        )
-        .with_style(Style {
+        Text::new(""),
+        TextFont {
+            font_size: 18.0,
+            ..default()
+        },
+        TextColor(Color::hsl(0., 0., 0.3)),
+        Node {
             position_type: PositionType::Absolute,
             top: Val::Px(10.),
             left: Val::Px(10.),
             ..default()
-        }),
+        },
         GameStateInformation,
         BACKGROUND_RENDER_LAYER,
     ));
@@ -40,7 +38,7 @@ fn update_information_display(
     interaction_state: Res<InteractionState>,
     ai_player_strength: Res<AiPlayerStrength>,
 ) {
-    q_text.single_mut().sections[0].value =
+    **q_text.single_mut() =
         format!(
         "Score: {points_a}:{points_b}\nMode: {mode}\nAI strength: {strength} [weaker: J, stronger: K]\n{coord}",
         points_a=game_state.points_a,
