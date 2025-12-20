@@ -70,11 +70,12 @@ fn perform_ai_moves(
 }
 
 pub fn plugin(app: &mut App) {
-    app.insert_resource(AiPlayerStrength(if cfg!(debug_assertions) {
-        6
-    } else {
-        12
-    }))
+    #[cfg(target_arch = "wasm32")]
+    let default_strength = 10;
+    #[cfg(not(target_arch = "wasm32"))]
+    let default_strength = if cfg!(debug_assertions) { 6 } else { 12 };
+
+    app.insert_resource(AiPlayerStrength(default_strength))
     .add_message::<AiComputationEvent>()
     .add_systems(
         Update,
