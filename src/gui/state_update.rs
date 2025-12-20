@@ -9,7 +9,13 @@ use bevy::ecs::message::{MessageReader, MessageWriter};
 
 use crate::gui::PLAYER_HUMAN;
 
-use super::{ai::AiComputationEvent, board_update_event::BoardUpdateEvent, PLAYER_AI};
+use super::{
+    ai::AiComputationEvent,
+    board::BoardElement,
+    board_update_event::BoardUpdateEvent,
+    interaction::CursorElement,
+    PLAYER_AI,
+};
 
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct StateUpdateSet;
@@ -36,6 +42,9 @@ impl GameState {
         Self(yinsh::GameState::initial())
     }
 }
+
+#[derive(Resource, Default)]
+pub struct UndoHistory(pub Vec<yinsh::GameState>);
 
 #[derive(Resource)]
 pub enum InteractionState {
@@ -91,6 +100,28 @@ impl InteractionState {
     }
 }
 
+pub fn restore_board_from_game_state(
+    game_state: &yinsh::GameState,
+    commands: &mut Commands,
+    board_update_events: &mut MessageWriter<BoardUpdateEvent>,
+    q_board_elements: &Query<Entity, (With<BoardElement>, Without<CursorElement>)>,
+) {
+    // Despawn all board elements
+    for entity in q_board_elements.iter() {
+        commands.entity(entity).despawn();
+    }
+
+    // Respawn board elements from game state
+    for p in [Player::A, Player::B] {
+        for coord in game_state.board.ring_coords(p) {
+            board_update_events.write(BoardUpdateEvent::AddRing(coord, p));
+        }
+        for coord in game_state.board.marker_coords(p) {
+            board_update_events.write(BoardUpdateEvent::AddMarker(coord, p));
+        }
+    }
+}
+
 #[derive(Message)]
 pub struct PlayerMoveEvent(pub Player, pub Move);
 
@@ -98,6 +129,7 @@ fn state_update(
     mut player_move_events: MessageReader<PlayerMoveEvent>,
     mut game_state: ResMut<GameState>,
     mut interaction_state: ResMut<InteractionState>,
+    mut undo_history: ResMut<UndoHistory>,
     mut ai_computation_events: MessageWriter<AiComputationEvent>,
     mut board_update_events: MessageWriter<BoardUpdateEvent>,
 ) {
@@ -105,6 +137,13 @@ fn state_update(
         let player = *player;
         let player_move = player_move.clone();
         assert_eq!(player, game_state.active_player);
+
+        // Save state before human's turn-starting moves (for undo)
+        if player == PLAYER_HUMAN
+            && matches!(player_move, Move::PlaceMarker(_) | Move::PlaceRing(_))
+        {
+            undo_history.0.push(game_state.0.clone());
+        }
 
         match &player_move {
             Move::PlaceRing(coord) => {
@@ -149,6 +188,7 @@ pub fn plugin(app: &mut App) {
     let initial_game_state = GameState::initial();
     app.insert_resource(InteractionState::from_game_state(&initial_game_state))
         .insert_resource(initial_game_state)
+        .init_resource::<UndoHistory>()
         .add_message::<PlayerMoveEvent>()
         .add_message::<BoardUpdateEvent>()
         .add_systems(Update, state_update.in_set(StateUpdateSet));
