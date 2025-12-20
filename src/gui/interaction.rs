@@ -29,6 +29,28 @@ pub struct CursorElement;
 #[derive(Resource)]
 pub struct CursorCoord(pub Option<Coord>);
 
+fn viewport_to_coord(
+    viewport_pos: Vec2,
+    camera: &Camera,
+    camera_transform: &GlobalTransform,
+    scale_factor: &ScaleFactor,
+) -> Option<Coord> {
+    let world_pos = camera
+        .viewport_to_world(camera_transform, viewport_pos)
+        .map(|ray| ray.origin.truncate())
+        .ok()?;
+    Some(
+        yinsh::all_coords()
+            .into_iter()
+            .min_by_key(|c| {
+                let screen_pos = scale_factor.screen_point(*c);
+                let pos = Vec3::new(world_pos.x, world_pos.y, 0.0);
+                (screen_pos - pos).length_squared() as i32
+            })
+            .unwrap(),
+    )
+}
+
 fn setup_interaction_cursors(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -306,20 +328,7 @@ fn grid_cursor_system(
     if let Some(cursor_position) = window.cursor_position() {
         let Ok((camera, camera_transform)) = q_camera.single() else { return };
 
-        if let Ok(cursor_position) = camera
-            .viewport_to_world(camera_transform, cursor_position)
-            .map(|ray| ray.origin.truncate())
-        {
-            let cursor_coord = yinsh::all_coords()
-                .into_iter()
-                .min_by_key(|c| {
-                    let screen_pos = scale_factor.screen_point(*c);
-                    let cursor_pos = Vec3::new(cursor_position.x, cursor_position.y, 0.0);
-                    let diff = screen_pos - cursor_pos;
-                    diff.length_squared() as i32
-                })
-                .unwrap();
-
+        if let Some(cursor_coord) = viewport_to_coord(cursor_position, camera, camera_transform, &scale_factor) {
             let Ok((mut cursor_ring_coord, mut cursor_ring_visibility)) = cursor_ring.single_mut() else { return };
             *cursor_ring_visibility = Visibility::Hidden;
 
@@ -360,8 +369,11 @@ fn grid_cursor_system(
 
 fn mouse_interaction_system(
     buttons: Res<ButtonInput<MouseButton>>,
+    touches: Res<Touches>,
     interaction_state: Res<InteractionState>,
     cursor_coord: Res<CursorCoord>,
+    scale_factor: Res<ScaleFactor>,
+    q_camera: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
     mut player_move_events: MessageWriter<PlayerMoveEvent>,
 ) {
     if matches!(*interaction_state, InteractionState::AutoMove) {
@@ -369,52 +381,68 @@ fn mouse_interaction_system(
         player_move_events.write(PlayerMoveEvent(PLAYER_HUMAN, Move::Wait));
     }
 
-    if let Some(cursor_coord) = cursor_coord.0
-        && buttons.just_pressed(MouseButton::Left) {
-            match *interaction_state {
-                InteractionState::RingPlacement(ref free_coords) => {
-                    if free_coords.contains(&cursor_coord) {
-                        player_move_events
-                            .write(PlayerMoveEvent(PLAYER_HUMAN, Move::PlaceRing(cursor_coord)));
-                    }
+    // Get coordinate from touch if available
+    let touch_coord = touches.iter_just_pressed().next().and_then(|touch| {
+        let Ok((camera, camera_transform)) = q_camera.single() else {
+            return None;
+        };
+        viewport_to_coord(touch.position(), camera, camera_transform, &scale_factor)
+    });
+
+    let clicked = buttons.just_pressed(MouseButton::Left);
+    let cursor_coord = if touch_coord.is_some() {
+        touch_coord
+    } else if clicked {
+        cursor_coord.0
+    } else {
+        None
+    };
+
+    if let Some(cursor_coord) = cursor_coord {
+        match *interaction_state {
+            InteractionState::RingPlacement(ref free_coords) => {
+                if free_coords.contains(&cursor_coord) {
+                    player_move_events
+                        .write(PlayerMoveEvent(PLAYER_HUMAN, Move::PlaceRing(cursor_coord)));
                 }
-                InteractionState::MarkerPlacement(ref ring_coords) => {
-                    if ring_coords.contains(&cursor_coord) {
-                        player_move_events.write(PlayerMoveEvent(
-                            PLAYER_HUMAN,
-                            Move::PlaceMarker(cursor_coord),
-                        ));
-                    }
-                }
-                InteractionState::RingMovement(start, ref possible_ring_moves) => {
-                    if possible_ring_moves.contains(&cursor_coord) {
-                        player_move_events.write(PlayerMoveEvent(
-                            PLAYER_HUMAN,
-                            Move::MoveRing(start, cursor_coord),
-                        ));
-                    }
-                }
-                InteractionState::WaitForAI => {}
-                InteractionState::RunRemoval {
-                    ref all_run_coords, ..
-                } => {
-                    if all_run_coords.contains(&cursor_coord) {
-                        player_move_events
-                            .write(PlayerMoveEvent(PLAYER_HUMAN, Move::RemoveRun(cursor_coord)));
-                    }
-                }
-                InteractionState::RingRemoval(ref ring_coords) => {
-                    if ring_coords.contains(&cursor_coord) {
-                        player_move_events.write(PlayerMoveEvent(
-                            PLAYER_HUMAN,
-                            Move::RemoveRing(cursor_coord),
-                        ));
-                    }
-                }
-                InteractionState::AutoMove => {}
-                InteractionState::Winner(_) => {}
             }
+            InteractionState::MarkerPlacement(ref ring_coords) => {
+                if ring_coords.contains(&cursor_coord) {
+                    player_move_events.write(PlayerMoveEvent(
+                        PLAYER_HUMAN,
+                        Move::PlaceMarker(cursor_coord),
+                    ));
+                }
+            }
+            InteractionState::RingMovement(start, ref possible_ring_moves) => {
+                if possible_ring_moves.contains(&cursor_coord) {
+                    player_move_events.write(PlayerMoveEvent(
+                        PLAYER_HUMAN,
+                        Move::MoveRing(start, cursor_coord),
+                    ));
+                }
+            }
+            InteractionState::WaitForAI => {}
+            InteractionState::RunRemoval {
+                ref all_run_coords, ..
+            } => {
+                if all_run_coords.contains(&cursor_coord) {
+                    player_move_events
+                        .write(PlayerMoveEvent(PLAYER_HUMAN, Move::RemoveRun(cursor_coord)));
+                }
+            }
+            InteractionState::RingRemoval(ref ring_coords) => {
+                if ring_coords.contains(&cursor_coord) {
+                    player_move_events.write(PlayerMoveEvent(
+                        PLAYER_HUMAN,
+                        Move::RemoveRing(cursor_coord),
+                    ));
+                }
+            }
+            InteractionState::AutoMove => {}
+            InteractionState::Winner(_) => {}
         }
+    }
 }
 
 pub fn plugin(app: &mut App) {
