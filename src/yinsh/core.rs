@@ -31,8 +31,8 @@ impl Coord {
 
     fn shorten(&self) -> Coord {
         Coord {
-            x: self.x.max(-1).min(1),
-            y: self.y.max(-1).min(1),
+            x: self.x.clamp(-1, 1),
+            y: self.y.clamp(-1, 1),
         }
     }
 
@@ -109,7 +109,7 @@ impl Direction {
     }
 }
 
-pub const DIRECTIONS: &'static [Direction; 6] = &[
+pub const DIRECTIONS: [Direction; 6] = [
     Direction::N,
     Direction::NE,
     Direction::SE,
@@ -118,7 +118,7 @@ pub const DIRECTIONS: &'static [Direction; 6] = &[
     Direction::NW,
 ];
 
-pub const AXES: &'static [Direction; 3] = &[Direction::N, Direction::NE, Direction::NW];
+pub const AXES: [Direction; 3] = [Direction::N, Direction::NE, Direction::NW];
 
 /// Player types (white and black)
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
