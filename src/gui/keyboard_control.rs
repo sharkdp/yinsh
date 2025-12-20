@@ -5,8 +5,9 @@ use super::{
     ai::{AiComputationEvent, AiPlayerStrength, AiSet},
     board::BoardElement,
     board_update_event::BoardUpdateEvent,
+    graphics::ScaleFactorSet,
     interaction::CursorElement,
-    state_update::{restore_board_from_game_state, GameState, UndoHistory},
+    state_update::{restore_board_from_game_state, GameState, StateUpdateSet, UndoHistory},
     PLAYER_HUMAN,
 };
 
@@ -60,5 +61,11 @@ fn keyboard_control(
 }
 
 pub fn plugin(app: &mut App) {
-    app.add_systems(Update, keyboard_control.ambiguous_with(AiSet));
+    app.add_systems(
+        Update,
+        keyboard_control
+            .ambiguous_with(AiSet)
+            .before(StateUpdateSet)
+            .after(ScaleFactorSet),
+    );
 }
