@@ -1,8 +1,8 @@
-use bevy::prelude::Event;
+use bevy::prelude::Message;
 
 use yinsh::{Coord, Player};
 
-#[derive(Event)]
+#[derive(Message)]
 pub enum BoardUpdateEvent {
     AddRing(Coord, Player),
     AddMarker(Coord, Player),

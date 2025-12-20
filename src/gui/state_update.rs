@@ -1,8 +1,11 @@
 use std::ops::{Deref, DerefMut};
 
+use std::collections::HashMap;
+
 use yinsh::{Coord, Move, Player, TurnMode};
 
-use bevy::{prelude::*, utils::HashMap};
+use bevy::prelude::*;
+use bevy::ecs::message::{MessageReader, MessageWriter};
 
 use crate::gui::PLAYER_HUMAN;
 
@@ -88,29 +91,31 @@ impl InteractionState {
     }
 }
 
-#[derive(Event)]
+#[derive(Message)]
 pub struct PlayerMoveEvent(pub Player, pub Move);
 
 fn state_update(
-    mut player_move_events: EventReader<PlayerMoveEvent>,
+    mut player_move_events: MessageReader<PlayerMoveEvent>,
     mut game_state: ResMut<GameState>,
     mut interaction_state: ResMut<InteractionState>,
-    mut ai_computation_events: EventWriter<AiComputationEvent>,
-    mut board_update_events: EventWriter<BoardUpdateEvent>,
+    mut ai_computation_events: MessageWriter<AiComputationEvent>,
+    mut board_update_events: MessageWriter<BoardUpdateEvent>,
 ) {
     for PlayerMoveEvent(player, player_move) in player_move_events.read() {
-        assert_eq!(*player, game_state.active_player);
+        let player = *player;
+        let player_move = player_move.clone();
+        assert_eq!(player, game_state.active_player);
 
-        match player_move {
+        match &player_move {
             Move::PlaceRing(coord) => {
-                board_update_events.send(BoardUpdateEvent::AddRing(*coord, *player));
+                board_update_events.write(BoardUpdateEvent::AddRing(*coord, player));
             }
             Move::PlaceMarker(coord) => {
-                board_update_events.send(BoardUpdateEvent::AddMarker(*coord, *player));
+                board_update_events.write(BoardUpdateEvent::AddMarker(*coord, player));
             }
             Move::MoveRing(start, end) => {
-                board_update_events.send(BoardUpdateEvent::MoveRing(*start, *end));
-                board_update_events.send(BoardUpdateEvent::FlipMarkers(
+                board_update_events.write(BoardUpdateEvent::MoveRing(*start, *end));
+                board_update_events.write(BoardUpdateEvent::FlipMarkers(
                     *start,
                     *end,
                     Coord::between(*start, *end)
@@ -120,20 +125,20 @@ fn state_update(
                 ));
             }
             Move::RemoveRun(seed) => {
-                board_update_events.send(BoardUpdateEvent::RemoveRun(
+                board_update_events.write(BoardUpdateEvent::RemoveRun(
                     game_state.board.run_coords_from(*seed).unwrap(),
                 ));
             }
             Move::RemoveRing(coord) => {
-                board_update_events.send(BoardUpdateEvent::RemoveRing(*coord));
+                board_update_events.write(BoardUpdateEvent::RemoveRing(*coord));
             }
             Move::Wait => {}
         }
 
-        game_state.perform_move(player_move);
+        game_state.perform_move(&player_move);
 
         if game_state.active_player == PLAYER_AI && game_state.winner().is_none() {
-            ai_computation_events.send(AiComputationEvent::Start(PLAYER_AI, game_state.clone()));
+            ai_computation_events.write(AiComputationEvent::Start(PLAYER_AI, game_state.clone()));
         }
     }
 
@@ -144,7 +149,7 @@ pub fn plugin(app: &mut App) {
     let initial_game_state = GameState::initial();
     app.insert_resource(InteractionState::from_game_state(&initial_game_state))
         .insert_resource(initial_game_state)
-        .add_event::<PlayerMoveEvent>()
-        .add_event::<BoardUpdateEvent>()
+        .add_message::<PlayerMoveEvent>()
+        .add_message::<BoardUpdateEvent>()
         .add_systems(Update, state_update.in_set(StateUpdateSet));
 }

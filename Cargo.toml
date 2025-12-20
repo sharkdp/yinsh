@@ -9,9 +9,9 @@ license = "MIT OR Apache-2.0"
 edition = "2024"
 
 [dependencies]
-bevy = { version = "0.15" }
-bevy_tweening = "0.12"
-bevy_async_task = "0.5"
+bevy = { version = "0.17" }
+bevy_tweening = "0.14"
+bevy_async_task = "0.11"
 
 minimax = "0.5.3"
 

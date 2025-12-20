@@ -1,10 +1,10 @@
 use std::time::Duration;
 
 use bevy::{
-    core_pipeline::bloom::Bloom,
+    camera::visibility::RenderLayers,
+    post_process::bloom::Bloom,
     prelude::*,
-    render::view::RenderLayers,
-    sprite::MeshMaterial2d,
+    render::view::Hdr,
     window::PrimaryWindow,
 };
 
@@ -190,10 +190,10 @@ fn setup_graphics(
     commands.spawn((
         Camera2d,
         Camera {
-            hdr: true,
             order: 1,
             ..default()
         },
+        Hdr,
         Bloom::default(),
         Msaa::Sample8,
         BACKGROUND_RENDER_LAYER,
@@ -203,10 +203,10 @@ fn setup_graphics(
     commands.spawn((
         Camera2d,
         Camera {
-            hdr: true,
             order: 2,
             ..default()
         },
+        Hdr,
         Bloom::default(),
         Msaa::Sample8,
         FOREGROUND_RENDER_LAYER,
@@ -240,7 +240,7 @@ pub fn set_scale_factor(
 ) {
     const BASE_SPACING_AT_800_PIXELS: f32 = 80.0;
 
-    let window = window.single();
+    let Ok(window) = window.single() else { return };
     let height = (window.physical_height() as f32) / window.scale_factor();
     let width = (window.physical_width() as f32) / window.scale_factor();
     let factor = ((height.min(width)) / 800.0).min(1.5);
