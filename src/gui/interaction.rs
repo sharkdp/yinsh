@@ -366,8 +366,8 @@ fn mouse_interaction_system(
         player_move_events.send(PlayerMoveEvent(PLAYER_HUMAN, Move::Wait));
     }
 
-    if let Some(cursor_coord) = cursor_coord.0 {
-        if buttons.just_pressed(MouseButton::Left) {
+    if let Some(cursor_coord) = cursor_coord.0
+        && buttons.just_pressed(MouseButton::Left) {
             match *interaction_state {
                 InteractionState::RingPlacement(ref free_coords) => {
                     if free_coords.contains(&cursor_coord) {
@@ -412,7 +412,6 @@ fn mouse_interaction_system(
                 InteractionState::Winner(_) => {}
             }
         }
-    }
 }
 
 pub fn plugin(app: &mut App) {

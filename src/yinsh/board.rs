@@ -8,9 +8,11 @@ use crate::yinsh::core::AXES;
 use super::{core::all_coords, Coord, Player, DIRECTIONS};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Default)]
 enum Element {
     Ring(Player),
     Marker(Player),
+    #[default]
     Empty,
 }
 
@@ -36,11 +38,6 @@ impl Element {
     }
 }
 
-impl Default for Element {
-    fn default() -> Self {
-        Element::Empty
-    }
-}
 
 #[derive(Debug, Clone, Default)]
 pub struct CheckRunResult {

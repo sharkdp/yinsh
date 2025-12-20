@@ -245,8 +245,8 @@ pub fn set_scale_factor(
     const BASE_SPACING_AT_800_PIXELS: f32 = 80.0;
 
     let window = window.single();
-    let height = (window.physical_height() as f32) / (window.scale_factor() as f32);
-    let width = (window.physical_width() as f32) / (window.scale_factor() as f32);
+    let height = (window.physical_height() as f32) / window.scale_factor();
+    let width = (window.physical_width() as f32) / window.scale_factor();
     let factor = ((height.min(width)) / 800.0).min(1.5);
     scale_factor.factor = factor;
     scale_factor.spacing = BASE_SPACING_AT_800_PIXELS * factor;

@@ -16,7 +16,7 @@ fn keyboard_control(
     if keyboard.just_pressed(KeyCode::Escape) || keyboard.just_pressed(KeyCode::KeyQ) {
         exit.send(AppExit::Success);
     } else if keyboard.just_pressed(KeyCode::KeyK) {
-        ai_player_strength.0 = ai_player_strength.0 + 1;
+        ai_player_strength.0 += 1;
     } else if keyboard.just_pressed(KeyCode::KeyJ) {
         ai_player_strength.0 = (ai_player_strength.0 - 1).max(1);
     } else if keyboard.just_pressed(KeyCode::KeyA) {
