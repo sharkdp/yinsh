@@ -57,13 +57,12 @@ impl<H: Heuristic + Sync> YinshAiPlayer for YinshAi<H> {
         }
 
         let depth: u8 = if matches!(state.turn_mode, TurnMode::RingPlacement) {
-            3
+            if cfg!(debug_assertions) { 1 } else { 3 }
         } else {
             self.search_depth.try_into().unwrap()
         };
 
         let mut strategy = Negamax::new(YinshEvaluator::new(&self.heuristic), depth);
-        
 
         // dbg!(strategy.root_value());
 
