@@ -40,7 +40,10 @@ strip = "debuginfo"
 [profile.wasm-release]
 inherits = "release"
 opt-level = "z"
-strip = "debuginfo"
+lto = true
+codegen-units = 1
+strip = "symbols"
+panic = "abort"
 
 [dev-dependencies]
 criterion = "0.3"
