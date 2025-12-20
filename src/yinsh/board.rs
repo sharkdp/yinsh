@@ -421,6 +421,29 @@ impl Board {
         run_coords
     }
 
+    /// Return one seed coordinate per unique run. This is more efficient for move generation
+    /// than `run_coords` which returns all 5 coordinates of each run.
+    pub fn run_seeds(&self, player: Player) -> Vec<Coord> {
+        self.check_invariants();
+
+        let mut seen_runs: Vec<Vec<Coord>> = Vec::new();
+        let mut seeds = Vec::new();
+
+        for coord in self.marker_coords(player) {
+            if let Some(mut coords) = self.run_coords_from(coord) {
+                // Sort to create canonical representation for deduplication
+                coords.sort_by_key(|c| (c.x, c.y));
+
+                if !seen_runs.contains(&coords) {
+                    seen_runs.push(coords);
+                    seeds.push(coord);
+                }
+            }
+        }
+
+        seeds
+    }
+
     pub fn remove_run(&mut self, seed: Coord) {
         self.check_invariants();
 

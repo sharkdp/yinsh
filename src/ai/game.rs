@@ -49,9 +49,9 @@ pub fn possible_moves<'a>(state: &'a GameState) -> Box<dyn Iterator<Item = Move>
         TurnMode::RunRemoval(_) => Box::new(
             state
                 .board
-                .run_coords(state.active_player)
+                .run_seeds(state.active_player)
                 .into_iter()
-                .map(Move::RemoveRun), // TODO: this produces too many moves
+                .map(Move::RemoveRun),
         ),
         TurnMode::RingRemoval(_) => Box::new(
             state
