@@ -18,6 +18,7 @@ minimax = "0.5.3"
 itertools = "0.14.0"
 serde = "1.0.204"
 serde_yaml = "0.9.34"
+tracing = "0.1"
 
 # separate lib and app:
 [[bin]]
