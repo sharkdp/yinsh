@@ -22,12 +22,35 @@
       border: 0;
       outline: none;
     }
+
+    #keybindings {
+      position: fixed;
+      bottom: 10px;
+      right: 10px;
+      color: hsl(0, 0%, 30%);
+      font-family: monospace;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    #keybindings kbd {
+      background-color: hsl(0, 0%, 15%);
+      border: 1px solid hsl(0, 0%, 25%);
+      border-radius: 3px;
+      padding: 1px 5px;
+      font-family: monospace;
+    }
   </style>
 </head>
 
 <body>
   <div id="container">
     <canvas id="yinsh-canvas"></canvas>
+  </div>
+  <div id="keybindings">
+    <kbd>U</kbd> / <kbd>Ctrl+Z</kbd> Undo<br>
+    <kbd>Ctrl+R</kbd> Reset<br>
+    <kbd>J</kbd> / <kbd>K</kbd> AI strength
   </div>
   <script type="module">
     import init from './yinsh.js'
