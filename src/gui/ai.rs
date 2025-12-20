@@ -4,6 +4,7 @@ use bevy::prelude::*;
 
 use bevy_async_task::TaskRunner;
 use yinsh::{GameState, Move, Player};
+use bevy::ecs::message::{MessageReader, MessageWriter};
 
 use super::state_update::{PlayerMoveEvent, StateUpdateSet};
 
@@ -13,7 +14,7 @@ pub struct AiSet;
 #[derive(Resource)]
 pub struct AiPlayerStrength(pub usize);
 
-#[derive(Event)]
+#[derive(Message)]
 pub enum AiComputationEvent {
     Start(Player, GameState),
 
@@ -23,9 +24,9 @@ pub enum AiComputationEvent {
 
 fn perform_ai_moves(
     mut task_runner: TaskRunner<Option<(Player, Move)>>,
-    mut events: EventReader<AiComputationEvent>,
+    mut events: MessageReader<AiComputationEvent>,
     strength: Res<AiPlayerStrength>,
-    mut player_move_events: EventWriter<PlayerMoveEvent>,
+    mut player_move_events: MessageWriter<PlayerMoveEvent>,
 ) {
     for event in events.read() {
         match event {
@@ -60,7 +61,7 @@ fn perform_ai_moves(
         Poll::Pending => {}
         Poll::Ready(None) => {}
         Poll::Ready(Some((player, player_move))) => {
-            player_move_events.send(PlayerMoveEvent(player, player_move));
+            player_move_events.write(PlayerMoveEvent(player, player_move));
         }
     }
 }
@@ -71,7 +72,7 @@ pub fn plugin(app: &mut App) {
     } else {
         15
     }))
-    .add_event::<AiComputationEvent>()
+    .add_message::<AiComputationEvent>()
     .add_systems(
         Update,
         (perform_ai_moves).in_set(AiSet).after(StateUpdateSet),

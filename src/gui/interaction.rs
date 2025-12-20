@@ -2,14 +2,14 @@ use std::time::Duration;
 
 use bevy::prelude::*;
 
-use bevy::window::{PrimaryWindow, SystemCursorIcon};
-use bevy::winit::cursor::CursorIcon;
+use bevy::window::{PrimaryWindow, SystemCursorIcon, CursorIcon};
+use bevy::ecs::message::{MessageReader, MessageWriter};
 
 use bevy_tweening::lens::ColorMaterialColorLens;
-use bevy_tweening::{lens::TransformPositionLens, Animator, Tween, TweeningPlugin};
-use bevy_tweening::{AnimationSystem, AssetAnimator, Delay, EaseMethod};
+use bevy_tweening::{lens::TransformPositionLens, Tween, TweeningPlugin, TweenAnim, AnimTarget, TweenState};
+use bevy_tweening::{Delay, EaseMethod};
 
-use bevy::sprite::MeshMaterial2d;
+use bevy::prelude::MeshMaterial2d;
 use yinsh::{all_coords, Coord, Move};
 
 use super::ai::AiSet;
@@ -76,7 +76,7 @@ fn draw_ring_move_indicators(
 }
 
 fn update_board_elements(
-    mut board_update_events: EventReader<BoardUpdateEvent>,
+    mut board_update_events: MessageReader<BoardUpdateEvent>,
     mut commands: Commands,
     scale_factor: Res<ScaleFactor>,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -110,7 +110,7 @@ fn update_board_elements(
                             },
                         );
 
-                        commands.entity(entity).insert(Animator::new(tween));
+                        commands.entity(entity).insert(TweenAnim::new(tween));
 
                         ring.0 = new_coord; // To make the change permanent
 
@@ -161,8 +161,12 @@ fn update_board_elements(
                             },
                         )));
 
-                        color_material.0 = player_colors.animated_markers[i].clone();
-                        commands.entity(entity).insert(AssetAnimator::new(tween));
+                        let anim_material = player_colors.animated_markers[i].clone();
+                        color_material.0 = anim_material.clone();
+                        commands.entity(entity).insert((
+                            TweenAnim::new(tween),
+                            AnimTarget::asset(&anim_material),
+                        ));
 
                         element.1.flip(); // To make the change permanent
 
@@ -174,30 +178,18 @@ fn update_board_elements(
     }
 }
 
-fn clear_animators(mut q: Query<(Entity, &Animator<Transform>)>, mut commands: Commands) {
-    for (entity, animator) in q.iter_mut() {
-        if animator.tweenable().times_completed() == 1 {
-            commands.entity(entity).remove::<Animator<Transform>>();
-        }
-    }
-}
-
-fn clear_asset_animators(
-    mut q: Query<(Entity, &AssetAnimator<ColorMaterial>)>,
-    mut commands: Commands,
-) {
-    for (entity, animator) in q.iter_mut() {
-        if animator.tweenable().times_completed() == 1 {
-            commands
-                .entity(entity)
-                .remove::<AssetAnimator<ColorMaterial>>();
+fn clear_animators(q: Query<(Entity, &TweenAnim)>, mut commands: Commands) {
+    for (entity, animator) in q.iter() {
+        if matches!(animator.tween_state(), TweenState::Completed) {
+            commands.entity(entity).remove::<TweenAnim>();
+            commands.entity(entity).remove::<AnimTarget>();
         }
     }
 }
 
 fn move_board_elements(
     scale_factor: Res<ScaleFactor>,
-    mut query: Query<(&BoardElement, &mut Transform), Without<Animator<Transform>>>,
+    mut query: Query<(&BoardElement, &mut Transform), Without<TweenAnim>>,
 ) {
     for (BoardElement(coord, _), mut transform) in query.iter_mut() {
         transform.translation = scale_factor.screen_point(*coord);
@@ -220,7 +212,7 @@ fn colorize_board_elements(
         Option<&Ring>,
         Option<&Marker>,
         Option<&CursorElement>,
-        Option<&AssetAnimator<ColorMaterial>>,
+        Option<&TweenAnim>,
     )>,
     interaction_state: Res<InteractionState>,
     player_colors: Res<PlayerColors>,
@@ -290,7 +282,7 @@ fn grid_cursor_system(
     mut mouse_cursor_coord: ResMut<CursorCoord>,
     mut commands: Commands,
 ) {
-    let Ok((window_entity, window)) = q_window.get_single_mut() else {
+    let Ok((window_entity, window)) = q_window.single_mut() else {
         return;
     };
 
@@ -302,7 +294,7 @@ fn grid_cursor_system(
     commands.entity(window_entity).insert(CursorIcon::from(cursor_icon));
 
     if let Some(cursor_position) = window.cursor_position() {
-        let (camera, camera_transform) = q_camera.single();
+        let Ok((camera, camera_transform)) = q_camera.single() else { return };
 
         if let Ok(cursor_position) = camera
             .viewport_to_world(camera_transform, cursor_position)
@@ -318,11 +310,11 @@ fn grid_cursor_system(
                 })
                 .unwrap();
 
-            let (mut cursor_ring_coord, mut cursor_ring_visibility) = cursor_ring.single_mut();
+            let Ok((mut cursor_ring_coord, mut cursor_ring_visibility)) = cursor_ring.single_mut() else { return };
             *cursor_ring_visibility = Visibility::Hidden;
 
-            let (mut cursor_marker_coord, mut cursor_marker_visibility) =
-                cursor_marker.single_mut();
+            let Ok((mut cursor_marker_coord, mut cursor_marker_visibility)) =
+                cursor_marker.single_mut() else { return };
             *cursor_marker_visibility = Visibility::Hidden;
 
             match *interaction_state {
@@ -360,11 +352,11 @@ fn mouse_interaction_system(
     buttons: Res<ButtonInput<MouseButton>>,
     interaction_state: Res<InteractionState>,
     cursor_coord: Res<CursorCoord>,
-    mut player_move_events: EventWriter<PlayerMoveEvent>,
+    mut player_move_events: MessageWriter<PlayerMoveEvent>,
 ) {
     if matches!(*interaction_state, InteractionState::AutoMove) {
         // TODO
-        player_move_events.send(PlayerMoveEvent(PLAYER_HUMAN, Move::Wait));
+        player_move_events.write(PlayerMoveEvent(PLAYER_HUMAN, Move::Wait));
     }
 
     if let Some(cursor_coord) = cursor_coord.0
@@ -373,12 +365,12 @@ fn mouse_interaction_system(
                 InteractionState::RingPlacement(ref free_coords) => {
                     if free_coords.contains(&cursor_coord) {
                         player_move_events
-                            .send(PlayerMoveEvent(PLAYER_HUMAN, Move::PlaceRing(cursor_coord)));
+                            .write(PlayerMoveEvent(PLAYER_HUMAN, Move::PlaceRing(cursor_coord)));
                     }
                 }
                 InteractionState::MarkerPlacement(ref ring_coords) => {
                     if ring_coords.contains(&cursor_coord) {
-                        player_move_events.send(PlayerMoveEvent(
+                        player_move_events.write(PlayerMoveEvent(
                             PLAYER_HUMAN,
                             Move::PlaceMarker(cursor_coord),
                         ));
@@ -386,7 +378,7 @@ fn mouse_interaction_system(
                 }
                 InteractionState::RingMovement(start, ref possible_ring_moves) => {
                     if possible_ring_moves.contains(&cursor_coord) {
-                        player_move_events.send(PlayerMoveEvent(
+                        player_move_events.write(PlayerMoveEvent(
                             PLAYER_HUMAN,
                             Move::MoveRing(start, cursor_coord),
                         ));
@@ -398,12 +390,12 @@ fn mouse_interaction_system(
                 } => {
                     if all_run_coords.contains(&cursor_coord) {
                         player_move_events
-                            .send(PlayerMoveEvent(PLAYER_HUMAN, Move::RemoveRun(cursor_coord)));
+                            .write(PlayerMoveEvent(PLAYER_HUMAN, Move::RemoveRun(cursor_coord)));
                     }
                 }
                 InteractionState::RingRemoval(ref ring_coords) => {
                     if ring_coords.contains(&cursor_coord) {
-                        player_move_events.send(PlayerMoveEvent(
+                        player_move_events.write(PlayerMoveEvent(
                             PLAYER_HUMAN,
                             Move::RemoveRing(cursor_coord),
                         ));
@@ -427,12 +419,11 @@ pub fn plugin(app: &mut App) {
                 draw_ring_move_indicators,
                 (
                     clear_animators,
-                    clear_asset_animators,
                     grid_cursor_system,
                     update_board_elements,
-                    move_board_elements.ambiguous_with(AnimationSystem::AnimationUpdate),
-                    scale_board_elements.ambiguous_with(AnimationSystem::AnimationUpdate),
-                    colorize_board_elements.ambiguous_with(AnimationSystem::AnimationUpdate),
+                    move_board_elements,
+                    scale_board_elements,
+                    colorize_board_elements,
                     mouse_interaction_system.ambiguous_with(AiSet),
                 )
                     .chain(),

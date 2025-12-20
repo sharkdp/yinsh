@@ -38,7 +38,8 @@ fn update_information_display(
     interaction_state: Res<InteractionState>,
     ai_player_strength: Res<AiPlayerStrength>,
 ) {
-    **q_text.single_mut() =
+    let Ok(mut text) = q_text.single_mut() else { return };
+    **text =
         format!(
         "Score: {points_a}:{points_b}\nMode: {mode}\nAI strength: {strength} [weaker: J, stronger: K]\n{coord}",
         points_a=game_state.points_a,
