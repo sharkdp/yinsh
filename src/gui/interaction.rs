@@ -257,6 +257,16 @@ fn colorize_board_elements(
                             }
                         }
                     },
+                    InteractionState::RingRemoval(ref removable_rings) => {
+                        if ring.is_some()
+                            && mouse_cursor_coord.0 == Some(*coord)
+                            && removable_rings.contains(coord)
+                        {
+                            player_colors.human_transparent.clone()
+                        } else {
+                            player_colors.human.clone()
+                        }
+                    }
                     _ => player_colors.human.clone(),
                 }
             }
