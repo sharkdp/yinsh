@@ -1,9 +1,12 @@
 [package]
 name = "yinsh"
 version = "0.1.0"
+authors = ["David Peter <mail@david-peter.de>"]
+description = "An implementation of the abstract board game Yinsh."
+homepage = "https://david-peter.de/yinsh"
+repository = "https://github.com/sharkdp/yinsh"
+license = "MIT OR Apache-2.0"
 edition = "2024"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 bevy = { version = "0.14.0" }
@@ -12,7 +15,7 @@ bevy_async_task = "0.2.0"
 
 minimax = "0.5.3"
 
-itertools = "0.13.0"
+itertools = "0.14.0"
 serde = "1.0.204"
 serde_yaml = "0.9.34"
 
