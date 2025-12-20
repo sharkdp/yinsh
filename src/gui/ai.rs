@@ -68,9 +68,9 @@ fn perform_ai_moves(
 
 pub fn plugin(app: &mut App) {
     app.insert_resource(AiPlayerStrength(if cfg!(debug_assertions) {
-        9
+        6
     } else {
-        15
+        12
     }))
     .add_message::<AiComputationEvent>()
     .add_systems(

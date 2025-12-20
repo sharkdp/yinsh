@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use bevy::ecs::message::MessageWriter;
-use yinsh::{Player, TurnMode};
+use yinsh::TurnMode;
 
 use super::{
     ai::AiComputationEvent,
@@ -8,7 +8,7 @@ use super::{
     board_update_event::BoardUpdateEvent,
     graphics::ScaleFactorSet,
     interaction::CursorElement,
-    state_update::{GameState, StateUpdateSet},
+    state_update::{restore_board_from_game_state, GameState, StateUpdateSet},
 };
 
 pub fn save_and_load_game_state(
@@ -44,22 +44,12 @@ pub fn save_and_load_game_state(
         ));
 
         ai_computation_events.write(AiComputationEvent::Cancel);
-
-        // Despawn all board elements
-        for entity in q_board_elements.iter() {
-            commands.entity(entity).despawn();
-        }
-
-        // Respawn board elements
-        for p in [Player::A, Player::B] {
-            for coord in game_state.board.ring_coords(p) {
-                board_update_events.write(BoardUpdateEvent::AddRing(coord, p));
-            }
-
-            for coord in game_state.board.marker_coords(p) {
-                board_update_events.write(BoardUpdateEvent::AddMarker(coord, p));
-            }
-        }
+        restore_board_from_game_state(
+            &game_state,
+            &mut commands,
+            &mut board_update_events,
+            &q_board_elements,
+        );
     }
 }
 
