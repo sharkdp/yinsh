@@ -78,9 +78,9 @@ impl Heuristic for SimpleHeuristic {
                 * (Score::try_from(rps_a.accessible_fields).unwrap()
                     - Score::try_from(rps_b.accessible_fields).unwrap());
 
-        let score = self.f_points * score_points + self.f_markers * score_markers + score_rings;
+        
 
-        score
+        self.f_points * score_points + self.f_markers * score_markers + score_rings
     }
 
     fn identifier(&self) -> String {

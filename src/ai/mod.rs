@@ -63,11 +63,11 @@ impl<H: Heuristic + Sync> YinshAiPlayer for YinshAi<H> {
         };
 
         let mut strategy = Negamax::new(YinshEvaluator::new(&self.heuristic), depth);
-        let player_move = strategy.choose_move(&state).unwrap();
+        
 
         // dbg!(strategy.root_value());
 
-        player_move
+        strategy.choose_move(state).unwrap()
     }
 }
 
