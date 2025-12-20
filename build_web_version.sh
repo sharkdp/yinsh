@@ -2,11 +2,17 @@
 
 set -euo pipefail
 
-cargo build --release --target wasm32-unknown-unknown
+export CARGO_TARGET_DIR=target/
 
-wasm-bindgen --no-typescript --target web \
+cargo build --profile wasm-release --target wasm32-unknown-unknown
+
+wasm-bindgen \
+    --target web \
+    --no-typescript \
     --out-dir ./web \
     --out-name "yinsh" \
-    ./target/wasm32-unknown-unknown/release/yinsh.wasm
+    ./target/wasm32-unknown-unknown/wasm-release/yinsh.wasm
 
-rsync --archive --stats --progress --human-readable web/* shark.fish:david-peter.de/yinsh/preview/
+#wasm-opt -Oz -o ./web/yinsh_bg.wasm ./web/yinsh_bg.wasm
+
+#rsync --archive --stats --progress --human-readable web/* shark.fish:david-peter.de/yinsh/preview/
