@@ -15,4 +15,4 @@ wasm-bindgen \
 
 #wasm-opt -Oz -o ./web/yinsh_bg.wasm ./web/yinsh_bg.wasm
 
-#rsync --archive --stats --progress --human-readable web/* shark.fish:david-peter.de/yinsh/preview/
+rsync --archive --stats --progress --human-readable web/* shark.fish:david-peter.de/yinsh/
