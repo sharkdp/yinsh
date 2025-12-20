@@ -1,6 +1,7 @@
 use std::path::Path;
 
 use serde::{Deserialize, Serialize};
+use tracing::trace;
 
 use super::{Board, Coord, Player};
 
@@ -65,10 +66,12 @@ impl GameState {
     }
 
     pub fn perform_move(&mut self, player_move: &Move) {
-        // println!();
-        // println!("Current turn mode: {:?}", self.turn_mode);
-        // println!("Current active player: {:?}", self.active_player);
-        // println!("Move: {:?}", player_move);
+        trace!(
+            turn_mode = ?self.turn_mode,
+            active_player = ?self.active_player,
+            player_move = ?player_move,
+            "Performing move"
+        );
 
         match (&self.turn_mode, player_move) {
             (TurnMode::RingPlacement, Move::PlaceRing(coord)) => {
@@ -150,8 +153,11 @@ impl GameState {
 
         self.active_player.flip();
 
-        // println!("New turn mode: {:?}", self.turn_mode);
-        // println!("New active player: {:?}", self.active_player);
+        trace!(
+            new_turn_mode = ?self.turn_mode,
+            new_active_player = ?self.active_player,
+            "Move completed"
+        );
     }
 
     pub fn winner(&self) -> Option<Player> {
