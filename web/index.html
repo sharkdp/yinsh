@@ -60,17 +60,28 @@
     }
 
     @keyframes dots {
-      0% { content: ''; }
-      25% { content: '.'; }
-      50% { content: '..'; }
-      75% { content: '...'; }
+      0% {
+        content: '';
+      }
+
+      25% {
+        content: '.';
+      }
+
+      50% {
+        content: '..';
+      }
+
+      75% {
+        content: '...';
+      }
     }
   </style>
 </head>
 
 <body>
   <div id="container">
-    <canvas id="yinsh-canvas"></canvas>
+    <canvas id="yinsh-canvas" tabindex="0"></canvas>
   </div>
   <div id="loading">Loading</div>
   <div id="keybindings">

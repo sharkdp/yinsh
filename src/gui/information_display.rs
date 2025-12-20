@@ -41,7 +41,7 @@ fn update_information_display(
     let Ok(mut text) = q_text.single_mut() else { return };
     **text =
         format!(
-        "Score: {points_a}:{points_b}\nMode: {mode}\nAI strength: {strength} [weaker: J, stronger: K]\n{coord}",
+        "Score: {points_a}:{points_b}\nMode: {mode}\nAI strength: {strength}\n{coord}",
         points_a=game_state.points_a,
         points_b=game_state.points_b,
         mode=match *interaction_state {
