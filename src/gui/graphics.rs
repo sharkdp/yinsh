@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+#[cfg_attr(target_arch = "wasm32", allow(unused_imports))]
 use bevy::{
     camera::visibility::RenderLayers,
     post_process::bloom::Bloom,
@@ -187,31 +188,31 @@ fn setup_graphics(
     commands.insert_resource(ClearColor(COLOR_BACKGROUND));
 
     // Render layer 1 is for the grid
-    commands.spawn((
+    #[cfg_attr(target_arch = "wasm32", allow(unused_mut, unused_variables))]
+    let mut bg_camera = commands.spawn((
         Camera2d,
         Camera {
             order: 1,
             ..default()
         },
-        Hdr,
-        Bloom::default(),
-        Msaa::Sample8,
         BACKGROUND_RENDER_LAYER,
     ));
+    #[cfg(not(target_arch = "wasm32"))]
+    bg_camera.insert((Hdr, Bloom::default(), Msaa::Sample8));
 
     // Render layer 2 is for the board elements
-    commands.spawn((
+    #[cfg_attr(target_arch = "wasm32", allow(unused_mut, unused_variables))]
+    let mut fg_camera = commands.spawn((
         Camera2d,
         Camera {
             order: 2,
             ..default()
         },
-        Hdr,
-        Bloom::default(),
-        Msaa::Sample8,
         FOREGROUND_RENDER_LAYER,
         MainCamera,
     ));
+    #[cfg(not(target_arch = "wasm32"))]
+    fg_camera.insert((Hdr, Bloom::default(), Msaa::Sample8));
 
     commands.insert_resource(PlayerColors {
         human: materials.add(COLOR_HUMAN),
