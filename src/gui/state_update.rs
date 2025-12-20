@@ -99,7 +99,7 @@ fn state_update(
     mut board_update_events: EventWriter<BoardUpdateEvent>,
 ) {
     for PlayerMoveEvent(player, player_move) in player_move_events.read() {
-        assert!(player == &game_state.active_player);
+        assert_eq!(*player, game_state.active_player);
 
         match player_move {
             Move::PlaceRing(coord) => {
