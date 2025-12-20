@@ -40,6 +40,31 @@
       padding: 1px 5px;
       font-family: monospace;
     }
+
+    #loading {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: hsl(0, 0%, 30%);
+      font-family: monospace;
+      font-size: 16px;
+    }
+
+    #loading::after {
+      content: '...';
+      animation: dots 1.5s steps(4, end) infinite;
+      display: inline-block;
+      width: 1.5em;
+      text-align: left;
+    }
+
+    @keyframes dots {
+      0% { content: ''; }
+      25% { content: '.'; }
+      50% { content: '..'; }
+      75% { content: '...'; }
+    }
   </style>
 </head>
 
@@ -47,6 +72,7 @@
   <div id="container">
     <canvas id="yinsh-canvas"></canvas>
   </div>
+  <div id="loading">Loading</div>
   <div id="keybindings">
     <kbd>U</kbd> / <kbd>Ctrl+Z</kbd> Undo<br>
     <kbd>Ctrl+R</kbd> Reset<br>
@@ -55,10 +81,13 @@
   <script type="module">
     import init from './yinsh.js'
 
-    init().catch((error) => {
+    init().then(() => {
+      document.getElementById('loading').style.display = 'none';
+    }).catch((error) => {
       if (!error.message.startsWith("Using exceptions for control flow, don't mind me. This isn't actually an error!")) {
         throw error;
       }
+      document.getElementById('loading').style.display = 'none';
     });
   </script>
 </body>
