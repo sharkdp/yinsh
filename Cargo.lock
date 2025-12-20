@@ -5932,6 +5932,7 @@ dependencies = [
  "bevy_async_task",
  "bevy_tweening",
  "criterion",
+ "gloo-timers 0.3.0",
  "itertools 0.14.0",
  "minimax",
  "rand 0.8.5",

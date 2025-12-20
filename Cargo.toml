@@ -20,6 +20,9 @@ serde = "1.0.204"
 serde_yaml = "0.9.34"
 tracing = "0.1"
 
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+gloo-timers = { version = "0.3", features = ["futures"] }
+
 # separate lib and app:
 [[bin]]
 name = "yinsh"

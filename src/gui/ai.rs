@@ -35,16 +35,19 @@ fn perform_ai_moves(
                 let game_state = game_state.clone();
                 let search_depth = strength.0;
                 task_runner.start(async move {
-                    // TODO! This is a hack to make sure the AI takes at least as long as
-                    // the animation.
-                    #[cfg(not(target_arch = "wasm32"))]
-                    {
-                        use super::graphics::ANIMATION_DURATION;
-                        use yinsh::TurnMode;
+                    use super::graphics::ANIMATION_DURATION;
+                    use yinsh::TurnMode;
 
-                        if matches!(game_state.turn_mode, TurnMode::MarkerPlacement) {
-                            std::thread::sleep(ANIMATION_DURATION);
-                        }
+                    // Make sure the AI takes at least as long as the animation
+                    if matches!(game_state.turn_mode, TurnMode::MarkerPlacement) {
+                        #[cfg(not(target_arch = "wasm32"))]
+                        std::thread::sleep(ANIMATION_DURATION);
+
+                        #[cfg(target_arch = "wasm32")]
+                        gloo_timers::future::TimeoutFuture::new(
+                            ANIMATION_DURATION.as_millis() as u32,
+                        )
+                        .await;
                     }
 
                     Some((player, yinsh::get_ai_move(search_depth, &game_state)))
