@@ -1,6 +1,8 @@
+use std::task::Poll;
+
 use bevy::prelude::*;
 
-use bevy_async_task::{AsyncTaskRunner, AsyncTaskStatus};
+use bevy_async_task::TaskRunner;
 use yinsh::{GameState, Move, Player};
 
 use super::state_update::{PlayerMoveEvent, StateUpdateSet};
@@ -20,7 +22,7 @@ pub enum AiComputationEvent {
 }
 
 fn perform_ai_moves(
-    mut task_runner: AsyncTaskRunner<Option<(Player, Move)>>,
+    mut task_runner: TaskRunner<Option<(Player, Move)>>,
     mut events: EventReader<AiComputationEvent>,
     strength: Res<AiPlayerStrength>,
     mut player_move_events: EventWriter<PlayerMoveEvent>,
@@ -55,8 +57,9 @@ fn perform_ai_moves(
     }
 
     match task_runner.poll() {
-        AsyncTaskStatus::Idle | AsyncTaskStatus::Pending | AsyncTaskStatus::Finished(None) => {}
-        AsyncTaskStatus::Finished(Some((player, player_move))) => {
+        Poll::Pending => {}
+        Poll::Ready(None) => {}
+        Poll::Ready(Some((player, player_move))) => {
             player_move_events.send(PlayerMoveEvent(player, player_move));
         }
     }

@@ -1,10 +1,10 @@
 use std::time::Duration;
 
 use bevy::{
-    core_pipeline::bloom::BloomSettings,
+    core_pipeline::bloom::Bloom,
     prelude::*,
     render::view::RenderLayers,
-    sprite::{MaterialMesh2dBundle, Mesh2dHandle},
+    sprite::MeshMaterial2d,
     window::PrimaryWindow,
 };
 
@@ -117,26 +117,24 @@ pub fn ring_mesh(
     meshes: &mut Assets<Mesh>,
     color_material: Handle<ColorMaterial>,
     visibility: Visibility,
-) -> MaterialMesh2dBundle<ColorMaterial> {
-    MaterialMesh2dBundle {
-        mesh: Mesh2dHandle(meshes.add(Annulus::new(20., 25.))),
-        material: color_material,
+) -> impl Bundle {
+    (
+        Mesh2d(meshes.add(Annulus::new(20., 25.))),
+        MeshMaterial2d(color_material),
         visibility,
-        ..default()
-    }
+    )
 }
 
 pub fn marker_mesh(
     meshes: &mut Assets<Mesh>,
     color_material: Handle<ColorMaterial>,
     visibility: Visibility,
-) -> MaterialMesh2dBundle<ColorMaterial> {
-    MaterialMesh2dBundle {
-        mesh: Mesh2dHandle(meshes.add(Circle::new(16.))),
-        material: color_material,
+) -> impl Bundle {
+    (
+        Mesh2d(meshes.add(Circle::new(16.))),
+        MeshMaterial2d(color_material),
         visibility,
-        ..default()
-    }
+    )
 }
 
 pub fn spawn_ring(
@@ -190,29 +188,27 @@ fn setup_graphics(
 
     // Render layer 1 is for the grid
     commands.spawn((
-        Camera2dBundle {
-            camera: Camera {
-                hdr: true,
-                order: 1,
-                ..default()
-            },
+        Camera2d,
+        Camera {
+            hdr: true,
+            order: 1,
             ..default()
         },
-        BloomSettings::default(),
+        Bloom::default(),
+        Msaa::Sample8,
         BACKGROUND_RENDER_LAYER,
     ));
 
     // Render layer 2 is for the board elements
     commands.spawn((
-        Camera2dBundle {
-            camera: Camera {
-                hdr: true,
-                order: 2,
-                ..default()
-            },
+        Camera2d,
+        Camera {
+            hdr: true,
+            order: 2,
             ..default()
         },
-        BloomSettings::default(),
+        Bloom::default(),
+        Msaa::Sample8,
         FOREGROUND_RENDER_LAYER,
         MainCamera,
     ));
@@ -253,8 +249,7 @@ pub fn set_scale_factor(
 }
 
 pub fn plugin(app: &mut App) {
-    app.insert_resource(Msaa::Sample8)
-        .insert_resource(ScaleFactor::default())
+    app.insert_resource(ScaleFactor::default())
         .add_systems(PreStartup, (setup_graphics, set_scale_factor))
         .add_systems(
             Update,

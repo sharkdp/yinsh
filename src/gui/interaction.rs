@@ -2,11 +2,14 @@ use std::time::Duration;
 
 use bevy::prelude::*;
 
-use bevy::window::PrimaryWindow;
+use bevy::window::{PrimaryWindow, SystemCursorIcon};
+use bevy::winit::cursor::CursorIcon;
 
 use bevy_tweening::lens::ColorMaterialColorLens;
-use bevy_tweening::{lens::TransformPositionLens, Animator, EaseFunction, Tween, TweeningPlugin};
+use bevy_tweening::{lens::TransformPositionLens, Animator, Tween, TweeningPlugin};
 use bevy_tweening::{AnimationSystem, AssetAnimator, Delay, EaseMethod};
+
+use bevy::sprite::MeshMaterial2d;
 use yinsh::{all_coords, Coord, Move};
 
 use super::ai::AiSet;
@@ -66,12 +69,8 @@ fn draw_ring_move_indicators(
     if let InteractionState::RingMovement(_, ref possible_moves) = *interaction_state {
         for coord in possible_moves {
             let screen_pos = scale_factor.screen_point(*coord);
-            gizmos.circle(
-                screen_pos,
-                Dir3::Z,
-                scale_factor.spacing / 8.,
-                indicator_color,
-            );
+            gizmos
+                .circle(Isometry3d::from_translation(screen_pos), scale_factor.spacing / 8., indicator_color);
         }
     }
 }
@@ -87,7 +86,7 @@ fn update_board_elements(
         (With<Ring>, (Without<Marker>, Without<CursorElement>)),
     >,
     mut q_markers: Query<
-        (Entity, &mut BoardElement, &mut Handle<ColorMaterial>),
+        (Entity, &mut BoardElement, &mut MeshMaterial2d<ColorMaterial>),
         (With<Marker>, Without<CursorElement>),
     >,
 ) {
@@ -146,7 +145,7 @@ fn update_board_elements(
                             ANIMATION_DURATION.mul_f32(distance_from_start / total_distance);
 
                         let tween = Tween::new(
-                            EaseMethod::Linear,
+                            EaseMethod::default(),
                             Duration::from_secs_f32(1e-9),
                             ColorMaterialColorLens {
                                 start: color_for_player(element.1),
@@ -154,7 +153,7 @@ fn update_board_elements(
                             },
                         )
                         .then(Delay::new(delay).then(Tween::new(
-                            EaseMethod::Linear,
+                            EaseMethod::default(),
                             ANIMATION_DURATION.div_f32(5.0),
                             ColorMaterialColorLens {
                                 start: color_for_player(element.1),
@@ -162,7 +161,7 @@ fn update_board_elements(
                             },
                         )));
 
-                        *color_material = player_colors.animated_markers[i].clone();
+                        color_material.0 = player_colors.animated_markers[i].clone();
                         commands.entity(entity).insert(AssetAnimator::new(tween));
 
                         element.1.flip(); // To make the change permanent
@@ -217,7 +216,7 @@ fn scale_board_elements(
 fn colorize_board_elements(
     mut query: Query<(
         &BoardElement,
-        &mut Handle<ColorMaterial>,
+        &mut MeshMaterial2d<ColorMaterial>,
         Option<&Ring>,
         Option<&Marker>,
         Option<&CursorElement>,
@@ -234,7 +233,7 @@ fn colorize_board_elements(
             continue;
         }
 
-        *color_material = if player == &PLAYER_HUMAN {
+        color_material.0 = if *player == PLAYER_HUMAN {
             if cursor_element.is_some() {
                 player_colors.human_transparent.clone()
             } else {
@@ -252,14 +251,14 @@ fn colorize_board_elements(
                     } => match mouse_cursor_coord.0 {
                         Some(cursor_coord) if all_run_coords.contains(&cursor_coord) => {
                             let run_from_cursor = run_from_seed.get(&cursor_coord).unwrap();
-                            if run_from_cursor.contains(coord) {
+                            if run_from_cursor.contains(&coord) {
                                 player_colors.human_highlighted.clone()
                             } else {
                                 player_colors.human.clone()
                             }
                         }
                         _ => {
-                            if marker.is_some() && all_run_coords.contains(coord) {
+                            if marker.is_some() && all_run_coords.contains(&coord) {
                                 player_colors.human_highlighted.clone()
                             } else {
                                 player_colors.human.clone()
@@ -277,7 +276,7 @@ fn colorize_board_elements(
 
 fn grid_cursor_system(
     scale_factor: Res<ScaleFactor>,
-    mut q_window: Query<&mut Window, With<PrimaryWindow>>,
+    mut q_window: Query<(Entity, &mut Window), With<PrimaryWindow>>,
     q_camera: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
     mut cursor_ring: Query<
         (&mut BoardElement, &mut Visibility),
@@ -289,21 +288,23 @@ fn grid_cursor_system(
     >,
     interaction_state: Res<InteractionState>,
     mut mouse_cursor_coord: ResMut<CursorCoord>,
+    mut commands: Commands,
 ) {
-    let Ok(mut window) = q_window.get_single_mut() else {
+    let Ok((window_entity, window)) = q_window.get_single_mut() else {
         return;
     };
 
-    window.cursor.icon = match *interaction_state {
-        InteractionState::WaitForAI => CursorIcon::Progress,
-        InteractionState::Winner(_) => CursorIcon::Default,
-        _ => CursorIcon::Pointer,
+    let cursor_icon = match *interaction_state {
+        InteractionState::WaitForAI => SystemCursorIcon::Progress,
+        InteractionState::Winner(_) => SystemCursorIcon::Default,
+        _ => SystemCursorIcon::Pointer,
     };
+    commands.entity(window_entity).insert(CursorIcon::from(cursor_icon));
 
     if let Some(cursor_position) = window.cursor_position() {
         let (camera, camera_transform) = q_camera.single();
 
-        if let Some(cursor_position) = camera
+        if let Ok(cursor_position) = camera
             .viewport_to_world(camera_transform, cursor_position)
             .map(|ray| ray.origin.truncate())
         {
