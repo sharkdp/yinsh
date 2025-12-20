@@ -27,7 +27,7 @@ fn perform_ai_moves(
 ) {
     for event in events.read() {
         match event {
-            AiComputationEvent::Start(player, ref game_state) => {
+            AiComputationEvent::Start(player, game_state) => {
                 let player = *player;
                 let game_state = game_state.clone();
                 let search_depth = strength.0;
