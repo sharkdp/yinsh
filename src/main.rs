@@ -12,7 +12,7 @@ fn main() {
                 primary_window: Some(Window {
                     title: "Yinsh".into(),
                     name: Some("yinsh".into()),
-                    resolution: WindowResolution::new(760, 860),
+                    resolution: WindowResolution::new(860, 960),
                     mode: WindowMode::Windowed,
                     canvas: Some("#yinsh-canvas".into()),
                     ..default()
