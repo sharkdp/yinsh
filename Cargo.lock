@@ -5972,20 +5972,45 @@ checksum = "e01738255b5a16e78bbb83e7fbba0a1e7dd506905cfc53f4622d89015a03fbb5"
 name = "yinsh"
 version = "0.1.0"
 dependencies = [
+ "criterion",
+ "itertools 0.14.0",
+ "serde",
+ "serde_yaml",
+]
+
+[[package]]
+name = "yinsh_ai"
+version = "0.1.0"
+dependencies = [
+ "minimax",
+ "tracing",
+ "yinsh",
+]
+
+[[package]]
+name = "yinsh_ai_eval"
+version = "0.1.0"
+dependencies = [
+ "indicatif",
+ "rand 0.8.5",
+ "rayon",
+ "tracing",
+ "tracing-subscriber",
+ "yinsh",
+ "yinsh_ai",
+]
+
+[[package]]
+name = "yinsh_gui"
+version = "0.1.0"
+dependencies = [
  "bevy",
  "bevy_async_task",
  "bevy_tweening",
- "criterion",
  "gloo-timers 0.3.0",
- "indicatif",
- "itertools 0.14.0",
- "minimax",
- "rand 0.8.5",
- "rayon",
- "serde",
- "serde_yaml",
  "tracing",
- "tracing-subscriber",
+ "yinsh",
+ "yinsh_ai",
 ]
 
 [[package]]
