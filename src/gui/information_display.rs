@@ -38,13 +38,14 @@ fn update_information_display(
     interaction_state: Res<InteractionState>,
     ai_player_strength: Res<AiPlayerStrength>,
 ) {
-    let Ok(mut text) = q_text.single_mut() else { return };
-    **text =
-        format!(
+    let Ok(mut text) = q_text.single_mut() else {
+        return;
+    };
+    **text = format!(
         "Score: {points_a}:{points_b}\nMode: {mode}\nAI strength: {strength}\n{coord}",
-        points_a=game_state.points_a,
-        points_b=game_state.points_b,
-        mode=match *interaction_state {
+        points_a = game_state.points_a,
+        points_b = game_state.points_b,
+        mode = match *interaction_state {
             InteractionState::RingPlacement(_) => "Place a ring on the board",
             InteractionState::MarkerPlacement(_) => "Place a marker in one of your rings",
             InteractionState::RingMovement(_, _) => "Move the selected ring",
@@ -54,8 +55,12 @@ fn update_information_display(
             InteractionState::Winner(Player::A) => "Game over. You win!",
             InteractionState::Winner(Player::B) => "Game over. Floyd wins!",
         },
-        strength=ai_player_strength.0,
-        coord=if let Some (coord) = cursor_coord.0 { format!("({x}, {y})", x=coord.x, y=coord.y) } else { "".to_string() },
+        strength = ai_player_strength.0,
+        coord = if let Some(coord) = cursor_coord.0 {
+            format!("({x}, {y})", x = coord.x, y = coord.y)
+        } else {
+            "".to_string()
+        },
     );
 }
 

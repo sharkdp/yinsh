@@ -5,10 +5,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::yinsh::core::AXES;
 
-use super::{core::all_coords, Coord, Player, DIRECTIONS};
+use super::{Coord, DIRECTIONS, Player, core::all_coords};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[derive(Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 enum Element {
     Ring(Player),
     Marker(Player),
@@ -37,7 +36,6 @@ impl Element {
         }
     }
 }
-
 
 #[derive(Debug, Clone, Default)]
 pub struct CheckRunResult {

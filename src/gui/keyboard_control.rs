@@ -1,14 +1,14 @@
-use bevy::prelude::*;
 use bevy::ecs::message::MessageWriter;
+use bevy::prelude::*;
 
 use super::{
+    PLAYER_HUMAN,
     ai::{AiComputationEvent, AiPlayerStrength, AiSet},
     board::BoardElement,
     board_update_event::BoardUpdateEvent,
     graphics::ScaleFactorSet,
     interaction::CursorElement,
-    state_update::{restore_board_from_game_state, GameState, StateUpdateSet, UndoHistory},
-    PLAYER_HUMAN,
+    state_update::{GameState, StateUpdateSet, UndoHistory, restore_board_from_game_state},
 };
 
 fn keyboard_control(

@@ -2,9 +2,9 @@ use std::task::Poll;
 
 use bevy::prelude::*;
 
+use bevy::ecs::message::{MessageReader, MessageWriter};
 use bevy_async_task::TaskRunner;
 use yinsh::{GameState, Move, Player};
-use bevy::ecs::message::{MessageReader, MessageWriter};
 
 use super::state_update::{PlayerMoveEvent, StateUpdateSet};
 
@@ -45,7 +45,7 @@ fn perform_ai_moves(
 
                         #[cfg(target_arch = "wasm32")]
                         gloo_timers::future::TimeoutFuture::new(
-                            ANIMATION_DURATION.as_millis() as u32,
+                            ANIMATION_DURATION.as_millis() as u32
                         )
                         .await;
                     }
@@ -76,9 +76,9 @@ pub fn plugin(app: &mut App) {
     let default_strength = if cfg!(debug_assertions) { 6 } else { 12 };
 
     app.insert_resource(AiPlayerStrength(default_strength))
-    .add_message::<AiComputationEvent>()
-    .add_systems(
-        Update,
-        (perform_ai_moves).in_set(AiSet).after(StateUpdateSet),
-    );
+        .add_message::<AiComputationEvent>()
+        .add_systems(
+            Update,
+            (perform_ai_moves).in_set(AiSet).after(StateUpdateSet),
+        );
 }

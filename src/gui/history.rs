@@ -1,5 +1,5 @@
-use bevy::prelude::*;
 use bevy::ecs::message::MessageWriter;
+use bevy::prelude::*;
 use yinsh::TurnMode;
 
 use super::{
@@ -8,7 +8,7 @@ use super::{
     board_update_event::BoardUpdateEvent,
     graphics::ScaleFactorSet,
     interaction::CursorElement,
-    state_update::{restore_board_from_game_state, GameState, StateUpdateSet},
+    state_update::{GameState, StateUpdateSet, restore_board_from_game_state},
 };
 
 pub fn save_and_load_game_state(

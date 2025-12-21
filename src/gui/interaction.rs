@@ -2,25 +2,27 @@ use std::time::Duration;
 
 use bevy::prelude::*;
 
-use bevy::window::{PrimaryWindow, SystemCursorIcon, CursorIcon};
 use bevy::ecs::message::{MessageReader, MessageWriter};
+use bevy::window::{CursorIcon, PrimaryWindow, SystemCursorIcon};
 
 use bevy_tweening::lens::ColorMaterialColorLens;
-use bevy_tweening::{lens::TransformPositionLens, Tween, TweeningPlugin, TweenAnim, AnimTarget, TweenState};
+use bevy_tweening::{
+    AnimTarget, Tween, TweenAnim, TweenState, TweeningPlugin, lens::TransformPositionLens,
+};
 use bevy_tweening::{Delay, EaseMethod};
 
 use bevy::prelude::MeshMaterial2d;
-use yinsh::{all_coords, Coord, Move};
+use yinsh::{Coord, Move, all_coords};
 
+use super::PLAYER_HUMAN;
 use super::ai::AiSet;
 use super::board::{BoardElement, Marker, Ring};
 use super::board_update_event::BoardUpdateEvent;
 use super::graphics::{
-    color_for_player, marker_mesh, ring_mesh, spawn_marker, spawn_ring, MainCamera, PlayerColors,
-    ScaleFactor, ScaleFactorSet, ANIMATION_DURATION, FOREGROUND_RENDER_LAYER,
+    ANIMATION_DURATION, FOREGROUND_RENDER_LAYER, MainCamera, PlayerColors, ScaleFactor,
+    ScaleFactorSet, color_for_player, marker_mesh, ring_mesh, spawn_marker, spawn_ring,
 };
 use super::state_update::{GameState, PlayerMoveEvent, StateUpdateSet};
-use super::PLAYER_HUMAN;
 use super::{graphics::COLOR_RING_MOVEMENT_INDICATOR, state_update::InteractionState};
 
 #[derive(Component)]
@@ -91,8 +93,11 @@ fn draw_ring_move_indicators(
     if let InteractionState::RingMovement(_, ref possible_moves) = *interaction_state {
         for coord in possible_moves {
             let screen_pos = scale_factor.screen_point(*coord);
-            gizmos
-                .circle(Isometry3d::from_translation(screen_pos), scale_factor.spacing / 8., indicator_color);
+            gizmos.circle(
+                Isometry3d::from_translation(screen_pos),
+                scale_factor.spacing / 8.,
+                indicator_color,
+            );
         }
     }
 }
@@ -108,7 +113,11 @@ fn update_board_elements(
         (With<Ring>, (Without<Marker>, Without<CursorElement>)),
     >,
     mut q_markers: Query<
-        (Entity, &mut BoardElement, &mut MeshMaterial2d<ColorMaterial>),
+        (
+            Entity,
+            &mut BoardElement,
+            &mut MeshMaterial2d<ColorMaterial>,
+        ),
         (With<Marker>, Without<CursorElement>),
     >,
 ) {
@@ -185,10 +194,9 @@ fn update_board_elements(
 
                         let anim_material = player_colors.animated_markers[i].clone();
                         color_material.0 = anim_material.clone();
-                        commands.entity(entity).insert((
-                            TweenAnim::new(tween),
-                            AnimTarget::asset(&anim_material),
-                        ));
+                        commands
+                            .entity(entity)
+                            .insert((TweenAnim::new(tween), AnimTarget::asset(&anim_material)));
 
                         element.1.flip(); // To make the change permanent
 
@@ -323,17 +331,29 @@ fn grid_cursor_system(
         InteractionState::Winner(_) => SystemCursorIcon::Default,
         _ => SystemCursorIcon::Pointer,
     };
-    commands.entity(window_entity).insert(CursorIcon::from(cursor_icon));
+    commands
+        .entity(window_entity)
+        .insert(CursorIcon::from(cursor_icon));
 
     if let Some(cursor_position) = window.cursor_position() {
-        let Ok((camera, camera_transform)) = q_camera.single() else { return };
+        let Ok((camera, camera_transform)) = q_camera.single() else {
+            return;
+        };
 
-        if let Some(cursor_coord) = viewport_to_coord(cursor_position, camera, camera_transform, &scale_factor) {
-            let Ok((mut cursor_ring_coord, mut cursor_ring_visibility)) = cursor_ring.single_mut() else { return };
+        if let Some(cursor_coord) =
+            viewport_to_coord(cursor_position, camera, camera_transform, &scale_factor)
+        {
+            let Ok((mut cursor_ring_coord, mut cursor_ring_visibility)) = cursor_ring.single_mut()
+            else {
+                return;
+            };
             *cursor_ring_visibility = Visibility::Hidden;
 
             let Ok((mut cursor_marker_coord, mut cursor_marker_visibility)) =
-                cursor_marker.single_mut() else { return };
+                cursor_marker.single_mut()
+            else {
+                return;
+            };
             *cursor_marker_visibility = Visibility::Hidden;
 
             match *interaction_state {
