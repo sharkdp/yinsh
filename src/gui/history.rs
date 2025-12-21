@@ -19,9 +19,12 @@ pub fn save_and_load_game_state(
     mut board_update_events: MessageWriter<BoardUpdateEvent>,
     q_board_elements: Query<Entity, (With<BoardElement>, Without<CursorElement>)>,
 ) {
+    let ctrl_pressed =
+        keyboard.pressed(KeyCode::ControlLeft) || keyboard.pressed(KeyCode::ControlRight);
+
     let filename = "gamestate.yml";
 
-    if keyboard.just_pressed(KeyCode::KeyS) {
+    if ctrl_pressed && keyboard.just_pressed(KeyCode::KeyS) {
         if matches!(
             game_state.turn_mode,
             TurnMode::RingPlacement | TurnMode::MarkerPlacement
@@ -34,7 +37,7 @@ pub fn save_and_load_game_state(
                 game_state.turn_mode
             );
         }
-    } else if keyboard.just_pressed(KeyCode::KeyL) || keyboard.just_pressed(KeyCode::KeyR) {
+    } else if ctrl_pressed && keyboard.just_pressed(KeyCode::KeyL) {
         info!("Loading game state from {}", filename);
         *game_state.as_deref_mut() = yinsh::GameState::load_from(filename);
 
