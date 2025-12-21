@@ -253,7 +253,6 @@ impl Board {
     fn can_place_marker_at(&self, coord: Coord, player: Player) -> bool {
         self.check_invariants();
 
-        // TODO: is this logic correct?
         (self.element_at(coord) == Element::Ring(player)) && !self.ring_moves(coord).is_empty()
     }
 
