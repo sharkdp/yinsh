@@ -5940,6 +5940,7 @@ dependencies = [
  "serde",
  "serde_yaml",
  "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]

@@ -49,9 +49,6 @@ impl Default for SimpleHeuristic {
             f_controlled_markers_own: 5,
             f_controlled_markers_opponent: 10,
             f_accessible_fields: 1,
-            // f_controlled_markers_own: 3,
-            // f_controlled_markers_opponent: 10,
-            // f_accessible_fields: 1,
         }
     }
 }
