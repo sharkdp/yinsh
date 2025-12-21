@@ -2,19 +2,16 @@ use std::time::Duration;
 
 #[cfg_attr(target_arch = "wasm32", allow(unused_imports))]
 use bevy::{
-    camera::visibility::RenderLayers,
-    post_process::bloom::Bloom,
-    prelude::*,
-    render::view::Hdr,
+    camera::visibility::RenderLayers, post_process::bloom::Bloom, prelude::*, render::view::Hdr,
     window::PrimaryWindow,
 };
 
 use yinsh::{Coord, Player};
 
 use super::{
+    PLAYER_HUMAN,
     board::{BoardElement, Marker, Ring},
     grid::draw_grid,
-    PLAYER_HUMAN,
 };
 
 pub const FOREGROUND_RENDER_LAYER: RenderLayers = RenderLayers::layer(2);

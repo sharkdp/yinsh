@@ -4,17 +4,14 @@ use std::collections::HashMap;
 
 use yinsh::{Coord, Move, Player, TurnMode};
 
-use bevy::prelude::*;
 use bevy::ecs::message::{MessageReader, MessageWriter};
+use bevy::prelude::*;
 
 use crate::gui::PLAYER_HUMAN;
 
 use super::{
-    ai::AiComputationEvent,
-    board::BoardElement,
-    board_update_event::BoardUpdateEvent,
+    PLAYER_AI, ai::AiComputationEvent, board::BoardElement, board_update_event::BoardUpdateEvent,
     interaction::CursorElement,
-    PLAYER_AI,
 };
 
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]

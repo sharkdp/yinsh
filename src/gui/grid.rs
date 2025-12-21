@@ -2,7 +2,7 @@ use bevy::prelude::*;
 
 use yinsh::Coord;
 
-use super::graphics::{ScaleFactor, COLOR_GRID};
+use super::graphics::{COLOR_GRID, ScaleFactor};
 
 pub fn draw_grid(mut gizmos: Gizmos, scale_factor: Res<ScaleFactor>) {
     let grid_line_color = COLOR_GRID;
