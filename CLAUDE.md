@@ -24,8 +24,8 @@ cargo test -- --nocapture
 # Run benchmarks
 cargo bench
 
-# Run AI tournament example
-cargo run --example ai_game --release
+# Run AI tournament
+cargo run -p yinsh_ai_eval --release
 
 # Build for WebAssembly and deploy
 ./build_web_version.sh
@@ -37,30 +37,35 @@ cargo fmt --check
 
 ## Architecture
 
-The codebase is organized into three cleanly separated layers:
+The project is organized as a Cargo workspace with four crates:
 
-### Game Logic (`src/yinsh/`)
+### `yinsh` - Core Game Logic
 Pure game state and rules with no GUI dependencies. Highly testable.
 
-- **`core.rs`**: Hexagonal coordinate system using cube/axial coords. Board radius 4.6. `Coord`, `Direction`, `Player` types.
+- **`coord.rs`**: Hexagonal coordinate system using axial coords. Board radius 4.6. `Coord` type with arithmetic ops.
+- **`direction.rs`**: `Direction` enum for the six hex directions, `DIRECTIONS` and `AXES` constants.
+- **`player.rs`**: `Player` enum (A/B).
 - **`board.rs`**: Board state with dual storage (2D array for O(1) lookup + Vec for iteration). Ring/marker operations, run detection via `check_run()`.
 - **`game_state.rs`**: State machine with `TurnMode` enum (RingPlacement, MarkerPlacement, RingMovement, RunRemoval, RingRemoval, Wait variants). `Move` enum for all actions. YAML serialization support.
 
-### AI (`src/ai/`)
-Minimax strategy implementation. Depends only on game logic.
+### `yinsh_ai` - AI Player
+Minimax strategy implementation. Depends only on `yinsh`.
 
 - **`game.rs`**: Implements `minimax::Game` trait. `possible_moves()` generates legal moves per turn mode.
 - **`evaluator.rs`**: `Heuristic` trait and `YinshEvaluator` wrapper for minimax.
 - **`heuristics.rs`**: `SimpleHeuristic` with weighted evaluation factors (points, markers, controlled markers, accessible fields).
 
-### GUI (`src/gui/`)
-Bevy plugin architecture for interactive UI.
+### `yinsh_gui` - Bevy GUI
+Bevy plugin architecture for interactive UI. Produces the `yinsh` binary.
 
 - **`state_update.rs`**: Game state mutations and `InteractionState` management
 - **`interaction.rs`**: Mouse input, selection, move execution
 - **`graphics.rs`**: Rendering, colors (human=yellow, AI=magenta), mesh generation
 - **`ai.rs`**: Async AI computation via bevy_async_task
 - **`history.rs`**: Move history (desktop only, uses `#[cfg(not(target_arch = "wasm32"))]`)
+
+### `yinsh_ai_eval` - AI Tournament Runner
+Runs AI vs AI matches for heuristic evaluation. Produces the `yinsh-ai-eval` binary.
 
 ### Key Patterns
 
@@ -71,4 +76,4 @@ Bevy plugin architecture for interactive UI.
 
 ## Testing
 
-Tests in `tests/` cover board operations and AI move generation. Test game states are serialized as YAML files (e.g., `tests/midgame_1.yml`).
+Tests in `crates/yinsh/tests/` cover board operations. Tests in `crates/yinsh_ai/tests/` cover AI evaluation. Test game states are serialized as YAML files.
