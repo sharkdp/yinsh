@@ -1,8 +1,9 @@
 use std::sync::mpsc;
 
+use indicatif::{ProgressBar, ProgressStyle};
 use rand::seq::SliceRandom;
 use rayon::prelude::*;
-use tracing::info;
+use tracing::debug;
 
 use yinsh::{GameState, Move, Player, SimpleHeuristic, YinshAi, YinshAiPlayer, possible_moves};
 
@@ -59,7 +60,7 @@ fn play_match(a: &impl YinshAiPlayer, b: &impl YinshAiPlayer) -> (Outcome, usize
 }
 
 fn play_matches(a: &impl YinshAiPlayer, b: &impl YinshAiPlayer, num_games: usize) -> f64 {
-    info!(
+    debug!(
         player_a = %a.identifier(),
         depth_a = a.search_depth(),
         player_b = %b.identifier(),
@@ -70,10 +71,21 @@ fn play_matches(a: &impl YinshAiPlayer, b: &impl YinshAiPlayer, num_games: usize
 
     let total_games = num_games * 2; // Each pair plays twice (swapping sides)
 
+    println!("Player A: {} (depth {})", a.identifier(), a.search_depth());
+    println!("Player B: {} (depth {})", b.identifier(), b.search_depth());
+    println!();
+
+    let pb = ProgressBar::new(total_games as u64);
+    pb.set_style(
+        ProgressStyle::default_bar()
+            .template("{spinner:.cyan} [{bar:40.cyan/blue}] {pos}/{len} games │ {msg}")
+            .unwrap()
+            .progress_chars("━╸─"),
+    );
+
     let (wins_a, wins_b, draws) = std::thread::scope(|s| {
         let (tx, rx) = mpsc::channel::<GameResult>();
 
-        // Spawn thread that runs rayon parallel iterator
         s.spawn(move || {
             (0..num_games).into_par_iter().for_each_with(tx, |tx, i| {
                 // Game with A as first player
@@ -100,31 +112,35 @@ fn play_matches(a: &impl YinshAiPlayer, b: &impl YinshAiPlayer, num_games: usize
         let mut wins_a = 0;
         let mut wins_b = 0;
         let mut draws = 0;
-        let mut games_completed = 0;
 
         for result in rx {
-            games_completed += 1;
-
             match result.outcome {
                 Outcome::Draw => draws += 1,
                 Outcome::Winner(Player::A) => wins_a += 1,
                 Outcome::Winner(Player::B) => wins_b += 1,
             }
 
-            info!(
+            debug!(
                 game_id = result.game_id,
                 outcome = ?result.outcome,
                 num_moves = result.num_moves,
-                progress = format!("{}/{}", games_completed, total_games),
                 wins_a,
                 wins_b,
                 draws,
                 "Game finished"
             );
+
+            pb.set_message(format!(
+                "Score {:>3}:{:<3} ({} draws)",
+                wins_a, wins_b, draws
+            ));
+            pb.inc(1);
         }
 
         (wins_a, wins_b, draws)
     });
+
+    pb.finish_and_clear();
 
     let percentage_a = wins_a as f64 / total_games as f64 * 100.0;
     let percentage_b = wins_b as f64 / total_games as f64 * 100.0;
@@ -132,9 +148,6 @@ fn play_matches(a: &impl YinshAiPlayer, b: &impl YinshAiPlayer, num_games: usize
 
     println!();
     println!("========== Tournament Results ==========");
-    println!("Player A: {}", a.identifier());
-    println!("Player B: {}", b.identifier());
-    println!();
     println!("  Wins A:  {:>3} ({:>5.1}%)", wins_a, percentage_a);
     println!("  Wins B:  {:>3} ({:>5.1}%)", wins_b, percentage_b);
     println!("  Draws:   {:>3} ({:>5.1}%)", draws, percentage_draws);
@@ -151,7 +164,7 @@ fn main() {
     let num_games: usize = std::env::args()
         .nth(1)
         .and_then(|s| s.parse().ok())
-        .unwrap_or(12);
+        .unwrap_or(50);
 
     let search_depth_a = 6;
     let player_a = YinshAi::new(
