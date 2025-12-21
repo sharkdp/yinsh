@@ -8,6 +8,7 @@ pub use heuristics::SimpleHeuristic;
 
 use evaluator::YinshEvaluator;
 use minimax::{Negamax, Strategy};
+use tracing::trace;
 
 use crate::yinsh::{GameState, Move, TurnMode};
 
@@ -64,7 +65,7 @@ impl<H: Heuristic + Sync> YinshAiPlayer for YinshAi<H> {
 
         let mut strategy = Negamax::new(YinshEvaluator::new(&self.heuristic), depth);
 
-        // dbg!(strategy.root_value());
+        trace!("Root evaluation: {}", strategy.root_value());
 
         strategy.choose_move(state).unwrap()
     }
