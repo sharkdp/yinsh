@@ -1,0 +1,14 @@
+[package]
+name = "yinsh_ai"
+version = "0.1.0"
+authors = ["David Peter <mail@david-peter.de>"]
+description = "AI player for the abstract board game Yinsh."
+homepage = "https://david-peter.de/yinsh"
+repository = "https://github.com/sharkdp/yinsh"
+license = "MIT OR Apache-2.0"
+edition = "2024"
+
+[dependencies]
+yinsh = { path = "../yinsh" }
+minimax = "0.5.3"
+tracing = "0.1"
