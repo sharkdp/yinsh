@@ -2,7 +2,7 @@ use minimax::Evaluation;
 
 use super::evaluator::Heuristic;
 
-use crate::{yinsh::GameState, Board, Coord, Player};
+use crate::{Board, Coord, Player, yinsh::GameState};
 
 #[derive(Debug, Clone, Copy, Default)]
 struct RingPositionStatistics {
@@ -78,13 +78,17 @@ impl Heuristic for SimpleHeuristic {
                 * (Score::try_from(rps_a.accessible_fields).unwrap()
                     - Score::try_from(rps_b.accessible_fields).unwrap());
 
-        
-
         self.f_points * score_points + self.f_markers * score_markers + score_rings
     }
 
     fn identifier(&self) -> String {
-        format!("SimpleHeuristic {{ f_points: {}, f_markers: {}, f_controlled_markers_own: {}, f_controlled_markers_opponent: {}, f_accessible_fields: {} }}",
-            self.f_points, self.f_markers, self.f_controlled_markers_own, self.f_controlled_markers_opponent, self.f_accessible_fields)
+        format!(
+            "SimpleHeuristic {{ f_points: {}, f_markers: {}, f_controlled_markers_own: {}, f_controlled_markers_opponent: {}, f_accessible_fields: {} }}",
+            self.f_points,
+            self.f_markers,
+            self.f_controlled_markers_own,
+            self.f_controlled_markers_opponent,
+            self.f_accessible_fields
+        )
     }
 }
