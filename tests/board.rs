@@ -1,4 +1,4 @@
-use yinsh::{Board, Coord, Player, DIRECTIONS};
+use yinsh::{Board, Coord, DIRECTIONS, Player};
 
 #[test]
 fn basic_marker_placement() {
@@ -76,7 +76,6 @@ fn check_run_exhaustive() {
     for c in yinsh::all_coords() {
         for d in DIRECTIONS {
             if (c + d.direction() * 4).is_inside_board() {
-                dbg!(c, d.direction());
                 let mut board = Board::empty();
 
                 for i in 0..=4i8 {
