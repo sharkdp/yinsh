@@ -1,16 +1,89 @@
+use std::fs::File;
+use std::io::{BufReader, BufWriter, Read, Write};
+use std::path::Path;
 use std::sync::mpsc;
 
 use indicatif::{ProgressBar, ProgressStyle};
 use rayon::prelude::*;
 
 use yinsh::{GameState, Move, Player};
-use yinsh_ai::{possible_moves, SimpleHeuristic, YinshAi, YinshAiPlayer};
-use yinsh_nn::extract_features;
+use yinsh_ai::{SimpleHeuristic, YinshAi, YinshAiPlayer, possible_moves};
+use yinsh_nn::{FEATURE_SIZE, extract_features};
 
 /// A training sample: (features, label)
+#[derive(Clone)]
 pub struct Sample {
     pub features: Vec<f32>,
     pub label: f32,
+}
+
+/// Training dataset that can be serialized/deserialized.
+pub struct TrainingData {
+    pub samples: Vec<Sample>,
+}
+
+impl TrainingData {
+    /// Save training data to a binary file.
+    ///
+    /// Format: [num_samples: u32] [sample]...
+    /// Sample: [label: f32] [features: f32 * FEATURE_SIZE]
+    pub fn save(&self, path: &Path) -> std::io::Result<()> {
+        let file = File::create(path)?;
+        let mut writer = BufWriter::new(file);
+
+        // Write number of samples
+        writer.write_all(&(self.samples.len() as u32).to_le_bytes())?;
+
+        // Write each sample
+        for sample in &self.samples {
+            writer.write_all(&sample.label.to_le_bytes())?;
+            for &f in &sample.features {
+                writer.write_all(&f.to_le_bytes())?;
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Load training data from a binary file.
+    pub fn load(path: &Path) -> std::io::Result<Self> {
+        let file = File::open(path)?;
+        let mut reader = BufReader::new(file);
+
+        // Read number of samples
+        let mut buf4 = [0u8; 4];
+        reader.read_exact(&mut buf4)?;
+        let num_samples = u32::from_le_bytes(buf4) as usize;
+
+        // Read each sample
+        let mut samples = Vec::with_capacity(num_samples);
+        for _ in 0..num_samples {
+            reader.read_exact(&mut buf4)?;
+            let label = f32::from_le_bytes(buf4);
+
+            let mut features = Vec::with_capacity(FEATURE_SIZE);
+            for _ in 0..FEATURE_SIZE {
+                reader.read_exact(&mut buf4)?;
+                features.push(f32::from_le_bytes(buf4));
+            }
+
+            samples.push(Sample { features, label });
+        }
+
+        Ok(Self { samples })
+    }
+
+    /// Split into training and validation sets.
+    pub fn split(mut self, val_ratio: f32) -> (Vec<Sample>, Vec<Sample>) {
+        use rand::seq::SliceRandom;
+
+        self.samples.shuffle(&mut rand::rng());
+
+        let val_count = (self.samples.len() as f32 * val_ratio) as usize;
+        let val_samples = self.samples.split_off(self.samples.len() - val_count);
+
+        (self.samples, val_samples)
+    }
 }
 
 /// Outcome of a game
@@ -95,7 +168,7 @@ pub fn generate_game_records(num_games: usize, search_depth: usize) -> Vec<GameR
 }
 
 /// Maximum number of samples to take from each game.
-const SAMPLES_PER_GAME: usize = 5;
+const SAMPLES_PER_GAME: usize = 30;
 
 /// Convert a game record to training samples.
 ///
@@ -114,11 +187,8 @@ pub fn record_to_samples(record: GameRecord) -> Vec<Sample> {
     let num_states = record.states.len();
 
     // Create indexed states for sampling
-    let mut indexed_states: Vec<(usize, GameState)> = record
-        .states
-        .into_iter()
-        .enumerate()
-        .collect();
+    let mut indexed_states: Vec<(usize, GameState)> =
+        record.states.into_iter().enumerate().collect();
 
     // Randomly sample up to SAMPLES_PER_GAME states
     indexed_states.shuffle(&mut rand::rng());
@@ -162,7 +232,10 @@ pub fn split_train_val(mut records: Vec<GameRecord>, val_ratio: f32) -> (Vec<Sam
     let val_records = records.split_off(records.len() - val_count);
 
     let train_samples: Vec<Sample> = records.into_iter().flat_map(record_to_samples).collect();
-    let val_samples: Vec<Sample> = val_records.into_iter().flat_map(record_to_samples).collect();
+    let val_samples: Vec<Sample> = val_records
+        .into_iter()
+        .flat_map(record_to_samples)
+        .collect();
 
     (train_samples, val_samples)
 }

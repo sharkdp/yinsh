@@ -1,5 +1,57 @@
+use std::path::PathBuf;
+
+use clap::{Parser, Subcommand};
 use yinsh_nn::NNHeuristic;
-use yinsh_nn_training::{generate_game_records, split_train_val};
+use yinsh_nn_training::{TrainingData, generate_game_records, record_to_samples};
+
+#[derive(Parser)]
+#[command(name = "yinsh-nn-train")]
+#[command(about = "Training pipeline for Yinsh neural network heuristic")]
+struct Cli {
+    #[command(subcommand)]
+    command: Commands,
+}
+
+#[derive(Subcommand)]
+enum Commands {
+    /// Generate training data from self-play games
+    Generate {
+        /// Output file for training data
+        #[arg(long, default_value = "training_data.bin")]
+        output: PathBuf,
+
+        /// Number of games to play
+        #[arg(short = 'n', long, default_value = "1000")]
+        games: usize,
+
+        /// Search depth for AI during self-play
+        #[arg(long, default_value = "4")]
+        depth: usize,
+    },
+
+    /// Train the neural network on generated data
+    Train {
+        /// Input file with training data
+        #[arg(long, default_value = "training_data.bin")]
+        input: PathBuf,
+
+        /// Output file for trained model
+        #[arg(long, default_value = "crates/yinsh_nn/model.bin")]
+        output: PathBuf,
+
+        /// Number of training epochs
+        #[arg(long, default_value = "100")]
+        epochs: usize,
+
+        /// Validation split ratio
+        #[arg(long, default_value = "0.1")]
+        val_ratio: f32,
+
+        /// Early stopping patience (epochs without improvement before stopping)
+        #[arg(long, default_value = "10")]
+        patience: usize,
+    },
+}
 
 fn calculate_mse(heuristic: &NNHeuristic, inputs: &[Vec<f32>], targets: &[Vec<f32>]) -> f32 {
     let mut mse = 0.0;
@@ -11,40 +63,45 @@ fn calculate_mse(heuristic: &NNHeuristic, inputs: &[Vec<f32>], targets: &[Vec<f3
     mse / inputs.len() as f32
 }
 
-fn main() {
-    let num_games: usize = std::env::args()
-        .nth(1)
-        .and_then(|s| s.parse().ok())
-        .unwrap_or(500);
-
-    let search_depth: usize = std::env::args()
-        .nth(2)
-        .and_then(|s| s.parse().ok())
-        .unwrap_or(4);
-
-    let epochs: usize = std::env::args()
-        .nth(3)
-        .and_then(|s| s.parse().ok())
-        .unwrap_or(100);
-
-    println!("=== Yinsh Neural Network Training ===");
-    println!("Games: {}", num_games);
-    println!("Search depth: {}", search_depth);
-    println!("Epochs: {}", epochs);
+fn cmd_generate(output: PathBuf, games: usize, depth: usize) {
+    println!("=== Generating Training Data ===");
+    println!("Games: {}", games);
+    println!("Search depth: {}", depth);
+    println!("Output: {}", output.display());
     println!();
 
-    // Generate training data
-    println!("Generating training data from self-play games...");
-    let records = generate_game_records(num_games, search_depth);
+    println!("Playing self-play games...");
+    let records = generate_game_records(games, depth);
+
     let total_states: usize = records.iter().map(|r| r.states.len()).sum();
-    println!(
-        "Generated {} states from {} games",
-        total_states, num_games
-    );
+    println!("Generated {} states from {} games", total_states, games);
+
+    // Convert to samples
+    let samples: Vec<_> = records.into_iter().flat_map(record_to_samples).collect();
+    println!("Sampled {} training examples", samples.len());
+
+    // Save to file
+    let data = TrainingData { samples };
+    data.save(&output).expect("Failed to save training data");
+    println!("Saved to {}", output.display());
+}
+
+fn cmd_train(input: PathBuf, output: PathBuf, epochs: usize, val_ratio: f32, patience: usize) {
+    println!("=== Training Neural Network ===");
+    println!("Input: {}", input.display());
+    println!("Output: {}", output.display());
+    println!("Epochs: {}", epochs);
+    println!("Validation ratio: {}", val_ratio);
+    println!("Early stopping patience: {}", patience);
     println!();
 
-    // Split into train/validation (at the game level to avoid data leakage)
-    let (train_samples, val_samples) = split_train_val(records, 0.1);
+    // Load training data
+    println!("Loading training data...");
+    let data = TrainingData::load(&input).expect("Failed to load training data");
+    println!("Loaded {} samples", data.samples.len());
+
+    // Split into train/validation
+    let (train_samples, val_samples) = data.split(val_ratio);
     println!(
         "Training samples: {}, Validation samples: {}",
         train_samples.len(),
@@ -71,6 +128,11 @@ fn main() {
     let batch_size = 32;
     let samples_per_epoch = train_inputs.len();
 
+    // Early stopping state
+    let mut best_val_loss = f32::MAX;
+    let mut best_epoch = 0;
+    let mut epochs_without_improvement = 0;
+
     for epoch in 0..epochs {
         let mut epoch_loss = 0.0;
 
@@ -93,19 +155,62 @@ fn main() {
         let avg_train_loss = epoch_loss / samples_per_epoch as f32;
         let val_mse = calculate_mse(&heuristic, &val_inputs, &val_targets);
 
+        // Check for improvement
+        let improved = val_mse < best_val_loss;
+        if improved {
+            best_val_loss = val_mse;
+            best_epoch = epoch + 1;
+            epochs_without_improvement = 0;
+
+            // Save best model
+            heuristic.save(output.to_str().unwrap());
+        } else {
+            epochs_without_improvement += 1;
+        }
+
         println!(
-            "Epoch {}/{}: train_loss = {:.6}, val_loss = {:.6}",
+            "Epoch {}/{}: train_loss = {:.6}, val_loss = {:.6}{}",
             epoch + 1,
             epochs,
             avg_train_loss,
-            val_mse
+            val_mse,
+            if improved { " (best)" } else { "" }
         );
+
+        // Early stopping check
+        if epochs_without_improvement >= patience {
+            println!();
+            println!(
+                "Early stopping: no improvement for {} epochs",
+                patience
+            );
+            break;
+        }
     }
 
     println!();
+    println!(
+        "Best model from epoch {} with val_loss = {:.6}",
+        best_epoch, best_val_loss
+    );
+    println!("Model saved to {}", output.display());
+}
 
-    // Save the model
-    let model_path = "crates/yinsh_nn/model.bin";
-    heuristic.save(model_path);
-    println!("Model saved to {}", model_path);
+fn main() {
+    let cli = Cli::parse();
+
+    match cli.command {
+        Commands::Generate {
+            output,
+            games,
+            depth,
+        } => cmd_generate(output, games, depth),
+        Commands::Train {
+            input,
+            output,
+            epochs,
+            val_ratio,
+            patience,
+        } => cmd_train(input, output, epochs, val_ratio, patience),
+    }
 }

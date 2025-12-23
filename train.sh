@@ -2,13 +2,28 @@
 
 set -e
 
-training_data_generation_games=20000
-training_data_generation_depth=4
-epochs=20
+games=100000
+depth=4
+epochs=100
 
-cargo run \
-    -p yinsh_nn_training \
-    --release \
-    "$training_data_generation_games" \
-    "$training_data_generation_depth" \
-    "$epochs"
+data_file="training_data.bin"
+
+yinsh_nn_training() {
+    cargo run -p yinsh_nn_training --release -- "$@"
+}
+
+# Generate training data (skip if data file exists)
+if [[ ! -f "$data_file" ]]; then
+    echo "Generating training data..."
+    yinsh_nn_training generate \
+        --games "$games" \
+        --depth "$depth" \
+        --output "$data_file"
+else
+    echo "Using existing training data: $data_file"
+fi
+
+# Train the network
+yinsh_nn_training train \
+    --input "$data_file" \
+    --epochs "$epochs"

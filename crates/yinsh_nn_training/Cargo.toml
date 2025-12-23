@@ -20,3 +20,4 @@ runnt = "0.9"
 rayon = "1.10"
 indicatif = "0.17"
 rand = "0.9"
+clap = { version = "4", features = ["derive"] }
