@@ -91,7 +91,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
-          path: target/release/yinsh-*
+          path: |
+            target/release/yinsh-linux
+            target/release/yinsh-macos
+            target/release/yinsh-windows.exe
 
   publish:
     needs: release
