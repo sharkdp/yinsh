@@ -36,10 +36,8 @@ impl NNHeuristic {
     ///
     /// Architecture: 172 → 64 (ReLU) → 32 (ReLU) → 1 (Tanh)
     pub fn new_untrained(scale: Evaluation) -> Self {
-        // let network = NN::new(&[FEATURE_SIZE, 64, 32, 1])
         let network = NN::new(&[FEATURE_SIZE, 64, 32, 1])
-            // .with_optimizer(Optimizer::adam())
-            .with_learning_rate(0.001)
+            .with_learning_rate(0.01)
             .with_activation_hidden(Activation::Relu)
             .with_activation_output(Activation::Tanh);
 

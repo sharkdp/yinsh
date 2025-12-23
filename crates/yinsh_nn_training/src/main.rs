@@ -48,7 +48,7 @@ enum Commands {
         val_ratio: f32,
 
         /// Early stopping patience (epochs without improvement before stopping)
-        #[arg(long, default_value = "10")]
+        #[arg(long, default_value = "4")]
         patience: usize,
     },
 }
@@ -124,9 +124,12 @@ fn cmd_train(input: PathBuf, output: PathBuf, epochs: usize, val_ratio: f32, pat
     println!("Initial validation MSE: {:.6}", initial_val_mse);
     println!();
 
-    // Train using fit method with mini-batches
+    // Train using fit method with proper mini-batch gradient descent
     let batch_size = 32;
-    let samples_per_epoch = train_inputs.len();
+
+    // Convert to references for runnt's fit method
+    let train_inputs_refs: Vec<&Vec<f32>> = train_inputs.iter().collect();
+    let train_targets_refs: Vec<&Vec<f32>> = train_targets.iter().collect();
 
     // Early stopping state
     let mut best_val_loss = f32::MAX;
@@ -134,25 +137,14 @@ fn cmd_train(input: PathBuf, output: PathBuf, epochs: usize, val_ratio: f32, pat
     let mut epochs_without_improvement = 0;
 
     for epoch in 0..epochs {
-        let mut epoch_loss = 0.0;
+        // Use fit() for proper mini-batch gradient descent
+        // This accumulates gradients over batch_size samples before updating weights
+        heuristic
+            .network_mut()
+            .fit(&train_inputs_refs, &train_targets_refs, batch_size);
 
-        for batch_start in (0..samples_per_epoch).step_by(batch_size) {
-            let batch_end = (batch_start + batch_size).min(samples_per_epoch);
-
-            for i in batch_start..batch_end {
-                heuristic
-                    .network_mut()
-                    .fit_one(&train_inputs[i], &train_targets[i]);
-            }
-
-            // Calculate batch loss
-            for i in batch_start..batch_end {
-                let output = heuristic.network().forward(&train_inputs[i]);
-                epoch_loss += (output[0] - train_targets[i][0]).powi(2);
-            }
-        }
-
-        let avg_train_loss = epoch_loss / samples_per_epoch as f32;
+        // Calculate losses after the epoch
+        let train_mse = calculate_mse(&heuristic, &train_inputs, &train_targets);
         let val_mse = calculate_mse(&heuristic, &val_inputs, &val_targets);
 
         // Check for improvement
@@ -172,7 +164,7 @@ fn cmd_train(input: PathBuf, output: PathBuf, epochs: usize, val_ratio: f32, pat
             "Epoch {}/{}: train_loss = {:.6}, val_loss = {:.6}{}",
             epoch + 1,
             epochs,
-            avg_train_loss,
+            train_mse,
             val_mse,
             if improved { " (best)" } else { "" }
         );
@@ -180,10 +172,7 @@ fn cmd_train(input: PathBuf, output: PathBuf, epochs: usize, val_ratio: f32, pat
         // Early stopping check
         if epochs_without_improvement >= patience {
             println!();
-            println!(
-                "Early stopping: no improvement for {} epochs",
-                patience
-            );
+            println!("Early stopping: no improvement for {} epochs", patience);
             break;
         }
     }
