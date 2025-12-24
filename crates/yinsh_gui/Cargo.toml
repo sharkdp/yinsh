@@ -11,6 +11,7 @@ edition = "2024"
 [dependencies]
 yinsh = { path = "../yinsh" }
 yinsh_ai = { path = "../yinsh_ai" }
+yinsh_nn = { path = "../yinsh_nn" }
 
 bevy = { version = "0.17" }
 bevy_tweening = "0.14"
