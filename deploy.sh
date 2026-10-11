@@ -1,18 +1,17 @@
-#!/bin/bash
-
+#!/usr/bin/env bash
 set -euo pipefail
+cat <<'INSTRUCTIONS'
+Deployment is managed by pink-nixos:
 
-export CARGO_TARGET_DIR=target/
+1. Commit and push your website changes in this repository.
+2. In /home/shark/Dropbox/Informatik/nixos/pink-nixos, run:
 
-cargo build --profile wasm-release --target wasm32-unknown-unknown
+   nix flake update yinsh
+   git diff -- flake.lock
+   git add flake.lock
+   git commit -m "Update yinsh website"
+   ./deploy.sh
+   git push
 
-wasm-bindgen \
-    --target web \
-    --no-typescript \
-    --out-dir ./web \
-    --out-name "yinsh" \
-    ./target/wasm32-unknown-unknown/wasm-release/yinsh.wasm
-
-#wasm-opt -Oz -o ./web/yinsh_bg.wasm ./web/yinsh_bg.wasm
-
-rsync --archive --stats --progress --human-readable web/* shark.fish:david-peter.de/yinsh/
+The configuration pins the source revision and builds the website on pink.
+INSTRUCTIONS
