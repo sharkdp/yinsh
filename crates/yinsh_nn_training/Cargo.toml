@@ -1,0 +1,23 @@
+[package]
+name = "yinsh_nn_training"
+version = "0.1.0"
+authors = ["David Peter <mail@david-peter.de>"]
+description = "Training pipeline for Yinsh neural network heuristic."
+homepage = "https://david-peter.de/yinsh"
+repository = "https://github.com/sharkdp/yinsh"
+license = "MIT OR Apache-2.0"
+edition = "2024"
+
+[[bin]]
+name = "yinsh-nn-train"
+path = "src/main.rs"
+
+[dependencies]
+yinsh = { path = "../yinsh" }
+yinsh_ai = { path = "../yinsh_ai" }
+yinsh_nn = { path = "../yinsh_nn" }
+runnt = "0.9"
+rayon = "1.10"
+indicatif = "0.17"
+rand = "0.9"
+clap = { version = "4", features = ["derive"] }

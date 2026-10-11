@@ -7,6 +7,7 @@ use tracing::debug;
 
 use yinsh::{GameState, Move, Player};
 use yinsh_ai::{SimpleHeuristic, YinshAi, YinshAiPlayer, possible_moves};
+use yinsh_nn::NNHeuristic;
 
 #[derive(Debug, Clone, Copy)]
 enum Outcome {
@@ -180,16 +181,12 @@ fn main() {
     );
 
     let search_depth_b = 6;
-    let player_b = YinshAi::new(
-        SimpleHeuristic {
-            f_points: 10_000,
-            f_markers: 100,
-            f_controlled_markers_own: 5,
-            f_controlled_markers_opponent: 10,
-            f_accessible_fields: 1,
-        },
-        search_depth_b,
-    );
+    let nn_heuristic = NNHeuristic::load("crates/yinsh_nn/model.bin", 10_000)
+        .unwrap_or_else(|_| {
+            eprintln!("Warning: Could not load model.bin, using untrained network");
+            NNHeuristic::new_untrained(10_000)
+        });
+    let player_b = YinshAi::new(nn_heuristic, search_depth_b);
 
     play_matches(&player_a, &player_b, num_games);
 }

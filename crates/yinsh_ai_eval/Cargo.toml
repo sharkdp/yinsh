@@ -11,6 +11,7 @@ edition = "2024"
 [dependencies]
 yinsh = { path = "../yinsh" }
 yinsh_ai = { path = "../yinsh_ai" }
+yinsh_nn = { path = "../yinsh_nn" }
 rayon = "1.10.0"
 rand = "0.8.5"
 tracing = "0.1"
